@@ -1,0 +1,227 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import java.text.*;
+
+class LedgerAmnestySMCPostingPreviewService
+{
+	@ActiveDB('ledgeramnesty_smc')
+	def em;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('loanapp_capture')
+	def loanapp_capture;
+
+	@ActiveDB('borrower')
+	def borrower;
+
+	@ActiveDB('loan_product_type')
+	def product_type;
+
+	@Service('LedgerAmnestySMCService')
+	def smcSvc;
+
+	@Service('LedgerAmnestyPreviewService')
+	def prevSvc;
+
+
+	private def DATE_FORMAT = new SimpleDateFormat("MMM-dd-yyyy");
+	private def DECIMAL_FORMAT = new DecimalFormat("#,##0.00;(#,##0.00)");
+
+	@ProxyMethod
+	public def open( params ) {
+		def data = [:]
+		def smc = smcSvc.open(params);
+		if (smc) {
+			data.objid = smc.objid;
+			data.dtstarted = smc.dtstarted;
+			data.dtended = smc.dtended;
+			data.conditions = smc?.courtinfo?.conditions;
+			data.description = 'SMC ' + smc?.description;
+			data.posting = [term: smc?.postinginfo?.term, date: smc?.postinginfo?.dtstarted];
+		}
+
+		data?.rows = 20;
+		data?.lastpageindex = 1;
+		def c = em.findCountPostingDetails([objid: data.objid]);
+		if (c) {
+			def a = (c.counter/data?.rows);
+			data.lastpageindex = new BigDecimal(a+'').setScale(0, BigDecimal.ROUND_CEILING);
+			if (data.lastpageindex <= 0) data.lastpageindex = 1;
+		}
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (params.objid) {
+			def headers = em.getPostingHeaders(params);
+
+			def item;
+			headers?.each{ o->
+				def info = o.remove('info');
+				info = em.serializer.read(info);
+				o.putAll(info);
+
+				item = [name: o.name, caption: o.title, sequence: o.sequence, xdatatype: o.datatype];
+				switch (item.xdatatype) {
+					case 'decimal':
+						item.alignment = "right";
+						break;
+				}
+				/*
+				if (o.datatype) {
+					item.xdatatype = o.datatype;
+					if (o.format) {
+						switch (item.type) {
+							case 'decimal'	: item.format = o.format; break;
+							case 'date' 	: item.outputFormat = o.format; break;
+						}
+					}
+				}
+				*/
+				cols << item;
+			}
+
+			cols?.sort{ it.sequence }
+		}
+
+		//println 'cols';
+		//cols?.each{ println it }
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getList( params ) {
+		if (!params.objid) return [];
+
+		def headers = getColumns(params);
+		def h = headers?.findAll{ it.xdatatype == 'decimal' }
+		def i = headers?.findAll{ it.xdatatype == 'date' }
+
+		def list = em.getPostingDetails(params);
+		def info;//, regex = '(dtschedule|dtpaid)';
+		list?.each{ o->
+			info = o.remove('info');
+			info = em.serializer.read(info);
+			o.putAll(info);
+
+			h?.each{ d->
+				if (o[d.name] != null) {
+					o[d.name] = DECIMAL_FORMAT.format(o[d.name]);
+				}
+			}
+
+			i?.each{ d->
+				if (o[d.name] != null) {
+					o[d.name] = DATE_FORMAT.format(parseDate(o[d.name]));
+				}
+			}
+
+
+			if (o.adjustmentid != null) {
+				def item = em.read(o, "posting-detail");
+				//println 'debit ' + o.debit;
+				//println 'credit ' + o.credit;
+				def debit = item.debit;
+				if (debit && o[debit.type] != null) {
+					o[debit.type] = 'Dr: ' + o[debit.type];//DECIMAL_FORMAT.format(o[debit.type]);
+					//o[debit.type] = o[debit.type];
+				}
+
+				def credit = item.credit;
+				if (credit && o[credit.type] != null) {
+					o[credit.type] = 'Cr: ' + o[credit.type];//DECIMAL_FORMAT.format(o[credit.type]);
+					//o[credit.type] = o[credit.type];
+				}
+				//println 'item';
+				//o?.each{ println it }
+			}
+
+
+		}
+
+		return list;
+	}
+
+	def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+
+	@ProxyMethod
+	public def getReportData( params ) {
+		def smc = em.read([objid: params?.objid]);
+		if (!smc) throw new RuntimeException('SMC record does not exist or has already been deleted.');
+
+		def ledger = loan_ledger.read([objid: smc?.ledger?.objid]);
+		if (!ledger) throw new RuntimeException('Ledger record does not exist or has already been deleted.');
+
+		def app = loanapp.read([objid: ledger?.appid]);
+		if (!app) throw new RuntimeException('App record does not exist or has already been deleted.');
+
+		def pt = product_type.read([name: app?.producttype?.name]);
+
+		def appc = loanapp_capture.read(app);
+
+		def pb = borrower.read([objid: app?.borrower?.objid]);
+		if (!pb) throw new RuntimeException('Borrower record does not exist or has already been deleted.');
+
+
+		def data = [
+			borrowername 	: pb?.name,
+			borroweraddress	: pb?.address,
+			borrowertelno 	: pb?.contactno,
+			pn 				: app?.appno,
+			originalamtloan	: app?.loanamount,
+			dategranted		: appc?.dtreleased,//dateSvc.add(ledger.dtstarted, "-1"),
+			datematurity	: ledger?.dtmatured,
+			interestrate	: pt?.interestrate
+		];
+
+		def payments = getList([objid: smc?.objid]);
+		//if (payments) {
+		//	payments[0].originalamount = data?.originalamtloan;
+		//}
+		data.payments = payments;
+
+		return data;
+	}
+	/*
+	private def DEFAULT_FIELD_DISPLAY = [
+		[title: 'Schedule of Payment', name: 'dtschedule', sequence: 1],
+		[title: 'Partial Payment', name: 'partialpayment', sequence: 2],
+		[title: 'Balance', name: 'balance', sequence: 3],
+		[title: 'Interest Paid', name: 'interest', sequence: 4],
+		[title: 'Penalty Charges', name: 'penalty', sequence: 5],
+		[title: 'Total Payment', name: 'totalpayment', sequence: 6],
+		[title: 'OR No.', name: 'refno', sequence: 7],
+		[title: 'Date Paid', name: 'dtpaid', sequence: 8],
+		[title: 'Remarks', name: 'remarks', sequence: 9]
+	];
+
+
+
+	public def getPreview( params ) {
+
+
+		def list = [];
+
+		
+	}
+	*/
+}

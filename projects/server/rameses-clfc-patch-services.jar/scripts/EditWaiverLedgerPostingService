@@ -1,0 +1,319 @@
+import com.rameses.annotations.*;
+import java.text.*;
+import java.rmi.server.UID;
+import org.joda.time.*;
+
+class EditWaiverLedgerPostingService
+{
+	@ActiveDB('edit_ledger_posting')
+	def em;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('ledgeramnesty_waiver')
+	def ledgeramnesty_waiver;
+
+	@Service('DateService')
+	def dateSvc;
+
+	private def decFormat = new DecimalFormat('#,##0.00');
+	private def dateFormat = new SimpleDateFormat('MMM-dd-yyyy');
+	private def dateFormat2 = new SimpleDateFormat('yyyy-MM-dd');
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		def ledger = loan_ledger.read([objid: params?.ledger?.objid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def pyts = getPayments(params);
+
+		def data = [ledgerid: ledger?.objid, payments: pyts];
+		return data;
+	}
+
+	@ProxyMethod
+	public def getPaymentInfo( params ) {
+		def pyt = loan_ledger.read([objid: params?.objid], 'payment');
+		if (!pyt) throw new Exception('Ledger payment record does not exist or has already been deleted.');
+
+		return pyt;
+	}
+
+	def getPayments( params ) {
+		def list = em.getWaiverPayment([objid: params?.refid]);
+		list = addPaymentInfo(list);
+
+		return list;
+	}
+
+	def addPaymentInfo( src ) {
+		def list = [];
+		src?.each{ o->
+			def i = loan_ledger.read([objid: o?.objid], 'payment');
+			def item = [
+				objid	: o.objid,
+				caption	: 'Date: ' + dateFormat.format(o.txndate) + ' Ref. No.: ' + o.refno + ' Amount: ' + decFormat.format(o.amount), 
+				refno	: o.refno,
+				amount 	: o.amount,
+				txndate : o.txndate
+			]
+			list << item;
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'dtschedule', caption: 'Schedule of Payment', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'partialpayment', caption: 'Partial Payment', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'balance', caption: 'Balance', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'interestpaid', caption: 'Interest Paid', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'penaltypaid', caption: 'Penalty Charge', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'amtpaid', caption: 'Total Payment', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'refno', caption: 'OR No.'];
+		cols << [name: 'dtpaid', caption: 'Date Paid', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getDetail( params ) {
+		def pyt = loan_ledger.read([objid: params?.payment?.objid], 'payment');
+
+		def ledger = loan_ledger.read([objid: pyt?.parentid]);
+		def app = loanapp.read([objid: ledger?.appid]);
+		def appc = loanapp.read([objid: app?.objid], 'loanapp_capture');
+		
+		def list = em.getWaiverPostingDetail([objid: params?.refid]);
+		list = getDetailImpl(list, [dtreleased: appc?.dtreleased]);
+
+		def xlist = list?.findAll{ it.refno == params?.payment?.refno }
+		xlist?.each{ it.selected = true }
+
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getDetailByRefno( params ) {
+		def pyt = loan_ledger.read([objid: params?.paymentid], 'payment');
+
+		def ledger = loan_ledger.read([objid: pyt?.parentid]);
+		def app = loanapp.read([objid: ledger?.appid]);
+		def appc = loanapp.read([objid: app?.objid], 'loanapp_capture');
+
+		def list = em.getWaiverPostingDetailByRefno([objid: params?.refid, refno: pyt?.refno]);
+		list = getDetailImpl(list, [dtreleased: appc?.dtreleased]);
+
+		return list;
+	}
+
+	def getDetailImpl( list, data ) {
+		def cal = Calendar.getInstance();
+		def sched;
+		def xlist = list?.findAll{ it.day != null }
+		xlist?.each{ o->
+			cal.setTime(data?.dtreleased);
+			cal.add(Calendar.DATE, o.day);
+			sched = dateFormat2.format(cal.getTime());
+			sched = parseDate(sched);
+			o.dtschedule = sched;
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def removeLedgerDetail( params ) {
+		def pyt = loan_ledger.read([objid: params?.paymentid], 'payment');
+
+		def item =  ledgeramnesty.read([objid: params.objid], 'posting-detail');
+		if (item) {
+			if (!pyt.totalinterest) pyt.totalinterest = 0;
+			if (item.interestpaid) {
+				pyt.totalinterest -= item.interestpaid;
+				if (pyt.totalinterest < 0) pyt.totalinterest = 0;
+				def rev = loan_ledger.findRevenueByTagAndDate([objid: pyt?.parentid, tag: 'INTEREST', date: pyt?.txndate]);
+				if (rev) {
+					rev.amount -= item.interestpaid;
+					if (rev.amount < 0) rev.amount = 0;
+					loan_ledger.update(rev, 'revenue');
+				}
+			}
+
+			if (!pyt.totalpenalty) pyt.totalpenalty = 0;
+			if (item.penaltypaid) {
+				pyt.totalpenalty -= item.penaltypaid;
+				if (pyt.totalpenalty < 0) pyt.totalpenalty =0;
+				def rev = loan_ledger.findRevenueByTagAndDate([objid: pyt?.parentid, tag: 'PENALTY', date: pyt?.txndate]);
+				if (rev) {
+					rev.amount -= item.interestpaid;
+					if (rev.amount < 0) rev.amount = 0;
+					loan_ledger.update(rev, 'revenue');
+				}
+			}
+
+			ledgeramnesty.delete(item, 'posting-detail');
+			loan_ledger.delete(item, 'detail');
+		}
+		loan_ledger.update(pyt, 'payment');
+	}
+
+	@ProxyMethod
+	public def saveLedgerDetail( params ) {
+		def pyt = loan_ledger.read([objid: params.paymentid], 'payment');
+		def waiver = ledgeramnesty_waiver.read([objid: params?.refid]);
+
+		def ledger = loan_ledger.read([objid: pyt?.parentid]);
+		def app = loanapp.read([objid: ledger?.appid]);
+		def appc = loanapp.read([objid: app?.objid], 'loanapp_capture');
+
+
+		def sd = new LocalDate(parseDate(appc?.dtreleased));
+		def ed = new LocalDate(parseDate(params.dtschedule));
+		def day = Days.daysBetween(sd, ed).getDays();
+
+		if (!pyt.totalinterest) pyt.totalinterest = 0;
+		if (!pyt.totalpenalty) pyt.totalpenalty = 0;
+
+		def item = ledgeramnesty.read([objid: params.objid], 'posting-detail');
+		if (!item) {
+			item = [
+				objid 			: params?.objid,
+				parentid 		: waiver?.objid,
+				state 			: 'RECEIVED',
+				day 			: day,
+				txndate 		: dateSvc.serverDate,
+				baseamount 		: pyt?.amount,
+				groupbaseamount : pyt?.amount
+			];
+		} else if (item) {
+			if (item.interestpaid) {
+				pyt.totalinterest -= item.interestpaid;
+				def rev = loan_ledger.findRevenueByTagAndDate([objid: pyt?.parentid, tag: 'INTEREST', date: pyt?.txndate]);
+				if (rev) {
+					rev.amount -= item.interestpaid;
+					if (rev.amount < 0) rev.amount = 0;
+					loan_ledger.update(rev, 'revenue');
+				}
+
+			}
+
+			if (item.penaltypaid) {
+				pyt.totalpenalty -= item.penaltypaid;
+				def rev = loan_ledger.findRevenueByTagAndDate([objid: pyt?.parentid, tag: 'PENALTY', date: pyt?.txndate]);
+				if (rev) {
+					rev.amount -= item.penaltypaid;
+					if (rev.amount < 0) rev.amount = 0;
+					loan_ledger.update(rev, 'revenue');
+				}
+			}
+		}
+
+		item.dtpaid = params?.dtpaid;
+		item.refno = params?.refno;
+		item.balance = checkIfNull(params?.balance, 0);
+		item.partialpayment = checkIfNull(params?.partialpayment, 0);
+		item.amtdue = checkIfNull(params?.amtpaid, 0);
+		item.interestdue = checkIfNull(params?.interestpaid, 0);
+		item.penaltydue = checkIfNull(params?.penaltypaid, 0);
+		item.amtpaid = checkIfNull(params?.amtpaid, 0);
+		item.interestpaid = checkIfNull(params?.interestpaid, 0);
+		item.penaltypaid = checkIfNull(params?.penaltypaid, 0);
+		item.amtbal = checkIfNull(params?.amtbal, 0);
+		item.interestbal = checkIfNull(params?.interestbal, 0);
+		item.penaltybal = checkIfNull(params?.penaltybal, 0);
+
+		ledgeramnesty.save(item, 'posting-detail');
+
+		item = loan_ledger.read([objid: params.objid], 'detail');
+		if (!item) {
+			item = [
+				objid 			: params?.objid,
+				parentid 		: ledger?.objid,
+				state 			: 'RECEIVED',
+				day 			: day,
+				txndate 		: dateSvc.serverDate,
+				baseamount 		: pyt?.amount,
+				groupbaseamount : pyt?.amount,
+				amnestyid 		: waiver?.objid
+			];
+		}
+
+		item.dtpaid = params?.dtpaid;
+		item.refno = params?.refno;
+		item.balance = checkIfNull(params?.balance, 0);
+		item.partialpayment = checkIfNull(params?.partialpayment, 0);
+		item.amtdue = checkIfNull(params?.amtpaid, 0);
+		item.interestdue = checkIfNull(params?.interestpaid, 0);
+		item.penaltydue = checkIfNull(params?.penaltypaid, 0);
+		item.amtpaid = checkIfNull(params?.amtpaid, 0);
+		item.interestpaid = checkIfNull(params?.interestpaid, 0);
+		item.penaltypaid = checkIfNull(params?.penaltypaid, 0);
+		item.amtbal = checkIfNull(params?.amtbal, 0);
+		item.interestbal = checkIfNull(params?.interestbal, 0);
+		item.penaltybal = checkIfNull(params?.penaltybal, 0);
+
+		loan_ledger.save(item, 'detail');
+
+		if (item.interestpaid) {
+			pyt.totalinterest += item.interestpaid;
+			def rev = loan_ledger.findRevenueByTagAndDate([objid: pyt?.parentid, tag: 'INTEREST', date: pyt?.txndate]);
+			if (!rev) {
+				rev = [
+					objid	: 'LLR' + new UID(),
+					parentid: pyt?.parentid,
+					txndate : pyt?.txndate,
+					tag 	: 'INTEREST',
+					amount 	: 0
+				];
+			}
+			rev.amount += item.interestpaid;
+			loan_ledger.save(rev, 'revenue');
+		}
+
+		if (item.penaltypaid) {
+			pyt.totalpenalty += item.penaltypaid
+			def rev = loan_ledger.findRevenueByTagAndDate([objid: pyt?.parentid, tag: 'PENALTY', date: pyt?.txndate]);
+			if (!rev) {
+				rev = [
+					objid	: 'LLR' + new UID(),
+					parentid: pyt?.parentid,
+					txndate : pyt?.txndate,
+					tag 	: 'PENALTY',
+					amount 	: 0
+				];
+			}
+			rev.amount += item.penaltypaid;
+			loan_ledger.save(rev, 'revenue');
+		}
+
+		loan_ledger.update(pyt, 'payment');
+
+	}
+
+	def checkIfNull( data, newdata ) {
+		if (!data) return newdata;
+		return data;
+	}
+
+	def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+}

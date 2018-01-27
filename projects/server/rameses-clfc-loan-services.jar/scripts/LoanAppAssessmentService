@@ -1,0 +1,78 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.rules.common.*;
+
+import loan.facts.*;
+import loan.actions.*;
+
+class LoanAppAssessmentService {
+
+	@ActiveDB("loan_application")
+	def em;
+
+	@ActiveDB("loanapp")
+	def loanapp;
+
+	@ActiveDB("loan_itemaccount")
+	def loan_itemaccount;
+
+	@Service("RuleExecutorService")
+	def ruleSvc;
+
+	@Service("NumberService")
+	def numSvc;
+
+	@ProxyMethod
+	public def getAssessmentInfo( params, prevloan ) {
+
+		def request = [charges: []];
+
+		def facts = [];
+		facts << buildAppFact(params?.objid, prevloan?.objid);
+		if (prevloan) facts << buildPrevAppFact(prevloan);
+		
+		//println 'facts';
+		//facts?.each{ println it.toMap(); }
+
+		def actions = new RuleAction(); 
+		actions.addCommand( "computeCharge", new  ComputeCharge(NS: numSvc, IA: loan_itemaccount, request: request) );
+		actions.addCommand( "computeTotalCharges", new ComputeTotalCharges(NS: numSvc) );
+		actions.addCommand( "computeNetAmount", new ComputeNetAmount(NS: numSvc) );
+
+		ruleSvc.execute("loanapplication", facts, actions, null);
+
+
+		def app = facts?.find{ (it instanceof LoanApp) == true }?.toMap(); 
+
+		return [charges: app.charges, totalcharges: app.totalcharges, netamount: app.netamount];
+	}
+
+	private def buildAppFact( objid, prevloanid ) {
+		//def app = loanapp.read([objid: objid]);
+		//if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted.");
+
+		def app = em.read([objid: objid]);
+		if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted.");
+
+		def params = [
+			appid 		: app.objid,
+			apptype		: app.apptype,
+			principal 	: app.amount,
+			loantype 	: app.loantype,
+			loancount 	: app.loancount,
+			dtreleased 	: app.dtreleased,
+			dtmatured 	: app.dtmatured,
+			prevloanid 	: prevloanid
+		];
+		
+		return new LoanApp(params);
+	}
+
+	private def buildPrevAppFact( prevloan ) {
+		def params = [
+			appid 	: prevloan.objid,
+			amount 	: prevloan.amount
+		];
+		return new PrevLoanApp(params);
+	}
+}

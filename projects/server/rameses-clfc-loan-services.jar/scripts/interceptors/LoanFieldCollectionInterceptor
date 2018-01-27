@@ -1,0 +1,82 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+
+class LoanFieldCollectionInterceptor
+{
+	@ActiveDB('collection_remittance')
+	def em;
+
+	@ActiveDB('ledger_billing')
+	def ledger_billing;
+
+	@ActiveDB('specialcollection')
+	def specialcollection;
+
+	@After(pattern="LoanFieldCollectionService.post")
+	public void afterPost( evt ) {
+		def params = evt.args[0];
+		def remittanceid = params?.remittance?.objid;
+
+		def rem = em.read([objid: remittanceid]);
+		if (!rem) throw new Exception('Remittance record does not exist or has already been deleted.');
+
+		def item = ledger_billing.findByBillingidAndItemid([objid: rem?.collection?.objid, itemid: rem?.group?.objid]);
+		if (item) {
+			item.state = 'POSTED';
+			ledger_billing.update(item, 'billing-item');
+		}
+
+		def itemtype = rem?.group?.type;
+		switch (itemtype) {
+			case 'followup'	: postSpecialCollection(rem); break;
+			case 'special' 	: postSpecialCollection(rem); break;
+		}
+
+		//throw new Exception('stopping');
+	}
+
+	void postSpecialCollection( remittance ) {
+		def itemtype = remittance?.group?.type;
+		def sc = specialcollection.read([objid: remittance?.group?.objid]);
+		if (!sc) {
+			def type = '';
+			switch (itemtype) {
+				case 'followup'	: type = 'Follow-up'; break;
+				case 'special' 	: type = 'Special'; break;
+			}
+
+			throw new Exception(type + ' collection billing record does not exist or has already been deleted.');
+		}
+
+		sc.state = 'POSTED';
+		specialcollection.update(sc);
+	}
+
+
+	//@Before(pattern="LoanFieldCollectionService.saveCashBreakdown", eval="args[0].breakdowntype == 'route'")
+	public void beforeRouteSaveCashBreakdown( evt ) {
+		def params = evt.args[0];
+		params.groupid = params.routecode;
+		params.grouptype = 'route';
+		params.remove('breakdowntype');
+		params.remove('routecode');
+	}
+
+	//@Before(pattern="LoanFieldCollectionService.saveCashBreakdown", eval="args[0].breakdowntype == 'followup'")
+	public void beforeFollowupSaveCashBreakdown( evt ) {
+		def params = evt.args[0];
+		params.groupid = params.collectionid;
+		params.grouptype = 'followup';
+		params.remove('breakdowntype');
+		params.remove('collectionid');
+	}
+
+	//@Before(pattern="LoanFieldCollectionService.saveCashBreakdown", eval="args[0].breakdowntype == 'special'")
+	public void beforeSpecialCashBreakdown( evt ) {
+		def params = evt.args[0];
+		params.groupid = params.collectionid;
+		params.grouptype = 'special';
+		params.remove('breakdowntype');
+		params.remove('collectionid');
+	}
+}

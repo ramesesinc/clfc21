@@ -1,0 +1,29 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class AmnestyLedgerLookupService extends ActiveListService
+{
+	@ActiveDB("amnestyledger")
+	def em;
+
+	String listMethod = 'getLookupList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+		cols << [name: 'loanapp.loanamount', caption: 'Loan Amount', type: 'decimal', format: '#,##0.00'];
+		cols << [name: 'dtreleased', caption: 'Release Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'dtmatured', caption: 'Maturity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'borrower.address', caption: 'Address'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+	}
+}

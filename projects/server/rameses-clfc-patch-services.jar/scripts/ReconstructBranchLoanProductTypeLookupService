@@ -1,0 +1,26 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class ReconstructBranchLoanProductTypeLookupService extends ActiveListService {
+
+	@ActiveDB('reconstruct_branchloan')
+	def em;
+
+	String listMethod = 'getProductTypeLookupList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'name', caption: 'Name'];
+		cols << [name: 'description', caption: 'Description'];
+		cols << [name: 'term', caption: 'Term'];
+		cols << [name: 'interestrate', caption: 'Interest Rate'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+	}
+}

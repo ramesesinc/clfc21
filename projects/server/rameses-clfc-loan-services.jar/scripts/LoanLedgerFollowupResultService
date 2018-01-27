@@ -1,0 +1,481 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class LoanLedgerFollowupResultService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('followup_result')
+	def em;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('fieldcollection')
+	def fieldcollection;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('datatxnlog')
+	def txnlog; 
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('ledgeramnesty_fix')
+	def ledgeramnesty_fix;
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('borrower')
+	def borrower;
+
+	@ActiveDB('override_amnesty_request')
+	def override_amnesty_request;
+
+	@ActiveDB('ledger_billing')
+	def ledger_billing;
+
+	@ActiveDB('collector_remarks')
+	def collector_remarks;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('SequenceService')
+	def seqSvc;
+
+	@Service('OverrideAmnestyRequestService')
+	def overrideAmnestySvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+		cols << [name: 'dtcreated', caption: 'Date Created'];
+		cols << [name: 'author.name', caption: 'Created By'];
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'txndate', caption: 'Follow-up Date', type : 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+
+		if (params.state == 'CONFIRMED') {
+			cols << [name: 'dtconfirmed', caption: 'Date Confirmed'];
+			cols << [name: 'confirmedby.name', caption: 'Confirmed By'];
+		}
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'CONFIRMED', state: 'CONFIRMED']
+		];
+	}
+
+	void beforeCreate( data ) {
+		def date = dateSvc.parseCurrentDate();
+		data.dtcreated = date.date;
+		data.author = [objid: env.USERID, name: env.NAME];
+		if (!data.txnstate) data.txnstate = 'DRAFT';
+
+		def year = date.year + "";
+		def seqname = 'followup-result' + year;
+		def prefix = 'FR' + year[2] + year[3];
+		data.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname, 6);
+
+		data._request = data.remove('overriderequest');
+	}
+
+	void beforeUpdate( data ) {
+		data._request = data.remove('overriderequest');
+	}
+
+	void afterCreate( data ) {
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateInfo(data);
+	}
+
+	void updateInfo( data ) {
+		data?._removerequest?.each{ o->
+			override_amnesty_request.delete(o);
+		}
+
+		def list = data?._request?.findAll{ it._new == true }
+		list?.each{ o->
+			if (!o.refid) o.refid = data.objid;
+			o = overrideAmnestySvc.create(o);
+		}
+
+		list = data?._request?.findAll{ it._edit == true }
+		list?.each{ o->
+			if (!o.refid) o.refid = data.objid;
+			o = overrideAmnestySvc.update(o);
+		}
+
+		data?.overriderequest = data?.remove('_request');
+		data?.remove('_removerequest');
+	}
+
+	void afterOpen( data ) {
+		//data?.overriderequest = override_amnesty_request.getListByLedgerid([ledgerid: data?.ledgerid]);
+		data?.overriderequest = getOverrideAmnestyList(data);
+	}
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		//println 'params ' + params;
+		def item = [txndate: params.billdate, refid: params.objid];
+
+		def app = loanapp.read([objid: params.loanapp?.objid]);
+		if (!app) throw new Exception('Loan app record does not exist or has already been deleted.');
+
+		item.borrower = app.borrower;
+		item.loanapp = [objid: app.objid, appno: app.appno];
+
+		def ledger = loan_ledger.findByAppId([appid: app.objid]);
+		ledger = loan_ledger.read([objid: ledger?.objid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		item.ledgerid = ledger.objid;
+
+		def fl = fieldcollection.read([objid: params?.objid], 'fc-loan');
+		item.draft = fl?.remarks;
+
+		item.availedamnesty = [:];
+		def itm = ledgeramnesty.findActiveByDateAndLedgerid([date: params.billdate, ledgerid: ledger?.objid]);
+		if (itm) {
+			item.currentamnesty = itm;
+
+			/*
+			def af = ledgeramnesty_fix.read([objid: itm.refid]);
+			def am = ledgeramnesty.read([objid: af?.refid], 'detail');
+
+			am.refno = af.refno;
+			am.ledger = af.ledger;
+			am.dtstarted = itm.dtstarted;
+			am.dtended = itm.dtended;
+
+			item.availedamnesty = am;
+			*/
+			//println 'detail';
+			//am?.each{ println it }
+		}
+		//ledgeramnesty.findActiveByDateAndLedgerid([date: '', ledgerid: '']);
+
+
+		return item;
+	}
+
+	@ProxyMethod
+	public def getOverrideAmnestyList( params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Follow-up record does not exist or has already been deleted.');
+
+		//def list = override_amnesty_request.getListByLedgerid([ledgerid: data?.ledgerid]);
+		def list = override_amnesty_request.getListByRefid([refid: data?.objid]);
+		list?.each{ o->
+			def info = o.remove('info');
+			info = em.serializer.read(info);
+			o.putAll(info);
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getAmnestyRecommendationInfo( params ) {
+		def data = ledgeramnesty.read(params, 'detail');
+		if (!data) throw new Exception('Amnesty recommendation record does not exist or has already been deleted.');
+
+		def amnesty = ledgeramnesty.read([objid: data.parentid]);
+		if (!amnesty) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		data.refno = amnesty.refno;
+		data.ledger = amnesty.ledger;
+
+		def cal = Calendar.getInstance();
+		cal.setTime(parseDate(String.valueOf(params.txndate).split(' ')[0]));
+
+		boolean hasenddate = false;
+		data.dtstarted = cal.getTime();
+		if (!data.usedate || data.usedate == 0) {
+			if (data.month > 0) {
+				hasenddate = true
+				cal.add(Calendar.MONTH, data.month);
+			}
+			if (data.day > 0) {
+				hasenddate = true;
+				cal.add(Calendar.DATE, data.day);
+			}
+		} else if (data.usedate == 1) {
+			hasenddate = true;
+			cal.setTime(parseDate(data.date));
+		}
+
+		if (hasenddate == true) {
+			data.dtended = cal.getTime();
+		}
+
+		return data;
+	}
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+	void validateConfirm( data ) {
+		def item = override_amnesty_request.findByStateAndLedgerid([state: 'DRAFT', ledgerid: data?.ledgerid]);
+		if (item) {
+			throw new Exception('Cannot confirm document. There are still draft override amnesty request(s).');
+		}
+
+		item = override_amnesty_request.findByStateAndLedgerid([state: 'FOR_APPROVAL', ledgerid: data?.ledgerid]);
+		if (item) {
+			throw new Exception('Cannot confirm document. There are still override amnesty request(s) that needs approval.');
+		}
+	}
+
+	@ProxyMethod
+	public def confirm( params ) {
+		def data = changeState(params, 'CONFIRMED');
+		validateConfirm(params);
+
+		//def currentdate = dateSvc.serverDate;
+		//def user = [objid: env.USERID, name: env.NAME];
+
+		data.dtconfirmed = dateSvc.serverDate;
+		data.confirmedby = [objid: env.USERID, name: env.NAME];
+		//data.confirmedby = user;
+		em.update(data, 'confirm');
+
+		switch (data?.amnestyoption) {
+			case 'avail'	: processAvail(data); break;
+			case 'reject'	: processReject(data); break;
+		}
+
+		def detail = ledger_billing.read([objid: data?.refid], "billing-detail");
+		if (detail) {
+			def item = collector_remarks.read(detail);
+			if (!item) {
+				def billing = ledger_billing.read([objid: detail?.billingid]);
+
+				item = [
+					objid 		: detail.objid,
+					ledgerid	: detail.ledgerid,
+					dtcreated 	: data.dtcreated,
+					author		: data.author,
+					txndate 	: data.txndate,
+					collector 	: billing?.collector,
+					remarks 	: data.remarks
+				];
+				collector_remarks.create(item);
+				collector_remarks.create(item, 'followup-remarks');
+			} else {
+				collector_remarks.update([objid: item.objid, remarks: data.remarks]);
+			}
+		}
+
+
+		/*
+		def availed = data.availedamnesty;
+
+		if (availed) {
+			processAvail(availed, data);
+		}
+		*/
+
+		return open(data);
+	}
+
+	void processAvail( data) {
+		def availed = data?.availedamnesty;
+		processAvail(availed, data);
+	}
+
+	void processAvail( availed, data ) {
+		def currentdate = data?.dtconfirmed;
+		def user = data?.confirmedby;
+
+		if (availed?.dtended) {
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(availed.dtended));
+
+			def xdate = parseDate(currentdate.toString().split(' ')[0]);
+			def dtended = cal.getTime();
+			if (xdate.compareTo(dtended) > 0) {
+				throw new Exception('Cannot avail this recommendation. Maturity date for this recommendation has already passed.');
+			}
+		}
+
+		/*
+		if (availed.usedate == 0) {
+			if (availed.month > 0) {
+				cal.add(Calendar.MONTH, availedamnesty.month);
+			}
+			if (availed.day > 0) {
+				cal.add(Calendar.DATE, availed.day);
+			}
+		} else {
+			cal.setTime(parseDate(availed.date));
+		}
+		def dtended = cal.getTime();
+
+		def xdate = parseDate(currentdate.toString().split(' ')[0]);
+		if (xdate.compareTo(dtended) > 0) {
+			throw new Exception('Cannot avail this recommendation. Maturity date for this recommendation has already passed.');
+		}
+		*/
+
+		def app = loanapp.read([objid: data?.loanapp?.objid]);
+		if (!app) throw new Exception('Loan application record does not exist or has already been deleted.');
+
+		def appc = loanapp.read(app, 'loanapp_capture');
+		if (appc) {
+			app.dtreleased = appc?.dtreleased;
+		}
+
+		def br = data.borrower;
+		def xbr = borrower.read([objid: br.objid]);
+		if (!xbr) throw new Exception('Borrower record does not exist or has already been deleted.');
+
+		br.address = xbr.address;
+
+		def ld = loan_ledger.read([objid: data.ledgerid]);
+		if (!ld) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		app.dtmatured = ld.dtmatured;
+		
+
+		def item = ledgeramnesty_fix.findByRefid([refid: availed.objid]);
+		//println '\nitem';
+		//item?.each{ println it }
+		if (!item) {
+			item = [
+				objid		: 'LAF' + new UID(),
+				dtcreated	: currentdate,
+				author		: user,
+				txndate 	: data.txndate,
+				txnstate	: 'AVAILED',
+				txnmode 	: 'ONLINE',
+				refid 		: availed?.objid,
+				refno		: availed?.refno,
+				borrower 	: br,
+				loanapp 	: app,
+				//borrower 	: data.borrower,
+				//loanapp 	: data.loanapp,
+				ledger 		: availed.ledger,
+				description	: availed?.description,
+				amount 		: availed?.amount,
+				balance 	: availed?.amount,
+				dtstarted	: availed?.dtstarted,
+				dtended 	: availed?.dtended
+			];
+			ledgeramnesty_fix.create(item);
+		}
+
+		//throw new Exception('stopping');
+		//println 'availed ' + availed;
+
+		def am = ledgeramnesty.read([objid: availed?.parentid]);
+		if (am) {
+			am.txnstate = 'AVAILED';
+			ledgeramnesty.update(am);
+		}
+
+		def ac = ledgeramnesty_collection.findByRefid([refid: availed?.parentid]);
+		if (ac) {
+			ledgeramnesty_collection.delete(ac);
+		}
+
+		def item2 = ledgeramnesty_collection.findByRefid([refid: item.objid]);
+		if (!item2) {
+			item2 = [
+				objid		: item.objid,
+				dtcreated 	: currentdate,
+				author		: user,
+				txnstate	: item.txnstate,
+				txnmode		: 'ONLINE',
+				refid 		: item.objid,
+				reftype 	: 'FIX',
+				borrower 	: item.borrower,
+				loanapp 	: item.loanapp,
+				description : item.description,
+				dtstarted 	: item.dtstarted,
+				dtended 	: item.dtended
+			];
+			ledgeramnesty_collection.create(item2);
+		}
+	}
+
+	void processReject( data ) {
+		def rejected = data?.rejectedamnesty;
+		processReject(rejected, data);
+	}
+
+	void processReject( rejected, data ) {
+		def am = ledgeramnesty.read(data);
+		if (!am) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+	}
+
+	private def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Follow-up  result record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Follow-up result record already ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.update(data);
+
+		def action, remarks;
+		switch (state) {
+			case 'CONFIRMED'	: action = 'Confirmed';
+								  remarks = 'Document confirmed with Ref. No. ' + data.refno;
+								  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+
+		return open(data);
+	}
+
+
+}

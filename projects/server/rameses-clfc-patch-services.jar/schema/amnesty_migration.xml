@@ -1,0 +1,11 @@
+<schema>
+
+	<element tablename='amnesty_ledgeramnesty_migration'>
+		<field name='objid' primary='true' />
+	</element>
+
+	<element name='resolve-term' tablename='ledgeramnesty_resolve_term'>
+		<field name='objid' primary='true' />
+	</element>
+
+</schema>

@@ -1,0 +1,42 @@
+<schema>
+
+	<element tablename='ledgeramnesty_fix'>
+		<field name='objid' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='txndate' required='true' />
+		<field name='txnstate' required='true' />
+		<field name='txnmode' required='true' />
+		<field name='refid' required='true' />
+		<field name='refno' required='true' />
+		<field name='borrower_objid' required='true' />
+		<field name='borrower_name' required='true' />
+		<field name='loanapp_objid' required='true' />
+		<field name='loanapp_appno' required='true' />
+		<field name='ledger_objid' required='true' />
+		<field name='ledger_balance' required='true' />
+		<field name='description' required='true' />
+		<field name='amount' required='true' />
+		<field name='balance' required='true' />
+		<field name='dtstarted' required='true' />
+		<field name='dtended' />
+		<field name='dtverified' />
+		<field name='verifier_objid' />
+		<field name='verifier_name' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<element name='balance' tablename='ledgeramnesty_fix'>
+		<field name='objid' primary='true' />
+		<field name='balance' required='true' />
+	</element>
+
+	<element name='verify' tablename='ledgeramnesty_fix'>
+		<field name='objid' primary='true' />
+		<field name='dtverified' required='true' />
+		<field name='verifier_objid' required='true' />
+		<field name='verifier_name' required='true' />
+	</element>
+
+</schema>

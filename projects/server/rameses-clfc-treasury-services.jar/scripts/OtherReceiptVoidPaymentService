@@ -1,0 +1,136 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class OtherReceiptVoidPaymentService extends ActiveListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('otherreceipt')
+	def em;
+
+	@ActiveDB('datatxnlog')
+	def txnlog;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	String subSchemaName = 'voidrequest';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	@ProxyMethod
+	public def save( data ) {
+		def currdate = dateSvc.serverDate;
+
+		data.dtcreated = currdate;
+		data.author = getUser();
+		data.txnstate = 'FOR_APPROVAL';
+
+		em.create(data, subSchemaName);
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: currdate, 
+			refid 		: data.objid, 
+			filetype 	: 'otherreceipt:voidrequest', 
+			message 	: 'For approval of other receipt void payment request', 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'APPROVER' 
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def open( params ) {
+		def data = em.read(params, subSchemaName);
+		if (!data) throw new RuntimeException('Void Request record does not exist or has already been deleted.');
+
+		return data;
+	}
+
+	def changeState( params, state ) {
+		def data = em.read(params, subSchemaName);
+		if (!data) throw new RuntimeException('Void Request record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new RuntimeException('Void Request has already been ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.update(data, subSchemaName);
+
+		def action, remarks;
+		switch (state) {
+			case 'APPROVED'		: action = 'Approve';
+								  remarks = 'Void Request Approved';
+								  break;
+			case 'DISAPPROVED'  : action = 'Disapprove';
+								  remarks = 'Void Request Disapproved';
+								  break;
+		}
+
+		if (action && remarks) {
+			def logdata = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate,
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,  
+				remarks : remarks
+			]; 
+			txnlog.create( logdata ); 
+		}
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		def data = postImpl(params, 'APPROVED');
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		def data = postImpl(params, 'DISAPPROVED');
+
+		return data;
+	}
+
+	private def postImpl( params, state ) {
+		def data = changeState(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = getUser();
+		em.update(data, 'voidrequest-post');
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]); 
+
+		return open(data);
+	}
+}

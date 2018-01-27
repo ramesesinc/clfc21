@@ -1,0 +1,34 @@
+<schema>
+
+	<element tablename='posting_setting'>
+		<field name='objid' primary='true' />
+		<field name='type' required='true' />
+		<field name='dtstarted' />
+		<field name='dtended' />
+		<complex name='postingheader' required='false' type='list' serializer='default' />
+		<complex name='postingsequence' required='false' type='list' serializer='default' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<!--
+	<element tablename='branch_loan_posting'>
+		<field name='objid' primary='true' />
+		<field name='startyear' />
+		<field name='endyear' />
+		<complex name='postingheader' required='false' type='list' serializer='default' />
+		<complex name='postingsequence' required='false' type='list' serializer='default' />
+		<field name='info' required='false' serializer='default' merge='true' />
+	</element>
+	-->
+
+	<!--
+	<element tablename='branch_loan_posting'>
+		<field='objid' primary='true' />
+		<field='startyear' />
+		<field='endyear' />
+		<complex='postingheader' required='false' type='list' serializer='default' />
+		<complex='postingsequence' required='false' type='list' serializer='default' />
+		<complex='info' required='false' serializer='default' merge='true' />
+	</element>
+	-->
+</schema>

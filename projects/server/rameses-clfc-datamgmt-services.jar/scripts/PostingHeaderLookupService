@@ -1,0 +1,69 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class PostingHeaderLookupService extends ActiveListService
+{
+	@ActiveDB('posting_header')
+	def em;
+
+
+	/*
+	@ProxyMethod
+	public def getList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		def list = em.getLookupList(params);
+
+		list?.sort{ it.sequence }
+		list?.each{ o->
+			o.caption = o.sequence + ' ' + o.title + ' ';
+			if (o.type) o.caption += '(' + o.type + ')';
+		}
+		return list;
+	}
+	*/
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+
+		if (params.conditions) {
+			def list = [];
+			def item;
+			params?.conditions?.each{ o->
+				item = [:];
+				item.putAll(o);
+				list << item;
+			}
+
+			def conditions = '';
+			list?.each{ o->
+				if (conditions) conditions += ',';
+				conditions += "'" + o.conditionid + "'";
+			}
+			params.conditions = conditions;
+			params._listMethod = 'getListFilteredByCondition';
+		}
+	}
+
+	void afterList( params, list ) {
+		list?.sort{ it.sequence }
+		list?.each{ o->
+			o.caption = o.sequence + ' ' + o.title + ' ';
+			if (o.type) o.caption += '(' + o.type + ')';
+		}
+	}
+
+	@ProxyMethod
+	public def getHeaderInfo( params ) {
+		def data = em.read(params);
+		return data;
+	}
+
+}

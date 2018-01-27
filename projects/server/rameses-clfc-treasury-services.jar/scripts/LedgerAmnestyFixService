@@ -1,0 +1,273 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class LedgerAmnestyFixService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('ledgeramnesty_fix')
+	def em;
+
+	@ActiveDB('datatxnlog')
+	def txnlog; 
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	private String MODE = 'ONLINE';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'description', caption: 'Description'];
+		cols << [name: 'dtstarted', caption: 'Effectivity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'dtended', caption: 'Maturity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+
+		if (params.state == 'ACTIVE') {
+			cols << [name: 'dtverified', caption: 'Date Verified'];
+			cols << [name: 'verifier.name', caption: 'Verified By'];
+		}
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.txnmode = MODE;
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'AVAILED', state: 'AVAILED'],
+			[caption: 'SEND BACK', state: 'SEND_BACK'],
+			[caption: 'FOR VERIFICATION', state: 'FOR_VERIFICATION'],
+			[caption: 'VERIFIED', state: 'VERIFIED']
+		];
+	}
+
+	void beforeCreate( params ) {
+		params.remove('sendbackremarks');
+	}
+
+	void beforeUpdate( params ) {
+		params.remove('sendbackremarks');
+	}
+
+	void afterOpen( data ) {
+		def sb = ledgeramnesty.findCurrentSendbackByState([refid: data.objid, state: 'DRAFT']);
+		if (sb) {
+			data.sendbackremarks = sb.remarks;
+		}
+	}
+
+	@ProxyMethod
+	public def getAmnestyRecommendationInfo( params ) {
+		def data = ledgeramnesty.read(params, 'detail');
+		if (!data) throw new Exception('Amnesty recommendation record does not exist or has already been deleted.');
+
+		def amnesty = ledgeramnesty.read([objid: data.parentid]);
+		if (!amnesty) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		data.refno = amnesty.refno;
+		data.ledger = amnesty.ledger;
+
+		def cal = Calendar.getInstance();
+		cal.setTime(parseDate(params.txndate));
+
+		data.dtstarted = cal.getTime();
+		if (data.usedate == 0) {
+			if (data.month > 0) {
+				cal.add(Calendar.MONTH, data.month);
+			}
+			if (data.day > 0) {
+				cal.add(Calendar.DATE, data.day);
+			}
+		} else {
+			cal.setTime(parseDate(data.date));
+		}
+		data.dtended = cal.getTime();
+
+		return data;
+	}
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+
+	@ProxyMethod
+	public def submitForVerification( params ) {
+		def data = changeState(params, 'FOR_VERIFICATION');
+
+		def currentdate = dateSvc.serverDate;
+		if (data?.dtended) {
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(data.dtended));
+
+			def xdate = parseDate(currentdate.toString().split(' ')[0]);
+			def dtended = cal.getTime();
+			if (xdate.compareTo(dtended) > 0) {
+				throw new Exception('Cannot avail this recommendation. Maturity date for this recommendation has already passed.');
+			}
+		}
+
+		def sb = ledgeramnesty.findCurrentSendbackByState([refid: data.objid, state: 'DRAFT']);
+		if (sb) {
+			sb.state = 'CLOSED';
+			ledgeramnesty.update(sb, 'sendback');
+		}
+
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: currentdate,
+			refid 		: data.objid, 
+			filetype 	: 'ledgeramnesty:online:fix', 
+			message 	: 'For verification fix amnesty document with Ref. No. '+ data.refno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'APPROVER' 
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}
+
+
+	private def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Fix amnesty record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Fix amnesty record has already been ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.changeState(data);
+
+		def xitem = ledgeramnesty_collection.findByRefid([refid: data.objid]);
+		if (!xitem) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		xitem.txnstate = state;
+		ledgeramnesty_collection.update(xitem);
+
+		def action, remarks;
+		switch (state) {
+			case 'SEND_BACK'		: action = 'Send Back';
+								  	  remarks = 'Send back document with Ref. No. ' + data.refno;
+								  	  break;
+			case 'FOR_VERIFICATION' : action = 'For Verification';
+									  remarks = 'Submit for verification document with Ref. No. ' + data.refno;
+									  break;
+			case 'VERIFIED' 			: action = 'Verify';
+									  remarks = 'Verify document with Ref. No. ' + data.refno;
+									  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def sendBack( params ) {
+		if (!params.sendbackremarks) throw new Exception('Please specify send back remarks.');
+		def data = changeState(params, 'SEND_BACK');
+
+		def sb = ledgeramnesty.findCurrentSendbackByState([refid: data.objid, state: 'DRAFT']);
+		if (!sb) {
+			sb = [
+				objid		: 'LSB' + new UID(),
+				state 		: 'DRAFT',
+				dtcreated 	: dateSvc.serverDate,
+				author 		: [objid: env.USERID, name: env.NAME],
+				refid 		: data.objid,
+				remarks 	: params.sendbackremarks
+			];
+			ledgeramnesty.create(sb, 'sendback');
+		}
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);		
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def verify( params ) {
+		def data = changeState(params, 'VERIFIED');
+
+		def xitem = ledgeramnesty_collection.findByRefid([refid: data.objid]);
+		if (!xitem) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		xitem.txnstate = 'ACTIVE';
+		ledgeramnesty_collection.update(xitem);
+
+		def currdate = dateSvc.serverDate;
+		def user = [objid: env.USERID, name: env.NAME];
+
+		data.dtverified = currdate;
+		data.verifier = user;
+		em.update(data, 'verify');
+
+		def dtl = ledgeramnesty.read([objid: data.refid], 'detail');
+		if (!dtl) throw new Exception('Amnesty recommendation does not exist or has already been deleted.');
+
+		def activ = ledgeramnesty.read([objid: dtl.parentid], 'active');
+		if (!activ) {
+			activ = [
+				objid		: dtl.parentid,
+				dtfiled 	: currdate,//dateSvc.serverDate,
+				author		: user, //[objid: env.USERID, name: env.NAME],
+				amnestyid 	: dtl.parentid,
+				refid 		: data.objid,
+				ledgerid	: data.ledger?.objid,
+				type 		: 'FIX',
+				description : data.description,
+				dtstarted 	: data.dtstarted,
+				dtended 	: data.dtended
+			];
+			ledgeramnesty.create(activ, 'active');
+		}
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+
+		return open(data);
+	}
+}

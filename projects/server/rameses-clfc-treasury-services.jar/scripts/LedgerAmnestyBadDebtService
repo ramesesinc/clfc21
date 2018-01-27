@@ -1,0 +1,372 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+import java.text.*;
+
+class LedgerAmnestyBadDebtService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('ledgeramnesty_baddebt')
+	def em;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('borrower')
+	def borrower;
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('loan_ledger_noncash')
+	def ledger_noncash;
+
+	@ActiveDB('datatxnlog')
+	def txnlog; 
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('SequenceService')
+	def seqSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	@Service('LoanLedgerNoncashService')
+	def noncashSvc;
+
+	@Service('BranchService')
+	def branchSvc;
+
+	private def MODE = 'ONLINE';
+	private def decFormat = new DecimalFormat('#,##0.00');
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+		cols << [name: 'amount', caption: 'Amount', type: 'decimal', format: '#,##0.00'];
+
+		if (params.state == 'APPROVED') {
+			cols << [name: 'dtposted', caption: 'Date Approved'];
+			cols << [name: 'poster.name', caption: 'Approved By'];
+		} else if (params.state == 'DISAPPROVED') {
+			cols << [name: 'dtposted', caption: 'Date Disapproved'];
+			cols << [name: 'poster.name', caption: 'Disapproved By'];
+		}
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'APPROVED', state: 'APPROVED'],
+			[caption: 'DISAPPROVED', state: 'DISAPPROVED']
+		]
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		params.mode = MODE;
+
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	private def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+
+	void checkRequest( ledgerid ) {
+		def i = em.findByLedgeridAndState([ledgerid: ledgerid, state: 'FOR_APPROVAL']);
+		if (i) throw new Exception('This ledger already has a bad debt request that needs approval.');
+
+		i = em.findByLedgeridAndState([ledgerid: ledgerid, state: 'APPROVED']);
+		if (i) throw new Exception('This ledger already has an approved bad debt request.');
+	}
+
+	private def buildDescription( data ) {
+		if (!data.amount) return null;
+
+		return decFormat.format(data.amount) + ' Bad Debt';
+	}
+
+	void beforeCreate( data ) {
+		def currdate = dateSvc.parseCurrentDate();
+		data.dtcreated = currdate.date;
+		data.author = getUser();
+
+		def year = currdate.year + "";
+		def seqname = 'amnestybaddebt' + year;
+		def prefix = 'BD' + year[2] + year[3];
+		data.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname, 6);
+		
+		data.txnmode = MODE;
+		data.description = buildDescription(data);
+	}
+
+	void beforeUpdate( data ) {
+		data.description = buildDescription(data);
+	}
+
+	void afterCreate( data ) {
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateInfo(data);
+	}
+
+	private void updateInfo( data ) {
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) {
+			ac = [
+				objid		: data.objid,
+				dtcreated 	: data.dtcreated,
+				author		: data.author,
+				txnstate	: data.txnstate,
+				txnmode 	: MODE,
+				refid 		: data.objid,
+				reftype 	: 'BAD_DEBT',
+				borrower 	: data.borrower,
+				loanapp 	: data.loanapp,
+				description : data.description,//createDescription(data),
+				dtstarted 	: data.dtstarted,
+				dtended 	: data.dtended
+			]
+			ledgeramnesty_collection.create(ac);
+		} else {
+			ac.borrower = data.borrower;
+			ac.loanapp = data.loanapp;
+			ac.description = data.description; //createDescription(data);
+			ac.dtstarted = data.dtstarted;
+			ac.dtended = data.dtended;
+			ledgeramnesty_collection.update(ac);
+		}
+	}
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		if (!params.ledgerid) throw new Exception('Please specify ledgerid.');
+
+		checkRequest(params.ledgerid);
+
+		def data  = [:];
+
+		def ledger = loan_ledger.read([objid: params.ledgerid]);
+		if (!ledger) throw new Exception('Loan ledger record does not or has already been deleted.');
+
+		def xledger = [
+			objid		: ledger.objid,
+			interest 	: ledger.interestamount,
+			balance		: ledger.balance,
+			dailydue	: ledger.dailydue,
+			dtmatured 	: ledger.dtmatured
+		];
+		data.ledger = xledger;
+
+		def app = loanapp.read([objid: ledger.appid]);
+		if (!app) throw new Exception('Loanapp record does not exist or has already been deleted.');
+
+		def xapp = [
+			objid		: app.objid,
+			appno		: app.appno,
+			loanamount 	: app.loanamount,
+			dtmatured	: ledger.dtmatured
+		]
+
+		def ac = loanapp.read(app, 'loanapp_capture');
+		xapp.dtreleased = ac?.dtreleased;
+
+		data.loanapp = xapp;
+
+		def pb = borrower.read([objid: app.borrower.objid]);
+		if (!pb) throw new Exception('Borrower record does not exist or has already been deleted.');
+
+		data.borrower = pb;
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def submitForApproval( params ) {
+		def data = changeState(params, 'FOR_APPROVAL');
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: data.objid, 
+			filetype 	: 'ledgeramnesty:' + data.txnmode?.toLowerCase() + ':baddebt', 
+			message 	: 'For approval bad debt request with Ref. No. ' + data.refno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'APPROVER'
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+
+		return open(data);
+	}
+
+	private def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Bad debt record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Bad debt record has already been ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.changeState(data);
+
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		ac.txnstate = state;
+		ledgeramnesty_collection.update(ac);
+
+		def action, remarks;
+		switch (state) {
+			case 'FOR_APPROVAL'	: action = 'For Approval';
+								  remarks = 'Submit for approval document with Ref. No. ' + data.refno;
+								  break;
+			case 'APPROVED'		: action = 'Approve';
+								  remarks = 'Approve document with Ref. No. ' + data.refno;
+								  break;
+			case 'DISAPPROVED'	: action = 'Disapprove';
+								  remarks = 'Disapprove document with Ref. No. ' + data.refno;
+								  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		def data = approveImpl(params, 'APPROVED');
+
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		ac.txnstate = 'ACTIVE';
+		ledgeramnesty_collection.update(ac);
+
+		def currdate = dateSvc.serverDate;
+
+		def activ = ledgeramnesty.read([objid: data.objid], 'active');
+		if (!activ) {
+			activ = [
+				objid		: data.objid,
+				dtfiled 	: currdate,
+				author		: [objid: env.USERID, name: env.NAME],
+				amnestyid 	: data.objid,
+				refid 		: data.objid,
+				ledgerid	: data.ledger?.objid,
+				type 		: 'BAD_DEBT',
+				description : data.description,
+				dtstarted 	: currdate,
+				dtended 	: currdate
+			];
+			ledgeramnesty.create(activ, 'active');
+		} else {
+			activ.description = data.description;
+			activ.dtstarted = currdate;
+			activ.dtended = currdate;
+			ledgeramnesty.update(activ, 'active');
+		}
+
+		
+		def xdate = new SimpleDateFormat('yyyy-MM-dd').format(currdate);
+		def am = ledgeramnesty.findPreviousActiveByLedgeridAndStartDate([ledgerid: data.ledger?.objid, date: xdate]);
+
+		if (am && !am.dtended) {
+			def cal = Calendar.getInstance();
+			cal.setTime(currdate);
+			cal.add(Calendar.DATE, -1);
+			am.dtended = cal.getTime();
+			ledgeramnesty.update(am, 'active');
+		}
+
+		def branch = branchSvc.open([:]);
+
+		def nc = ledger_noncash.read([objid: data.objid]); //noncashSvc.open([objid: data.objid]);
+		if (!nc) {
+			nc = [
+				objid		: data.objid,//'BDNC' + new UID(),
+				parentid	: data.ledger?.objid,
+				txntype 	: 'ONLINE',
+				borrower 	: data.borrower,
+				reftype		: 'BAD_DEBT',
+				amount		: data.amount,
+				paidby		: branch?.name
+			]
+			noncashSvc.create(nc);
+		}
+
+		def appid = data?.loanapp?.objid;
+		def app = loanapp.read([objid: appid], 'loanapp_close');
+		if (!app) {
+			app = [
+				objid	 	: appid,
+				dtclosed 	: currdate,
+				closedby 	: getUser(),
+				remarks		: 'Bad Debt payment'
+			];
+			loanapp.create(app, 'loanapp_close');
+		}
+
+		return open(data);
+	} 
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		def data = approveImpl(params, 'DISAPPROVED');
+
+		return open(data);
+	}
+
+	private def approveImpl( params, state ) {
+		def data = changeState(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = getUser();
+		em.update(data, 'post');
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+
+		return open(data);
+	}
+}

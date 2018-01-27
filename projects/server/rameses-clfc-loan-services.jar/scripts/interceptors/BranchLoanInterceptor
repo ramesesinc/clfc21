@@ -1,0 +1,20 @@
+import com.rameses.annotations.*;
+
+class BranchLoanInterceptor
+{
+	@ActiveDB('ledger_branchloan_posting')
+	def em;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@Before(pattern='LoanLedgerPaymentService.rebuild')
+	public void beforePaymentRebuild( evt ) {
+		def params = evt.args[0];
+
+		def ledger = loan_ledger.read([objid: params.objid]);
+		if (!ledger) return;
+
+		em.removePostingDetails([objid: ledger?.objid]);
+	}
+}

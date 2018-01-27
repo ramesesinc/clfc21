@@ -1,0 +1,42 @@
+package amnestybaddebt;
+import java.util.*;
+global List results;
+global Map lastPayment;
+global Map floating;
+global Map resultMap;
+
+declare Payment
+	amountPaid 		: double
+	totalInterest 	: double
+	totalPenalty 	: double
+	currentDay 		: int
+end
+
+declare References
+	amountPaid 		: double
+	balance			: double
+end
+
+rule "post bad debt"
+	when
+		p: Payment(amountPaid > 0)
+		r: References()
+	then
+		Map item = new HashMap();
+
+		double amtpaid = r.getAmountPaid();
+		double balance = r.getBalance();
+
+		if (balance >= amtpaid) {
+			balance -= amtpaid;
+		} else if (balance < amtpaid) {
+			balance = 0;
+		}
+
+		item.put("day", p.getCurrentDay());
+		item.put("payment", r.getAmountPaid());
+		item.put("partialpayment", amtpaid);
+		item.put("balance", balance);
+
+		results.add(item);
+end

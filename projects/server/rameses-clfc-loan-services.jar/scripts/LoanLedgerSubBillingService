@@ -1,0 +1,662 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class LoanLedgerSubBillingService extends ActiveCrudService
+{
+	@Env
+	def env;
+
+	@ActiveDB("ledger_billing_assist")
+	def em;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB("ledger_billing")
+	def ledger_billing;
+
+	@ActiveDB("fieldcollection")
+	def fieldcollection;
+
+	@ActiveDB('collection_remittance')
+	def collection_remittance;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("BranchService")
+	def branchSvc;
+
+	def CLOSED = 'CLOSED';
+	
+	@ProxyMethod
+	public def getBillingRoutes( params ) {
+		def list = [];
+
+		if (params.routes) {
+			params?.routes?.each{ list << it; }
+		}
+
+		return list;
+	}
+
+	void validate( data ) {
+		def i = ledger_billing.read([objid: data?.prevbillingid]);
+		if (!i) throw new RuntimeException('Previous billing does not exist or has already been deleted.');
+	}
+
+	def create( data ) {
+		validate(data);
+		data.dtcreated = dateSvc.serverDate;
+		data.author = [objid: env.USERID, name: env.NAME];
+		data.dtmodified = data.dtcreated;
+		data.modifiedby = data.author;
+
+		if (!data.billingid) data.billingid = 'LSB' + new UID();
+
+		if (!data.previtemid && data.routes) {
+			def r = data.routes[0];
+			data.previtemid = r.item;d
+		}
+		em.create(data);
+
+		def prevbilling = ledger_billing.read([objid: data?.prevbillingid]);
+
+		def branch = branchSvc.open([:]);
+		def billing = ledger_billing.findByCollectorAndBilldate([collectorid: data?.collector?.objid, date: prevbilling?.billdate]);
+		if (billing) {
+			data.billingid = billing?.objid;
+			em.update(data);
+
+		} else if (!billing) {
+			billing = [
+				objid 			: data.billingid,
+				dtcreated 		: dateSvc.serverDate,
+				author 			: data.author,
+				collector 		: data.collector,
+				billdate 		: prevbilling.billdate,
+				branchid 		: branch.code,
+				totalfordownload: prevbilling.totalfordownload,
+				totaldownloaded : prevbilling.totaldownloaded,
+				totalposted 	: prevbilling.totalposted,
+				remarks 		: data.remarks
+			];
+			ledger_billing.create(billing);
+		} 
+
+		def fc = fieldcollection.read([objid: billing?.objid]);
+		if (!fc) {
+			def prevfc = fieldcollection.read(prevbilling);
+			if (prevfc) {
+				fc = [:];
+				fc.putAll(prevfc);
+				fc.objid = billing.objid;
+				fc.collector = billing.collector;
+				fieldcollection.create(fc);
+			}
+		}
+
+		def items = ledger_billing.getBillingItems([objid: data.prevbillingid]);
+		def previtems = items?.findAll{ it.objid == data?.previtemid };
+
+		def counter = 0;
+		def item, list, fcitem, fcloan;
+		def fcpayment, payments, state;
+		def allowclose = false;
+		previtems.each{ o->
+			allowclose = false;
+			state = o.state;
+			if (state == 'FOR_DOWNLOAD') {
+				counter++;
+				allowclose = true;
+			} else if (state == 'DOWNLOADED' || data.routes.find{ o.item.objid == it.code }) {
+				counter++;
+				prevbilling.totaldownloaded--;
+				state = 'FOR_DOWNLOAD';
+			}
+
+			if (state == 'FOR_DOWNLOAD') {				
+				item = [
+					objid 		: 'LSI' + new UID(),
+					parentid 	: data.billingid,
+					state 		: state,
+					dtmodified 	: dateSvc.serverDate,
+					modifiedby	: data.author,
+					item 		: o.item,
+					remarks 	: data.remarks
+				];
+				ledger_billing.create(item, "billing-item");
+
+				def f = fieldcollection.read(o, "fc-item");
+				if (f) {
+					fcitem = [:]
+					fcitem.putAll(f);
+					fcitem.objid = item.objid;
+					fcitem.parentid = item.parentid;
+					fcitem.state = 'DRAFT';
+					fcitem.totalcount = 0;
+					fcitem.totalamount = 0;
+					fcitem.cbsno = null;
+					fieldcollection.create(fcitem, "fc-item");
+
+					//fieldcollection.update([objid: f.objid, state: CLOSED], "fc-item");
+				}
+
+				list = ledger_billing.getBillingDetails(o);
+				list.each{ i->
+
+					//if (!i.dtreleased) i.dtreleased = dateSvc.add(i.dtstarted, "-1");
+					if (!i.dtreleased) {
+						def ac = loanapp.read([objid: i.loanappid], 'loanapp_capture');
+						i.dtreleased = ac?.dtreleased;
+					}
+					def detail = [:];
+					detail.putAll(i);
+					detail.objid = 'LSD' + new UID();
+					detail.parentid = item.objid;
+					detail.billingid = item.parentid;
+					ledger_billing.create(detail, "billing-detail");
+
+					f = fieldcollection.read(i, "fc-loan");
+					if (f) {
+						fcloan = [:];
+						fcloan.putAll(f);
+						fcloan.objid = detail.objid;
+						fcloan.parentid = detail.parentid;
+						fcloan.fieldcollectionid = detail.billingid;
+						fieldcollection.create(fcloan, "fc-loan");
+
+						payments = fieldcollection.getFieldcollectionPayments(f);
+						payments.each{ p->
+							fcpayment = [:];
+							fcpayment.putAll(p);
+							fcpayment.objid = 'PT' + new UID();
+							fcpayment.parentid = fcloan.objid;
+							fcpayment.itemid = fcloan.parentid;
+							fcpayment.fieldcollectionid = fcloan.fieldcollectionid;
+							fcpayment.version++;
+							fieldcollection.create(fcpayment, "fc-payment");
+						}
+					}
+				}
+			}
+
+			if (allowclose == true) {
+				o.state = CLOSED;
+			}
+
+			ledger_billing.update(o, "billing-item");
+		}
+
+		def xlist = [];
+		if (billing) xlist << [billingid: billing?.objid];
+		if (prevbilling) xlist << [billingid: prevbilling?.objid];
+		updateBillingItems(xlist);
+		/*
+		items = ledger_billing.getBillingItems(billing);
+		billing.totalfordownload = items.findAll{ it.state == 'FOR_DOWNLOAD' }.size();
+		billing.totaldownloaded = items.findAll{ it.state == 'DOWNLOADED' }.size();
+
+		def xlist = items.findAll{ it.state!='FOR_DOWNLOAD' && it.state!='DOWNLOADED' }
+		xlist.each{ o->
+			def rem = collection_remittance.findCollectionRemittance([collectionid: o.parentid, groupid: o.item.objid, grouptype: o.item.type]);
+			if (rem && rem.state == 'POSTED') {
+				if (!billing.totalposted) billing.totalposted = 0;
+				billing.totalposted++;
+			} 
+		}
+		ledger_billing.update(billing);
+
+		if (prevbilling) {
+			items = ledger_billing.getBillingItems(prevbilling);
+			prevbilling.totalfordownload = items.findAll{ it.state == 'FOR_DOWNLOAD' }.size();
+			ledger_billing.update(prevbilling, "fordownload");
+
+			prevbilling.totaldownloaded = items.findAll{ it.state == 'DOWNLOADED' }.size();
+			ledger_billing.update(prevbilling, "downloaded");
+
+			prevbilling.totalposted = 0;
+			xlist = items.findAll{ it.state!='FOR_DOWNLOAD' && it.state!='DOWNLOADED' }
+			xlist.each{ o->
+				def rem = collection_remittance.findCollectionRemittance([collectionid: o.parentid, groupid: o.item.objid, grouptype: o.item.type]);
+				if (rem && rem.state == 'POSTED') {
+					if (!prevbilling.totalposted) prevbilling.totalposted = 0;
+					prevbilling.totalposted++;
+				} 
+			}
+
+			ledger_billing.update(prevbilling, "posted");
+		}
+		*/
+
+		return open(data);
+	}
+
+	def update( data ) {
+		validate(data);
+		println 'update';
+
+		println 'data';
+		data?.each{ println it }
+
+		throw new RuntimeException('stopping update');
+	}
+
+	void updateBillingItems ( list ) {
+		def data, xlist, items;
+		list?.each{ i->
+			data = ledger_billing.read([objid: i.billingid]);
+			if (data) {
+				items = ledger_billing.getBillingItems(data);
+				data.totalfordownload = items.findAll{ it.state == 'FOR_DOWNLOAD' }.size();
+				ledger_billing.update(data, 'fordownload');
+
+				data.totaldownloaded = items.findAll{ it.state == 'DOWNLOADED' }.size();
+				ledger_billing.update(data, 'downloaded');
+
+				data.totalposted = 0;
+				xlist = items.findAll{ it.state!='FOR_DOWNLOAD' && it.state!='DOWNLOADED' }
+				xlist.each{ o->
+					def rem = collection_remittance.findCollectionRemittance([collectionid: o.parentid, groupid: o.item.objid, grouptype: o.item.type]);
+					if (rem && rem.state == 'POSTED') {
+						if (!data.totalposted) data.totalposted = 0;
+						data.totalposted++;
+					} 
+				}
+				ledger_billing.update(data, 'posted');
+			}
+		}
+	}
+
+
+	void xbeforeCreate( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = [objid: env.USERID, name: env.NAME];
+		data.dtmodified = data.dtcreated;
+		data.modifiedby = data.author;
+
+		println 'data ' + data;
+		throw new RuntimeException('stopping create ');
+	}
+
+	void xafterCreate( data ) {
+		def prevbilling = ledger_billing.read([objid: data.prevbillingid]);
+		if (!prevbilling) throw new Exception("Previous billing record does not exist or has already been deleted.");
+
+
+		def branch = branchSvc.open([:]);
+		def billing = ledger_billing.findByCollectorAndBilldate([collectorid: data?.collector?.objid, date: prevbilling?.billdate]);
+		if (!billing) {
+			billing = [
+				objid 			: data.objid,
+				dtcreated 		: dateSvc.serverDate,
+				author 			: data.author,
+				collector 		: data.collector,
+				billdate 		: prevbilling.billdate,
+				branchid 		: branch.code,
+				totalfordownload: prevbilling.totalfordownload,
+				totaldownloaded : prevbilling.totaldownloaded,
+				totalposted 	: prevbilling.totalposted,
+				remarks 		: data.remarks
+			];
+			ledger_billing.create(billing);
+		}
+
+		def prevfc = fieldcollection.read(prevbilling);
+		if (prevfc) {
+			def fc = [:];
+			fc.putAll(prevfc);
+			fc.objid = billing.objid;
+			fc.collector = billing.collector;
+			fieldcollection.create(fc);
+		}
+
+		def items = ledger_billing.getBillingItems([objid: data.prevbillingid]);
+		def previtems = [];
+		items?.each{ o->
+			def i = data?.routes?.find{ it.code == o?.item?.objid } 
+			if (i) {
+				previtems << o;
+			}
+		}
+
+		def counter = 0;
+		def item, list, fcitem, fcloan;
+		def fcpayment, payments;
+		def allowclose = false;
+		previtems.each{ o->
+			allowclose = false;
+			if (o.state == 'FOR_DOWNLOAD') {
+				counter++;
+				allowclose = true;
+			} else if (o.state == 'DOWNLOADED' || data.routes.find{ o.item.objid == it.code }) {
+				counter++;
+				prevbilling.totaldownloaded--;
+				o.state = 'FOR_DOWNLOAD';
+			}
+
+			if (o.state == 'FOR_DOWNLOAD') {				
+				item = [
+					objid 		: 'LSI' + new UID(),
+					parentid 	: data.objid,
+					state 		: o.state,
+					dtmodified 	: dateSvc.serverDate,
+					modifiedby	: data.author,
+					item 		: o.item
+				];
+				ledger_billing.create(item, "billing-item");
+
+				def f = fieldcollection.read(o, "fc-item");
+				if (f) {
+					fcitem = [:]
+					fcitem.putAll(f);
+					fcitem.objid = item.objid;
+					fcitem.parentid = item.parentid;
+					fcitem.totalcount = 0;
+					fcitem.totalamount = 0;
+					fcitem.cbsno = null;
+					fieldcollection.create(fcitem, "fc-item");
+
+					fieldcollection.update([objid: f.objid, state: CLOSED], "fc-item");
+				}
+
+				list = ledger_billing.getBillingDetails(o);
+				list.each{ i->
+
+					//if (!i.dtreleased) i.dtreleased = dateSvc.add(i.dtstarted, "-1");
+					if (!i.dtreleased) {
+						def ac = loanapp.read([objid: i.loanappid], 'loanapp_capture');
+						i.dtreleased = ac?.dtreleased;
+					}
+					def detail = [:];
+					detail.putAll(i);
+					detail.objid = 'LSD' + new UID();
+					detail.parentid = item.objid;
+					detail.billingid = item.parentid;
+					ledger_billing.create(detail, "billing-detail");
+
+					f = fieldcollection.read(i, "fc-loan");
+					if (f) {
+						fcloan = [:];
+						fcloan.putAll(f);
+						fcloan.objid = detail.objid;
+						fcloan.parentid = detail.parentid;
+						fcloan.fieldcollectionid = detail.billingid;
+						fieldcollection.create(fcloan, "fc-loan");
+
+						payments = fieldcollection.getFieldcollectionPayments(f);
+						payments.each{ p->
+							fcpayment = [:];
+							fcpayment.putAll(p);
+							fcpayment.objid = 'PT' + new UID();
+							fcpayment.parentid = fcloan.objid;
+							fcpayment.itemid = fcloan.parentid;
+							fcpayment.fieldcollectionid = fcloan.fieldcollectionid;
+							fcpayment.version++;
+							fieldcollection.create(fcpayment, "fc-payment");
+						}
+					}
+				}
+			}
+
+			if (allowclose == true) {
+				o.state = CLOSED;
+			}
+			//println 'allow close ' + allowclose + ' item ' + o;
+			ledger_billing.update(o, "billing-item");
+		}
+
+		/*
+		billing.totalfordownload = counter;
+		billing.totaldownloaded = prevbilling.totaldownloaded;
+		*/
+
+
+		items = ledger_billing.getBillingItems(billing);
+		billing.totalfordownload = items.findAll{ it.state == 'FOR_DOWNLOAD' }.size();
+		billing.totaldownloaded = items.findAll{ it.state == 'DOWNLOADED' }.size();
+
+		def xlist = items.findAll{ it.state!='FOR_DOWNLOAD' && it.state!='DOWNLOADED' }
+		xlist.each{ o->
+			def rem = collection_remittance.findCollectionRemittance([collectionid: o.parentid, groupid: o.item.objid, grouptype: o.item.type]);
+			if (rem && rem.state == 'POSTED') {
+				if (!billing.totalposted) billing.totalposted = 0;
+				billing.totalposted++;
+			} 
+		}
+		ledger_billing.update(billing);
+
+		if (prevbilling) {
+			items = ledger_billing.getBillingItems(prevbilling);
+			prevbilling.totalfordownload = items.findAll{ it.state == 'FOR_DOWNLOAD' }.size();
+			ledger_billing.update(prevbilling, "fordownload");
+
+			prevbilling.totaldownloaded = items.findAll{ it.state == 'DOWNLOADED' }.size();
+			ledger_billing.update(prevbilling, "downloaded");
+
+			prevbilling.totalposted = 0;
+			xlist = items.findAll{ it.state!='FOR_DOWNLOAD' && it.state!='DOWNLOADED' }
+			xlist.each{ o->
+				def rem = collection_remittance.findCollectionRemittance([collectionid: o.parentid, groupid: o.item.objid, grouptype: o.item.type]);
+				if (rem && rem.state == 'POSTED') {
+					if (!prevbilling.totalposted) prevbilling.totalposted = 0;
+					prevbilling.totalposted++;
+				} 
+			}
+
+			ledger_billing.update(prevbilling, "posted");
+		}
+
+		data.editable = true;
+
+		//println 'data ' + data;
+		//throw new Exception('stop');
+		/*def map = [
+			objid	: params.parentid,
+			state 	: "VOIDED"
+		];
+		em.changeState(map);
+		field_collection.changeState(map);//changeBatchCollectionSheetStateVoided([objid: params.parentid]);
+		//println 'params = '+params;
+		sub_billing.create(params);*/
+		/*if (params.specialcollectionid) {
+			map = [
+				subbilling 			: params.objid,
+				specialcollectionid : params.specialcollectionid
+			]
+			em.create(map, "subbilling-specialcollection");
+		}*/
+		/*updateRoute(params);
+		updateBillingDetail(params);*/
+	}
+
+	/*
+	private void setFlags( data ) {
+		data.totalfordownload = data.routes.size();
+		data.totaldownloaded = 0;
+		data.totalunposted = 0;
+		data.totalposted = 0;
+	}
+	*/
+
+	void xbeforeUpdate( data ) {
+		data.modifiedby = [objid: env.USERID, name: env.NAME];
+		/*params.dtmodified = dateSvc.serverDate;
+		params.modifiedby = (env.NAME? env.NAME : 'NOT IDENTIFIED');
+		def map = [
+			objid 	: params._parentid,
+			state 	: "FOR_DOWNLOAD"
+		];
+		em.changeState(map);*/
+		//em.changeStateDraft([objid: params._parentid]);
+		//em.update([objid: params._parentid, dtcancelled: null, cancelledby: null, remarks: null]);
+		//field_collection.changeState(map);//em.changeBatchCollectionSheetStateDraft([objid: params._parentid]);
+		/*field_collection.removeVoidRequestByFieldcolletionid([fieldcollectionid: params.objid]);
+		field_collection.removePaymentByFieldcollectionid([fieldcollectionid: params.objid]);
+		field_collection.removeRouteByFieldcollectionid([fieldcollectionid: params.objid]);
+		field_collection.removeLoanByParentid([parentid: params.objid]);
+		field_collection.delete(params);*/
+		//setFlags(params);
+	}
+
+	void xafterUpdate( data ) {
+		def billing = ledger_billing.read(data);
+		billing.collector = data.collector;
+		ledger_billing.update(billing);
+
+		def fc = fieldcollection.read(data);
+		fc.collector = data.collector;
+		fieldcollection.update(fc);
+		data.editable = true;
+		/*def map = [
+			objid 	: params.parentid,
+			state 	: "VOIDED"
+		];
+		em.changeState(map);
+		field_collection.changeState(map);
+		sub_billing.update(params);
+		updateRoute(params);
+		updateBillingDetail(params);*/
+	}
+
+	/*
+	void updateBillingDetail( params ) {
+		em.removeBillingDetailByParentid([parentid: params.objid]);
+
+		def itm;
+		def billings;
+		def payments;
+		def paymentid;
+		def voidrequest;
+		params.routes.each {r->
+			billings = em.getBillingDetailByRoutecode([billingid: params.parentid, route_code: r.code]);
+			billings.each{bill->
+				itm = field_collection.read(bill, "loan");
+
+				bill.objid = "LLSBD"+new UID();
+				bill.parentid = params.objid;
+				em.create(bill, "detail");
+				if (itm) {
+					payments = field_collection.getPaymentsByParentid([parentid: itm.objid]);
+
+					itm.objid = bill.objid;
+					itm.parentid = params.objid;
+					field_collection.create(itm, "loan");
+
+					payments.each{
+						paymentid = "PT"+new UID();
+						voidrequest = void_request.findVoidRequestByPaymentid([paymentid: it.objid]);
+						if (voidrequest) {
+							void_request.changeStateVoided(voidrequest);
+							voidrequest.objid = "VOID"+new UID();
+							voidrequest.paymentid = paymentid;
+							voidrequest.collectionid = params.objid;
+							void_request.create(voidrequest);
+						}
+						it.objid = paymentid;
+						it.parentid = itm.objid;
+						it.fieldcollectionid = params.objid;
+						field_collection.create(it, "payment");
+					}
+				}
+			}
+		}
+	}
+
+	void removeFieldCollection( params ) {
+		field_collection.removeVoidRequestsByFieldcolletionid([fieldcollectionid: params.objid])
+		field_collection.removePaymentsByFieldcollectionid([fieldcollectionid: params.objid]);
+		field_collection.removeLoanByParentid([parentid: params.objid]);
+		field_collection.removeRouteByFieldcollectionid([fieldcollectionid: params.objid]);
+		field_collection.delete(params);
+	}
+	*/
+
+	void afterOpen( data ) {
+		def billing = ledger_billing.read([objid: data?.billingid]);
+		data.collector = billing.collector;
+		data.billdate = billing.billdate;
+		//data.routes = getBillingRoutes([billingid: data.objid]);
+		def item = ledger_billing.read([objid: data?.previtemid], 'billing-item');
+		def routes = ledger_billing.getRoutes([objid: billing?.objid]);
+		data.routes = routes?.findAll{ it.code == item?.item?.objid }
+		if (data?.routes) {
+			def r = data.routes[0];
+			r = ledger_billing.read([objid: r.itemid], 'billing-item');
+			data.remarks = r.remarks;
+		}
+		data.editable = (data.routes.findAll{ it.state == 'FOR_DOWNLOAD' }.size() == data.routes.size()? true : false);
+	}
+
+	/*public def open( params ) {
+		println 'params ' + params;
+		def data = em.read(params);
+		if (!data) throw new Exception("Record does not exist or has already been deleted.");
+
+		def ledger = ledger_billing.read(data);
+		data.collector = ledger.collector;
+		data.billdate = ledger.billdate;
+		data.remarks = ledger.remarks;
+		data.routes = getBillingRoutes([billingid: data.objid]);
+		data.editable = (data.routes.findAll{ it.state == 'FOR_DOWNLOAD' }.size() == data.routes.size()? true : false);
+
+		return data;
+	}*/
+
+	/*void afterOpen( data ) {
+		data.putAll(sub_billing.read(data));
+		data.routes = em.getRoutesByBillingid([billingid: data.objid]);
+	}*/
+
+	/*
+	void updateRoute( params ) {
+		removeFieldCollection(params);
+		def itm = field_collection.read([objid: params.parentid]);
+		if (itm) {
+			itm.objid = params.objid;
+			//itm.state = 'FOR_DOWNLOAD';
+			field_collection.create(itm);
+		}
+
+		em.removeRouteByBillingid([billingid: params.objid]);
+		def map;
+		def mRoute;
+		params.routes.each{o->			
+			map = [
+				billingid 	: params.objid,
+				routecode 	: o.code,
+				downloaded	: 0,
+				uploaded 	: 0
+			];
+			em.create(map, 'billing_route');
+
+			mRoute = field_collection.findRouteByFieldcollectionidAndRoutecode([fieldcollectionid: params.parentid, routecode: o.code]);
+			if (mRoute) {
+				mRoute.fieldcollectionid = params.objid;
+				field_collection.create(mRoute, "route");
+			}
+		}
+	}*/
+
+	/*
+	@ProxyMethod
+	public def resetBilling( params ) {
+		params.dtmodified = dateSvc.serverDate;
+		params.modifiedby = env.NAME? env.NAME : 'NOT IDENTIFIED';
+		em.update(params, "modify");
+		def map = [
+			objid			: params.objid,
+			totalfordownload: params.routes.size(),
+			totaldownloaded	: 0,
+			totalunposted	: 0,
+			totalposted 	: 0 
+		]
+		em.update(map);
+		updateRoute(params);
+		updateBillingDetail(params);
+		//em.removeBillingLockByBillingid([billingid: params.objid]);
+	}
+	*/
+}

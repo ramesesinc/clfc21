@@ -1,0 +1,55 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class AmnestyUpdateLookupService extends ActiveListService
+{
+	@ActiveDB('amnesty_update')
+	def em;
+
+	String listMethod = 'getLookupList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		switch (params.type) {
+			case 'FIX'	: cols = getFixColumns(params); break;
+			case 'SMC'	: cols = getSMCColumns(params); break;
+		}
+
+		return cols;
+	}
+
+	def getFixColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+		cols << [name: 'dtstarted', caption: 'Effectivity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'description', caption: 'Description'];
+
+		return cols;
+	}
+
+	def getSMCColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+		cols << [name: 'dtstarted', caption: 'Effectivity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+
+		switch (params.type) {
+			case 'FIX' 	: params._listMethod = 'getFixList'; break;
+			case 'SMC'	: params._listMethod = 'getSMCList'; break;
+		}
+
+	}
+}

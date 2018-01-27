@@ -1,0 +1,28 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+
+class MobileLoginInterceptor
+{
+	@ActiveDB("bank")
+	def bank;
+
+	@ActiveDB('loan_ledger_segregationtype')
+	def loan_ledger_segregationtype;
+
+	@Service("MobileTrackerService")
+	def trackerSvc;
+
+	@After(pattern="SessionService.getUserInfo", eval="env.CLIENTTYPE=='mobile'", index=100)
+	public void addExtraInfo( evt ) {
+		def result = evt.result;
+		result.env.BANKS = bank.getList([searchtext: "%"]);
+
+		//result.env.SEGREGATION = loan_ledger_segregationtype.getRootNodes()
+		//println 'banks ' + result.env.BANKS;
+		def xlist = loan_ledger_segregationtype.getListByStateAndCategory([state: 'ACTIVATED', category: 'LOANSTATE']);
+		xlist = xlist?.findAll{ it.name.matches('(CURRENT|PAST DUE)') }
+		def list = [];
+		xlist?.each{ list << [objid: it.objid, name: it.name]; }
+		result.env.SEGREGATION = list;
+	}
+}

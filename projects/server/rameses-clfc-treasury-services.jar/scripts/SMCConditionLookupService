@@ -1,0 +1,26 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class SMCConditionLookupService extends ActiveListService
+{
+	@ActiveDB('smc_condition')
+	def em;
+
+	String listMethod = 'getLookupList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'title', caption: 'Title'];
+		cols << [name: 'description', caption: 'Description'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+	}
+	
+}

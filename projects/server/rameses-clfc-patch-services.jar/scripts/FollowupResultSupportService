@@ -1,0 +1,127 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+
+class FollowupResultSupportService
+{
+	@ActiveDB('followup_result')
+	def em;
+
+	@ActiveDB('ledger_billing')
+	def ledger_billing;
+
+	@ActiveDB('collector_remarks')
+	def collector_remarks;
+
+	@Async
+	@ProxyMethod
+	public def resolveFollowupResult() {
+		def list = em.getList([searchtext: '%']);
+		def listsize = list?.size();
+		if (!listsize) listsize = 0;
+
+		def _page = 1; 
+		def _size = 20;
+		def _limit = (_page * _size);
+		def _start = (_page - 1) * _size;
+
+		while (true) {
+			_start = (_page - 1) * _size;
+			_limit = (_page * _size);
+			if (_limit > listsize) _limit = listsize;
+
+			def sublist = list?.subList(_start, _limit);
+			for (def i=0; i<sublist?.size(); i++) {
+				def item = sublist[i];
+				item = em.read(item);
+
+				if (!item.amnestyoption) {
+					if (item.availedamnesty) {
+						item.amnestyoption = 'avail';
+						em.update(item);
+					} else if (item.rejectedamnesty) {
+						item.amnestyoption = 'reject';
+						em.update(item);
+					}
+				}
+			}
+
+			if (_limit >= list?.size()) {
+				break;
+			}
+
+			_page++;
+		}
+
+	}
+
+	@Async
+	@ProxyMethod
+	public def resolveCollectorRemarks() {
+
+		def list = em.getListByState([searchtext: '%', state: 'CONFIRMED']);
+
+		def listsize = list?.size();
+		if (!listsize) listsize = 0;
+		
+		def _page = 1; 
+		def _size = 20;
+		def _limit = (_page * _size);
+		def _start = (_page - 1) * _size;
+
+		while (true) {
+			_start = (_page - 1) * _size;
+			_limit = (_page * _size);
+			if (_limit > listsize) _limit = listsize;
+
+			def sublist = list?.subList(_start, _limit);
+			for (def i=0; i<sublist?.size(); i++) {
+				def item = sublist[i];
+				item = em.read(item);
+
+				resolveCollectorRemarksImpl(item);
+
+				/*
+				if (!item.amnestyoption) {
+					if (item.availedamnesty) {
+						item.amnestyoption = 'avail';
+						em.update(item);
+					} else if (item.rejectedamnesty) {
+						item.amnestyoption = 'reject';
+						em.update(item);
+					}
+				}
+				*/
+			}
+
+			if (_limit >= list?.size()) {
+				break;
+			}
+
+			_page++;
+		}		
+	}
+
+	void resolveCollectorRemarksImpl( data ) {
+		def detail = ledger_billing.read([objid: data?.refid], "billing-detail");
+		if (detail) {
+			def item = collector_remarks.read(detail);
+			if (!item) {
+				def billing = ledger_billing.read([objid: detail?.billingid]);
+
+				item = [
+					objid 		: detail.objid,
+					ledgerid	: detail.ledgerid,
+					dtcreated 	: data.dtcreated,
+					author		: data.author,
+					txndate 	: data.txndate,
+					collector 	: billing?.collector,
+					remarks 	: data.remarks
+				];
+				collector_remarks.create(item);
+				collector_remarks.create(item, 'followup-remarks');
+			} else {
+				collector_remarks.update([objid: item.objid, remarks: data.remarks]);
+			}
+		}
+	}
+}

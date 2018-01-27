@@ -1,0 +1,1232 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+import java.text.*;
+import com.rameses.rules.common.*;
+import smc.actions.*;
+
+class LedgerAmnestyCaptureSMCService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('ledgeramnesty_smc')
+	def em;
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('datatxnlog')
+	def txnlog;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('borrower')
+	def borrower;
+
+	@ActiveDB('smc_condition')
+	def smc_condition;
+
+	@ActiveDB('posting_header')
+	def posting_header;
+
+	@ActiveDB('posting_setting')
+	def posting_setting;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('SequenceService')
+	def seqSvc;	
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	@Service('NumberService')
+	def numSvc;
+
+	@Resource('RuleService')
+	def ruleSvc;
+
+	private String MODE = 'CAPTURE';
+	private def decFormat = new DecimalFormat('#,##0.00');
+	private def dateFormat = new SimpleDateFormat('MMM-dd-yyyy');
+	private def dateFormat2 = new SimpleDateFormat('yyyy-MM-dd');
+
+
+	private def DEFAULT_VAR_LIST = ['AMOUNT', 'BALANCE', 'PENALTY', 'INTEREST', 'LAST_SCHEDULE_DATE', 'CURRENT_DATE'];
+	private def DEFAULT_COND_LIST = ['AMOUNT', 'MATURITY_DATE'];
+	private def DEFAULT_POSTING_SEQUENCE = [
+		'INTEREST': [sequence: 1, includescheduledate: true],
+		'PENALTY' : [sequence: 2],
+		'BALANCE' : [sequence: 3]
+	];
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+		cols << [name: 'dtstarted', caption: 'Effectivity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'dtended', caption: 'Maturity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		//cols << [name: 'ledger.dtreleased', caption: 'Release Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		//cols << [name: 'ledger.dtmatured', caption: 'Maturity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+
+		/*
+		switch (params.state) {
+			case 'APPROVED'		: cols << [name: 'dtfiled', caption: 'Date Approved'];
+								  cols << [name: 'filedby.name', caption: 'Approved By'];
+								  break;
+			case 'DISAPPROVED'	: cols << [name: 'dtfiled', caption: 'Date Disapproved'];
+								  cols << [name: 'filedby.name', caption: 'Disapproved By'];
+								  break;
+		}
+		*/
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		params.mode = MODE;
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'APPROVED', state: 'APPROVED'],
+			[caption: 'DISAPPROVED', state: 'DISAPPROVED'],
+			[caption: 'FOR VERIFICATION', state: 'FOR_VERIFICATION'],
+			[caption: 'VERIFIED', state: 'VERIFIED']
+		];
+	}
+
+	private def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	void validate( data ) {
+		def ci = data?.courtinfo;
+		if (ci) {
+			def sd = parseDate(ci?.dtstarted);
+			def currdate = parseDate(dateFormat2.format(dateSvc.serverDate));
+
+			if (sd.compareTo(currdate) > 0) {
+				throw new RuntimeException('Effectivity Date must not be beyond current date.');
+			}
+		}
+		/*
+		def df = new SimpleDateFormat('yyyy-MM-dd');
+		def sd = parseDate(data.dtstarted);
+		def currdate = parseDate(df.format(dateSvc.serverDate))
+
+		if (sd.compareTo(currdate) >= 0) {
+			throw new Exception('Start Date must be less than current date.');
+		}
+		*/
+	}
+
+	def create( data ) {
+		validate(data);
+		def currdate = dateSvc.parseCurrentDate();
+		data.dtcreated = currdate.date;
+		data.author = getUser();
+
+		def year = currdate.year + "";
+		def seqname = 'amnestysmccapture' + year;
+		def prefix = 'SMCC' + year[2] + year[3];
+		data.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname, 6);
+		
+		data.txnmode = MODE;
+
+		def fi = (data?.filinginfo? data.remove('filinginfo') : [created: true]);
+		data.filinginfo = [created: true];
+
+		def ci = (data?.courtinfo? data.remove('courtinfo') : [created: true]);
+		data.courtinfo = [created: true];
+
+		em.create(data);
+		data.filinginfo.putAll(fi);
+		data.courtinfo.putAll(ci);
+
+		updateFilingInfo(data);
+		updateCourtInfo(data);
+		updateInfo(data);
+
+		return open(data);
+	}
+
+	def update( data ) {
+		validate(data);
+
+		def fi = (data?.filinginfo? data.remove('filinginfo') : [created: true]);
+		data.filinginfo = [created: true];
+
+		def ci = (data?.courtinfo? data.remove('courtinfo') : [created: true]);
+		data.courtinfo = [created: true];
+
+		em.update(data);
+		data.filinginfo.putAll(fi);
+		data.courtinfo.putAll(ci);
+
+		updateFilingInfo(data);
+		updateCourtInfo(data);
+		updateInfo(data);
+
+		return open(data);
+	}
+
+	void saveConditions( data, addlist, removelist, updatelist ) {
+		removelist?.each{ o->
+			em.delete([objid: o.objid], 'condition');
+		}
+
+		addlist?.each{ o->
+			if (!o.objid) o.objid = 'LSMCCOND ' + new UID();;
+			if (!o.parentid) o.parentid = data.objid;
+			em.create(o, 'condition');
+		}
+
+		updatelist?.each{ o->
+			em.update(o, 'condition');
+		}
+	}
+
+	void saveDocs( data, addlist, removelist, updatelist, reftype ) {
+		removelist?.each{ o->
+			em.delete([objid: o?.objid], 'smc-document');
+		}
+
+		def item;
+		addlist?.each{ o->
+			item = [
+				objid	: o.objid,
+				parentid: data?.objid,
+				code 	: o.code,
+				title 	: o.title,
+				reftype : reftype,
+				qty 	: o.qty
+			];
+			em.create(item, 'smc-document');
+		}
+
+		updatelist?.each{ o->
+			item = [
+				objid	: o.objid,
+				parentid: data?.objid,
+				code 	: o.code,
+				title 	: o.title,
+				reftype : reftype,
+				qty 	: o.qty
+			];
+			em.update(item, 'smc-document');
+		}
+
+	}
+
+	void saveFees( data, addlist, removelist, updatelist, reftype ) {
+		removelist?.each{ o->
+			em.delete([objid: o.objid], 'smc-fee');
+		}
+
+		def item;
+		addlist?.each{ o->
+			item = [
+				objid	: o.objid,
+				parentid: data?.objid,
+				code 	: o.code,
+				title 	: o.title,
+				reftype : reftype,
+				amount 	: o.amount
+			];
+			em.create(item, 'smc-fee');
+		}
+
+		updatelist?.each{ o->
+			item = [
+				objid	: o.objid,
+				parentid: data?.objid,
+				code 	: o.code,
+				title 	: o.title,
+				reftype : reftype,
+				amount 	: o.amount
+			];
+			em.update(item, 'smc-fee');
+		}
+	}
+
+
+	/*
+	void beforeCreate( data ) {
+		println 'before create ' + data;
+
+		throw new RuntimeException('stopping');
+		validate(data);
+		def currdate = dateSvc.parseCurrentDate();
+		data.dtcreated = currdate.date;
+		data.author = getUser();
+
+		def year = currdate.year + "";
+		def seqname = 'amnestysmccapture' + year;
+		def prefix = 'SMCC' + year[2] + year[3];
+		data.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname, 6);
+		
+		data.txnmode = MODE;
+		data?.courtinfo?._conditions = [];
+		if (data?.courtinfo?.conditions) {
+			data?.courtinfo?._conditions = data?.courtinfo?.remove('conditions');
+		}
+		//data._conditions = data.remove('conditions');
+	}
+
+	void beforeUpdate( data ) {
+		validate(data);
+	}
+
+
+	void afterCreate( data ) {
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateInfo(data);
+	}
+	*/
+
+	void updateFilingInfo( data ) {
+		def addeddocs, removeddocs, updateddocs;
+		def addedfees, removedfees, updatedfees;
+
+		if (data?.filinginfo) {
+			def fi = data?.filinginfo;
+
+			addeddocs = (fi?._addeddocs? fi?.remove('_addeddocs') : []);
+			removeddocs = (fi?._removeddocs? fi.remove('_removeddocs') : []);
+			updateddocs = (fi?.docs? fi.remove('docs') : []);
+			saveDocs(data, addeddocs, removeddocs, updateddocs, 'FILINGINFO');
+
+			addedfees = (fi?._addedfees? fi.remove('_addedfees') : []);
+			removedfees = (fi?._removedfees? fi.remove('_removedfees') : []);
+			updatedfees = (fi?.fees? fi.remove('fees') : []);
+			saveFees(data, addedfees, removedfees, updatedfees, 'FILINGINFO');
+
+			data.filinginfo = fi;
+			em.update(data);
+		}
+	}
+
+	void updateCourtInfo( data ) {
+		def addeddocs, removeddocs, updateddocs;
+		def addedfees, removedfees, updatedfees;
+		def addedconditions, removedconditions, updatedconditions;
+
+		if (data?.courtinfo) {
+			def ci = data?.courtinfo;
+
+			addedconditions = (ci?._addedconditions? ci?.remove('_addedconditions') : []);
+			removedconditions = (ci?._removedconditions? ci?.remove('_removedconditions') : []);
+			updatedconditions = (ci?.conditions? ci?.remove('conditions') : []);			
+			saveConditions(data, addedconditions, removedconditions, updatedconditions);
+
+			addeddocs = (ci?._addeddocs? ci?.remove('_addeddocs') : []);
+			removeddocs = (ci?._removeddocs? ci?.remove('_removeddocs') : []);
+			updateddocs = (ci?.docs? ci?.remove('docs') : []);
+			saveDocs(data, addeddocs, removeddocs, updateddocs, 'COURTINFO');
+
+
+			addedfees = (ci?._addedfees? ci?.remove('_addedfees') : []);
+			removedfees = (ci?._removedfees? ci?.remove('_removedfees') : []);
+			updatedfees = (ci?.fees? ci?.remove('fees') : []);
+			saveFees(data, addedfees, removedfees, updatedfees, 'COURTINFO');
+
+			data.courtinfo = ci;
+			em.update(data);
+
+			data.courtinfo.conditions = updatedconditions;
+		}
+	}
+
+	void updateInfo( data ) {
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) {
+			ac = [
+				objid		: data.objid,
+				dtcreated 	: data.dtcreated,
+				author		: data.author,
+				txnstate	: data.txnstate,
+				txnmode 	: MODE,
+				refid 		: data.objid,
+				reftype 	: 'SMC',
+				borrower 	: data.borrower,
+				loanapp 	: data.loanapp,
+				description : data.description,//createDescription(data),
+				dtstarted 	: data.dtstarted,
+				dtended 	: data.dtended
+			]
+			ledgeramnesty_collection.create(ac);
+		} else {
+			ac.borrower = data.borrower;
+			ac.loanapp = data.loanapp;
+			ac.description = data.description; //createDescription(data);
+			ac.dtstarted = data.dtstarted;
+			ac.dtended = data.dtended;
+			ledgeramnesty_collection.update(ac);
+		}
+
+		computeConditions(data);
+		calculateMaturityDate(data);
+		/*
+		if (data?.courtinfo) {
+			def ci = data?.courtinfo;
+			def addedconditions = (ci?._addedconditions? ci?.remove('_addedconditions') : []);
+			def removedconditions = (ci?._removedconditions? ci?.remove('_removedconditions') : []);
+			def conditions = (ci?._conditions? ci?.remove('_conditions') : []);
+
+			removedconditions?.each{ o->
+				em.delete(o, 'condition');
+			}
+
+			addedconditions?.each{ o->
+				if (!o.parentid) o.parentid = data?.objid;
+				em.create(o, 'condition');
+			}
+
+			conditions?.each{ o->
+				em.update(o, 'condition');
+			}
+
+			conditions = [];
+			def list = em.getConditions(data);
+			def item;
+			list?.each{ o->
+				item = em.read([objid: o.objid], 'condition');
+				if (item) {
+					item._allowremove = true;
+					def i = DEFAULT_COND_LIST?.find{ it == item.conditionid }
+					if (i) item._allowremove = false;
+
+					conditions << item;
+				}
+			}
+
+			data?.courtinfo?.conditions = conditions;
+		}
+
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) {
+			ac = [
+				objid		: data.objid,
+				dtcreated 	: data.dtcreated,
+				author		: data.author,
+				txnstate	: data.txnstate,
+				txnmode 	: MODE,
+				refid 		: data.objid,
+				reftype 	: 'SMC',
+				borrower 	: data.borrower,
+				loanapp 	: data.loanapp,
+				description : data.description,//createDescription(data),
+				dtstarted 	: data.dtstarted,
+				dtended 	: data.dtended
+			]
+			ledgeramnesty_collection.create(ac);
+		} else {
+			ac.borrower = data.borrower;
+			ac.loanapp = data.loanapp;
+			ac.description = data.description; //createDescription(data);
+			ac.dtstarted = data.dtstarted;
+			ac.dtended = data.dtended;
+			ledgeramnesty_collection.update(ac);
+		}
+		*/
+
+		/*
+		addDefaultConditions(data);
+
+		if (data?.courtinfo) {
+			data?.courtinfo.docs = em.getDocumentsByReftype([objid: data?.objid, reftype: 'COURTINFO']);
+			data?.courtinfo.fees = em.getFeesByReftype([objid: data?.objid, reftype: 'COURTINFO']);
+
+
+			def list = em.getConditions(data);
+			def item, conditions = [];
+			list?.each{ o->
+				item = em.read([objid: o.objid], 'condition');
+				if (item) {
+					item._allowremove = true;
+					def i = DEFAULT_COND_LIST?.find{ it == item.conditionid }
+					if (i) item._allowremove = false;
+
+					conditions << item;
+				}
+			}
+
+			data?.courtinfo?.conditions = conditions;
+		}
+		*/
+	}
+
+	void calculateMaturityDate( data ) {
+		def xitem = ledgeramnesty_collection.read([objid: data?.objid]);
+		if (!xitem) throw new RuntimeException('SMC record does not exist or has already been deleted.');
+
+		data.dtstarted = data?.courtinfo?.dtstarted;
+
+		data.dtstarted = parseDate(dateFormat2.format(parseDate(data.dtstarted)));
+		xitem.dtstarted = data.dtstarted;
+
+		def conditions = data?.courtinfo?.conditions;
+		def md_item = conditions?.find{ it.conditionid == 'MATURITY_DATE' }
+		if (md_item) {
+			def cal;
+			switch (md_item?.operator?.value) {
+				case 'specify'	: cal = Calendar.getInstance();
+								  cal.setTime(parseDate(md_item.date));
+								  break;
+				case 'term' 	: cal = Calendar.getInstance();
+								  cal.setTime(data?.dtstarted);
+								  if (md_item?.year > 0) cal.add(Calendar.YEAR, md_item.year);
+								  if (md_item?.month > 0) cal.add(Calendar.MONTH, md_item.month);
+								  if (md_item?.day > 0) cal.add(Calendar.DATE, md_item.day);
+								  break;
+			}
+
+			if (cal) {
+				data.dtended = parseDate(dateFormat2.format(cal.getTime()));
+				data?.courtinfo?.dtended = data.dtended;
+				xitem.dtended = data.dtended;
+
+
+				if (data.dtstarted.compareTo(data.dtended) > 0) {
+					throw new Exception('Maturity Date must be greater than Effectivity Date.');
+				}
+			}
+		}
+
+		data.description = buildDescription(data);
+		xitem.description = data.description;
+
+		ledgeramnesty_collection.update(xitem);
+
+		em.update(data);
+	}
+
+
+	void computeConditions( data ) {
+		def conditions = data?.courtinfo?.conditions;
+		if (!conditions) conditions = [];
+
+		def list = conditions?.findAll{ it.expr != null }
+		computeConditions(data, list);
+	}
+
+
+	void computeConditions( data, list ) {
+		def referenceFact = [isComputeAmount: true];
+
+		def bindings = [:];
+
+		def currdate = dateSvc.serverDate;
+
+		def varlist =  getDefaultVarList();
+		varlist?.each{ o->
+			switch (o.handler) {
+				case 'date' 		: bindings.put(o.signature, currdate); break;
+				case 'expression' 	: bindings.put(o.signature, 0); break;
+			}
+		}
+
+		varlist = list?.findAll{ it.varname != null }
+		varlist?.each{ o->
+			switch (o.handler) {
+				case 'date' 		: bindings.put(o.varname, currdate); break;
+				case 'expression' 	: bindings.put(o.varname, 0); break;
+			}
+			//bindings.put(o.varname, 0);
+		}
+
+		if (bindings?.containsKey('CURRENT_DATE')) {
+			bindings.put('CURRENT_DATE', currdate);
+		}
+
+		def lastitem = loan_ledger.findLastLedgerItemByParentId([parentid: data?.ledger?.objid]);
+		if (lastitem) {
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(data?.loanapp?.dtreleased));
+			cal.add(Calendar.DATE, lastitem?.day);
+
+			if (bindings?.containsKey('LAST_SCHEDULE_DATE')) {
+				bindings.put('LAST_SCHEDULE_DATE', cal.getTime());
+			}
+		}
+
+		def xdata = [:];
+
+		def expr, actions;
+		list?.sort{ it.index }
+		list?.each{ o->
+			xdata = [:]
+
+			def req = new RuleRequest("smc");
+			req.addFact("smc", "Reference", referenceFact); 
+
+			req.addGlobal("bindings", bindings);
+			actions = new RuleAction(); 
+			actions.addCommand( "calcAmount", new  CalcAmount(NS: numSvc, data: xdata) );
+			req.addGlobal('action', actions);
+
+
+			expr = o.expr;
+			if (!expr) expr = '';
+			req.addGlobal('expr', expr);
+
+			try {
+				ruleSvc.execute(req);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw e;
+			}
+
+			if (o.varname && bindings?.containsKey(o.varname)) {
+				bindings.put(o.varname, xdata?.amount);
+			} else if (o.conditionid && bindings?.containsKey(o.conditionid)) {
+				bindings.put(o.conditionid, xdata?.amount);
+			}
+
+			if (o.conditionid == 'AMOUNT') {
+				bindings.put("BALANCE", xdata?.amount);
+			}
+
+			switch (o.conditionid) {
+				case 'AMOUNT' 	: data.amount = xdata.amount; 
+								  data.balance = data.amount;
+								  break;
+				case 'BALANCE' 	: data.balance = xdata.amount; break;
+			}
+
+			def xitem = em.read([objid: o.objid], 'condition');
+			if (xitem) {
+				o.value = xdata.amount;
+				xitem.value = xdata.amount;
+				em.update(xitem, 'condition');
+			} 
+		}
+
+		em.update(data);
+	}
+
+	def buildDescription( data ) {
+		def str = '';
+
+		def conditions = data?.courtinfo?.conditions;
+		def xitem = conditions?.find{ it.conditionid == 'AMOUNT' }
+		if (xitem) {
+			def amt = new BigDecimal(xitem.value).setScale(2, BigDecimal.ROUND_HALF_UP);
+			str += decFormat.format(amt) + ' ';
+		}
+
+		xitem = conditions?.find{ it.conditionid == 'MATURITY_DATE' }
+		if (xitem) {
+			if (xitem.stringvalue) str += xitem.stringvalue;
+		}
+
+		return str;
+	}
+
+	/*
+	private void updateInfo( data ) {
+		data._removedcondition?.each{ o->
+			em.delete(o, 'condition');
+		}
+
+		data._addedcondition?.each{ o->
+			em.create(o, 'condition');
+		}
+
+		data._conditions?.each{ o->
+			if (o._edited == true) {
+				em.update(o, 'condition');
+			}
+		}
+
+		data.remove('_removedcondition');
+		data.remove('_addedcondition');
+		data.remove('_conditions');
+		
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) {
+			ac = [
+				objid		: data.objid,
+				dtcreated 	: data.dtcreated,
+				author		: data.author,
+				txnstate	: data.txnstate,
+				txnmode 	: MODE,
+				refid 		: data.objid,
+				reftype 	: 'SMC',
+				borrower 	: data.borrower,
+				loanapp 	: data.loanapp,
+				description : data.description,//createDescription(data),
+				dtstarted 	: data.dtstarted,
+				dtended 	: data.dtended
+			]
+			ledgeramnesty_collection.create(ac);
+		} else {
+			ac.borrower = data.borrower;
+			ac.loanapp = data.loanapp;
+			ac.description = data.description; //createDescription(data);
+			ac.dtstarted = data.dtstarted;
+			ac.dtended = data.dtended;
+			ledgeramnesty_collection.update(ac);
+		}
+	}
+	*/
+
+	void afterOpen( data ) {
+		if (data?.filinginfo) {
+			data?.filinginfo.docs = em.getDocumentsByReftype([objid: data?.objid, reftype: 'FILINGINFO']);
+			data?.filinginfo.fees = em.getFeesByReftype([objid: data?.objid, reftype: 'FILINGINFO']);
+		}
+
+		if (data?.courtinfo) {			
+			data?.courtinfo.docs = em.getDocumentsByReftype([objid: data?.objid, reftype: 'COURTINFO']);
+			data?.courtinfo.fees = em.getFeesByReftype([objid: data?.objid, reftype: 'COURTINFO']);
+
+			def list = em.getConditions(data);
+			def item, conditions = [];
+			list?.each{ o->
+				item = em.read([objid: o.objid], 'condition');
+				if (item) {
+					item._allowremove = true;
+					def i = DEFAULT_COND_LIST?.find{ it == item.conditionid }
+					if (i) item._allowremove = false;
+
+					conditions << item;
+				}
+			}
+
+			data?.courtinfo?.conditions = conditions;
+		}
+
+		if (data?.postinginfo) {
+			def headers = [], item;
+			def list = em.getPostingHeaders([objid: data?.objid]);
+			list?.each{ o->
+				item = em.read([objid: o.objid], 'posting-header');
+				if (item) {
+					item.isfirst = false;
+					item.islast = false;
+					headers << item;
+				}
+			}
+			if (headers) {
+				headers[0].isfirst = true;
+				headers[headers?.size() - 1].islast = true;
+			}
+			data?.postinginfo?.headers = headers;
+			data?.postinginfo?.conditions?.sort{ it.sequence }
+		}
+	}	
+
+	@ProxyMethod
+	public def getDefaultPostingHeaders( data ) {
+		def list = posting_header.getDefaultList();
+
+		def headers = [], item;
+		data?.postinginfo?.headers?.each{ o->
+			item = headers?.find{ it.code == o.code }
+			if (!item) headers << o;
+		}
+
+		list?.sort{ it.sequence }
+		list?.each{ o->
+			item = headers?.find{ it.code == o.code }
+			if (!item) {
+				o.sequence = headers?.size();
+				headers << o;
+			}
+		}
+
+		headers?.sort{ it.sequence }
+		headers?.eachWithIndex{ o, idx->
+			o.index = idx;
+			o.sequence = (idx + 1);
+			o.parentid = data?.objid;
+			o.caption = o.sequence + ' ' + o.title + ' ';
+			if (o.type == 'DEFAULT') {
+				o.caption += '(Default Header)';
+			}
+			o.isfirst = false;
+			o.islast = false;
+		}
+
+		if (headers) {
+			headers[0].isfirst = true;
+			headers[headers.size() - 1].islast = true;
+		}
+
+		/*
+		println 'headers';
+		headers?.each{ println it }
+		throw new RuntimeException('stopping');
+		*/
+
+		return headers;
+	}
+
+	@ProxyMethod
+	public def getTermList() {
+		return ['ANNUAL', 'SEMI-ANNUAL','MONTHLY', 'SEMI-MONTHLY', 'WEEKLY', 'DAILY'];
+	}
+
+	@ProxyMethod
+	public def getDefaultVarList() {
+		def list = [];
+		def data, item;
+		DEFAULT_VAR_LIST?.each{ o->
+			data = smc_condition.read([code: o]);
+			if (data) {
+				item = [:];
+				item.caption = data.code;
+				item.title = data.code;
+				item.signature = data.code;
+				item.handler = data.handler;
+				if (data.datatype) {
+					item.description = '(' + data.datatype + ')';
+				} else if (data.handler == 'expression') {
+					item.description = '(decimal)';
+				}
+				list << item;
+			}
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getDefaultConditions( params ) {
+		def list = [];
+		DEFAULT_COND_LIST?.each{ o->
+			def i = params.conditions?.find{ it.conditionid == o }
+			if (!i) list << o;
+		}
+
+		def cond, item, conditions = [];
+		list?.eachWithIndex{ val, idx->
+			cond = smc_condition.read([code: val]);
+			if (!cond) throw new Exception('Default condition ' + val + ' not found.');
+
+			item = [
+				conditionid : cond?.code,
+				title		: cond?.title,
+				index 		: (idx + 1),
+				datatype 	: cond?.datatype,
+				vardatatype : cond?.vardatatype,
+				handler 	: cond?.handler,
+				postinginfo : getPostingInfo(cond?.code),
+				_allowremove: false
+			];
+
+			conditions << item;
+		}
+
+		return conditions;
+	}
+
+	def getPostingInfo( code ) {
+		def info = [:];
+
+		if (DEFAULT_POSTING_SEQUENCE[code]) {
+			info = DEFAULT_POSTING_SEQUENCE[code];
+		}
+
+		return info;
+	}
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		if (!params.ledgerid) throw new Exception('Please specify ledgerid.')
+
+		def i = ledgeramnesty.findActiveByLedgeridAndType([ledgerid: params.ledgerid, type: 'SMC']);
+		if (i) throw new Exception('There already exist an active SMC for this ledger.');;
+
+		def data  = [:];
+
+		def ledger = loan_ledger.read([objid: params.ledgerid]);
+		if (!ledger) throw new Exception('Loan ledger record does not or has already been deleted.');
+
+		def xledger = [
+			objid			: ledger.objid,
+			interest 		: ledger.interestamount,
+			overduepenalty 	: ledger.overduepenalty,
+			balance			: ledger.balance,
+			dailydue		: ledger.dailydue,
+			dtmatured 		: ledger.dtmatured,
+			totalpayment 	: 0
+		];
+		data.ledger = xledger;
+
+		def app = loanapp.read([objid: ledger.appid]);
+		if (!app) throw new Exception('Loanapp record does not exist or has already been deleted.');
+
+		def xapp = [
+			objid		: app.objid,
+			appno		: app.appno,
+			loanamount 	: app.loanamount,
+			dtmatured	: ledger.dtmatured
+		];
+
+		def ac = loanapp.read(app, 'loanapp_capture');
+		xapp.dtreleased = ac?.dtreleased;
+
+		xledger.dtreleased = xapp.dtreleased;
+		xledger.appno = xapp.appno;
+		xledger.loanamount = xapp.loanamount;
+		data.loanapp = xapp;
+
+		def pb = borrower.read([objid: app.borrower.objid]);
+		if (!pb) throw new Exception('Borrower record does not exist or has already been deleted.');
+
+		data.borrower = pb;
+
+		/*
+		def payments = ledger_payment.getList([objid: ledger?.objid]);
+		if (payments) {
+			data.payments = payments;
+
+			def tp = payments.amount.sum();
+			if (!tp) tp = 0;
+			data.ledger.totalpayment = tp;
+		}
+		*/
+
+		return data;
+
+	}	 
+
+
+	@ProxyMethod
+	public def submitForApproval( params ) {
+		def data = changeState(params, 'FOR_APPROVAL');
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: data.objid, 
+			filetype 	: 'ledgeramnesty:' + data.txnmode?.toLowerCase() + ':smc', 
+			message 	: 'For approval SMC with Ref. No. ' + data.refno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'AUDIT_APPROVER'
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}
+
+	private def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Capture SMC record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Capture SMC record has already been ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.changeState(data);
+
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		ac.txnstate = state;
+		ledgeramnesty_collection.update(ac);
+
+		def action, remarks;
+		switch (state) {
+			case 'FOR_APPROVAL'		: action = 'For Approval';
+									  remarks = 'Submit for approval document with Ref. No. ' + data.refno;
+									  break;
+			case 'APPROVED' 		: action = 'Approve';
+									  remarks = 'Approvd document with Ref. No. ' + data.refno;
+									  break;
+			case 'DISAPPROVED'		: action = 'Disapprove';
+									  remarks = 'Disapprove document with Ref. No. ' + data.refno;
+									  break;
+			case 'FOR_VERIFICATION'	: action = 'For Verification';
+									  remarks = 'Submit for verification document with Ref. No. ' + data.refno;
+									  break;
+			case 'VERIFIED' 		: action = 'Verify';
+									  remarks = 'Verify document with Ref. No. ' + data.refno;
+									  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		def data = approveImpl(params, 'APPROVED');
+
+		def withinterest = false;
+		def i = data?.courtinfo?.conditions?.find{ it.conditionid == 'INTEREST' }
+		if (i) withinterest = true;
+
+		def list = em.getPostingHeaders([objid: data?.objid]);
+		if (!list) {
+			def setting = posting_setting.findCurrentPostingSettingByType([type: 'SMC']);
+			if (setting) {
+				if (!data?.postinginfo) data.postinginfo = [created: true];
+				setting = posting_setting.read(setting);
+
+				if (withinterest == false) {
+					def xlist = setting?.postingheader?.findAll{ it.code.matches('(SCHEDULE_DATE|INTEREST)') }
+					xlist?.each{ setting?.postingheader?.remove(it); }
+
+					setting?.postingheader?.sort{ it.sequence }
+					setting?.postingheader?.eachWithIndex{ o, idx->
+						o.index = idx;
+						o.sequence = (idx + 1);
+					}
+
+					xlist = setting?.postingsequence?.findAll{ it.code.matches('(SCHEDULE_DATE|INTEREST)'); }
+					xlist?.each{ setting?.postingsequence?.remove(it); }
+
+					setting?.postingsequence?.sort{ it.sequence }
+					setting?.postingsequence?.eachWithIndex{ o, idx->
+						o.index = idx;
+						o.sequence = (idx + 1);
+					}
+
+				}
+				def item, objid;
+				setting?.postingheader?.each{ o->
+					objid = o.code + data?.objid;
+					item = em.read([objid: o.objid], 'posting-header');
+					if (!item) {
+						item = [objid: objid, refid: data?.objid];
+						item.putAll(o);
+						em.create(item, 'posting-header');
+					}
+				}
+
+				data?.postinginfo?.conditions = setting?.postingsequence;
+
+				em.update(data);
+			}
+		}
+
+		/*
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		ac.txnstate = 'ACTIVE';
+		ledgeramnesty_collection.update(ac);
+
+		data.balance = data.amount;
+		em.update(data, 'balance');
+
+		def activ = ledgeramnesty.read([objid: data.objid], 'active');
+		if (!activ) {
+			activ = [
+				objid		: data.objid,
+				dtfiled 	: dateSvc.serverDate,
+				author		: getUser(), 
+				amnestyid 	: data.objid,
+				refid 		: data.objid,
+				ledgerid	: data.ledger?.objid,
+				type 		: 'SMC',
+				description : data.description,
+				dtstarted 	: data.dtstarted
+			];
+
+			ac = ledgeramnesty.findSucceedingActiveByLedgeridAndStartdate([date: activ.dtstarted, ledgerid: activ.ledgerid]);
+			if (ac != null && ac.objid != data.objid) {
+				def cal = Calendar.getInstance();
+				cal.setTime(parseDate(ac.dtstarted));
+				cal.add(Calendar.DATE, -1);
+
+				activ.dtended = parseDate(dateFormat.format(cal.getTime()));
+			}
+			ledgeramnesty.create(activ, 'active');
+		}
+		*/
+
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		def data = approveImpl(params, 'DISAPPROVED');
+
+		return open(data);
+	}
+
+	private def approveImpl( params, state) {
+		def data = changeState(params, state);
+
+		/*
+		data.dtfiled = dateSvc.serverDate;
+		data.filedby = getUser();
+		em.update(data, 'approve');
+		*/
+	
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def savePosting( params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('SMC record does not exist or has already been deleted.');
+
+		def addedheaders, removedheaders, updatedheaders;
+
+		def pi = params.postinginfo;
+		if (pi) {
+			data.postinginfo = pi;
+
+			addedheaders = (pi?._addedheaders? pi?.remove('_addedheaders') : []);
+			removedheaders = (pi?._removedheaders? pi?.remove('_removedheaders') : []);
+			updatedheaders = (pi?.headers? pi?.remove('headers') : []);
+
+			saveHeaders(data, addedheaders, removedheaders, updatedheaders);
+
+		}
+
+		em.update(data);
+
+		return open(data);
+	}
+
+	void saveHeaders( data, addlist, removelist, updatelist ) {
+		removelist?.each{ o->
+			if (!o.refid) o.refid = data.objid;
+			if (!o.objid) o.objid = o.code + '' + o.refid;
+			em.delete([objid: o.objid], 'posting-header');
+		}
+
+		addlist?.each{ o->
+			if (!o.parentid) o.parentid = data.objid;
+			if (!o.refid) o.refid = data.objid;
+			if (!o.objid) o.objid = o.code + '' + o.refid;
+			em.create(o, 'posting-header');
+		}
+
+		updatelist?.each{ o->
+			if (!o.parentid) o.parentid = data.objid;
+			if (!o.refid) o.refid = data.objid;
+			if (!o.objid) o.objid = o.code + '' + o.refid;
+			em.update(o, 'posting-header');
+		}
+	}
+
+	void validateForVerification( data ) {
+		def pi = data?.postinginfo;
+		if (!pi) pi = [:];
+
+		if (!pi.term) throw new RuntimeException('Please specify term.');
+		if (!pi.dtstarted) throw new RuntimeException('Please specify starting date.');
+		if (!pi?.headers) throw new RuntimeException('Please specify posting headers.');
+	}
+
+	@ProxyMethod
+	public def submitForVerification( params ) {
+		def data = changeState(params, 'FOR_VERIFICATION');
+		validateForVerification(data);
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: data.objid, 
+			filetype 	: 'ledgeramnesty:' + data.txnmode?.toLowerCase() + ':smc', 
+			message 	: 'For verification SMC with Ref. No. ' + data.refno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'AUDIT_APPROVER'
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}	
+
+	@ProxyMethod
+	public def verifyDocument( params ) {
+		def data = changeState(params, 'VERIFIED');
+
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		ac.txnstate = 'ACTIVE';
+		ledgeramnesty_collection.update(ac);
+		
+		def activ = ledgeramnesty.read([objid: data.objid], 'active');
+		if (!activ) {
+			activ = [
+				objid		: data.objid,
+				dtfiled 	: dateSvc.serverDate,
+				author		: [objid: env.USERID, name: env.NAME],
+				amnestyid 	: data.objid,
+				refid 		: data.objid,
+				ledgerid	: data.ledger?.objid,
+				type 		: 'SMC',
+				description : data.description,
+				dtstarted 	: data.dtstarted
+				//dtended 	: data.dtended
+			];
+
+			ac = ledgeramnesty.findSucceedingActiveByLedgeridAndStartdate([date: activ.dtstarted, ledgerid: activ.ledgerid]);
+			if (ac != null && ac.objid != data.objid) {
+				def cal = Calendar.getInstance();
+				cal.setTime(parseDate(ac.dtstarted));
+				cal.add(Calendar.DATE, -1);
+
+				activ.dtended = parseDate(dateFormat2.format(cal.getTime()));
+			}
+			ledgeramnesty.create(activ, 'active');
+		}
+		
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+
+		return open(data);
+	}
+
+	def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+}

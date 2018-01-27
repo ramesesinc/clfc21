@@ -1,0 +1,78 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+
+class BranchLoanPostingService
+{
+	@ActiveDB('posting_setting')
+	def em;
+
+	@ActiveDB('posting_header')
+	def posting_header;
+
+	@ProxyMethod
+	public def open( params ) {
+		def data = em.findCurrentPostingSettingByType([type: 'BRANCH']);
+		if (data) {
+			data = em.read(data);
+		} else if (!data) {
+			data = [:];
+		}
+		return data;
+	}
+
+	@ProxyMethod
+	public def save( params ) {
+		def data = em.read(params);
+		if (!data) {
+			data = params;
+			if (!data.objid) data.objid = 'BLS' + new UID();
+			data.type = 'BRANCH';
+			em.create(data);
+		} else {
+			data.putAll(params);
+			em.update(data);
+		}
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def getDefaultPostingSequence() {
+		def xlist = posting_header.getList([searchtext: '%']);
+		
+		def list = [], item;
+		xlist?.each{ o->
+			item = list?.find{ it.code == o.code }
+			if (!item) list << o;
+		}
+
+		list?.sort{ it.sequence }
+		list?.eachWithIndex{ o, idx->
+			o.index = idx;
+			o.sequence = (idx + 1);
+			o.isfirst = false;
+			o.islast = false;
+		}
+
+		if (list) {
+			list.sort{ it.sequence }
+			list[0].isfirst = true;
+			list[list.size() - 1].islast = true;
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getFieldList() {
+		def list = [
+			[name: 'interest', title: 'Interest', datatype: 'decimal'],
+			[name: 'interestpaid', title: 'Interest Paid', datatype: 'decimal'],
+			[name: 'penalty', title: 'Penalty', datatype: 'decimal'],
+			[name: 'penaltypaid', title: 'Penalty Paid', datatype: 'decimal']
+		];
+
+		return list;
+	}
+}

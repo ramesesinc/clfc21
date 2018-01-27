@@ -1,0 +1,28 @@
+<schema>
+
+	<element tablename='phone_followup_result_cancel'>
+		<field name='objid' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='txnstate' required='true' />
+		<field name='txndate' required='true' />
+		<field name='refid' required='true' />
+		<field name='loanapp_objid' required='true' />
+		<field name='loanapp_appno' required='true' />
+		<field name='borrower_objid' required='true' />
+		<field name='borrower_name' required='true' />
+		<field name='remarks' required='true' />
+		<field name='dtposted' />
+		<field name='poster_objid' />
+		<field name='poster_name' />
+	</element>
+
+	<element name='post' tablename='phone_followup_result_cancel'>
+		<field name='objid' primary='true' />
+		<field name='dtposted' required='true' />
+		<field name='poster_objid' required='true' />
+		<field name='poster_name' required='true' />
+	</element>
+
+</schema>

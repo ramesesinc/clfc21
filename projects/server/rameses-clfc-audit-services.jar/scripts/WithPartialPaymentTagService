@@ -1,0 +1,93 @@
+import com.rameses.annotations.*;
+
+class WithPartialPaymentTagService
+{
+	@ActiveDB('collection_withpartial')
+	def em;
+
+	@ActiveDB('loan_ledger_payment_tag')
+	def ledger_payment;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('loanapp_capture')
+	def loanapp_capture;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'refno', caption: 'Ref. No'];
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'amount', caption: 'Amount', type: 'decimal', format: '#,##0.00'];
+
+		return cols;
+	} 
+
+	@ProxyMethod
+	public def getPayments( params ) {
+		def list = [];
+		if (params.ledgerid) {
+			def filter = ' AND p.parentid = $P{ledgerid}';
+			if (params.refno) filter += ' AND p.refno = $P{refno}';
+			if (params.txndate) filter += ' AND p.txndate = $P{txndate}';
+			params.filter = filter;
+			list = ledger_payment.getWithPartialPayments(params);
+		}
+		return list;
+	}
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		def data = [:];
+		def ledger = loan_ledger.read([objid: params?.objid]);
+
+		data.ledger = [objid: ledger?.objid, dtmatured: ledger?.dtmatured];
+
+		def app = loanapp.read([objid: ledger?.appid]);
+		data.loanapp = [
+			objid		: app?.objid, 
+			appno		: app?.appno, 
+			loanamount	: app?.loanamount
+		];
+		data.borrower = app?.borrower;
+
+		def appc = loanapp_capture.read([objid: app?.objid]);
+		data?.loanapp.dtreleased = appc?.dtreleased;
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def addTag( params ) {
+		def pyt = loan_ledger.read([objid: params?.objid], 'payment');
+		if (!pyt) throw new RuntimeException('Payment record does not exist or has already been deleted.');
+
+		def cw = em.read([objid: pyt?.objid]);
+		if (!cw) {
+			cw = [
+				objid		: pyt?.objid, 
+				paymentid	: pyt?.objid, 
+				postingdate	: params?.postingdate
+			];
+			em.create(cw);
+		} else {
+			cw.paymentid = pyt?.objid;
+			cw.postingdate = params?.postingdate;
+			em.update(cw);
+		}
+	}
+
+	@ProxyMethod
+	public def removeTag( params ) {
+		def pyt = loan_ledger.read([objid: params?.objid], 'payment');
+		if (!pyt) throw new RuntimeException('Payment record does not exist or has already been deleted.');
+
+		def cw = em.read([objid: pyt?.objid]);
+		if (cw) em.delete(cw);
+	}
+}

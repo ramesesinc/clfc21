@@ -1,0 +1,323 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class OtherReceiptService
+{
+	@Env
+	def env;
+
+	@ActiveDB('otherreceipt')
+	def em;
+
+	@ActiveDB('collection_cb')
+	def collection_cb;
+
+	@ActiveDB("checkaccount")
+	def checkaccount;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('SequenceService')
+	def seqSvc;
+
+	@Service('BranchService')
+	def branchSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	@ProxyMethod
+	public def getCollectorList( params ) {
+		def list = em.getCollectorListByDate([date: params.txndate]);
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getCollectionList( params ) {
+		def list = em.getCollectionListByDateAndCollector([date: params.txndate, collectorid: params.collectorid]);
+
+		return list;
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	@ProxyMethod
+	public def savePayment( params ) {
+		def currdate = dateSvc.serverDate;
+		def user = getUser();
+
+		def data = em.findUnremittedOtherReceiptByDateAndCollector([date: params.txndate, collectorid: user.objid]);
+		if (!data) {
+			def xlist = getCollectionList([txndate: params.txndate, collectorid: user.objid]);
+			if (!xlist) xlist = [];
+
+			data = [
+				objid 		: 'OR' + new UID(),
+				dtcreated 	: currdate,
+				author 		: user,
+				txndate 	: params.txndate,
+				txnstate 	: 'DRAFT',
+				name 		: 'Other Receipt ' + (xlist?.size() + 1),
+				totalamount	: 0,
+				collector 	: user
+			];
+			em.create(data);
+		}
+
+		def dtl = em.read([objid: params.objid], 'detail');
+		if (!dtl) {
+			if (params.onlinedeposit == null) params.onlinedeposit = 0;
+			
+			dtl = [
+				objid			: params.objid,
+				parentid		: data?.objid,
+				description 	: params.description,
+				amount 			: params.amount,
+				payoption		: params.payoption,
+				dtcollected 	: currdate,
+				collector 		: user,
+				onlinedeposit 	: 0
+			];
+
+			def branch = branchSvc.open([:]);
+
+			def year = dateSvc.getServerYear();
+
+			def seqname = 'otherreceipt' + year;
+			year = year.toString()[2] + year.toString()[3];
+			def prefix = 'OR' + branch.code + year;
+			dtl.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname,5);
+
+			em.create(dtl, 'detail');
+
+			switch (params.payoption) {
+				case 'check':
+					dtl.check = params.check;
+					dtl.bank = params.bank;
+					em.update(dtl, 'detail-check');
+					break;
+				case 'onlinedeposit':
+					dtl.od = params.od;
+					dtl.onlinedeposit = params.onlinedeposit;
+					em.update(dtl, 'detail-onlinedeposit');
+			}
+		}
+
+	}
+
+	@ProxyMethod
+	public def getOtherReceiptInformation( params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Other receipt record does not exist or has already been deleted.');
+
+		data.payments = getPayments(data);
+
+		data.hascash = false;
+		if (data?.payments?.find{ it.payoption == 'cash' && it.state != 'VOIDED'}) {
+			data.hascash = true;
+		}
+
+		data.cashbreakdown = [items: []];
+
+		def cb = collection_cb.findCashbreakdown([collectionid: data?.objid, groupid: data?.objid, grouptype: 'OTHER_RECEIPT']);
+		if (cb) {
+			cb.items = collection_cb.getDetails(cb);
+			data.cashbreakdown = cb;
+		}
+
+		data.state = data.txnstate;
+
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def getPayments( params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Other receipt record does not exist or has already been deleted.');
+
+		def list = em.getDetails(data);
+		list?.each{ o->
+			def xparams = [refid: o.objid, otherreceiptid: data.objid, state: 'FOR_APPROVAL'];
+			def v = em.findVoidRequestByRefidAndOtherreceiptidAndState(xparams);
+			if (v) {
+				o.state = 'PENDING';
+			} else {
+				xparams.state = 'APPROVED';
+				v = em.findVoidRequestByRefidAndOtherreceiptidAndState(xparams);
+				if (v) {
+					o.state = 'VOIDED';
+				}
+			}
+			o.voidpaymentid = v?.objid;
+
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public remitCollection( params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Other receipt record does not exist or has already been deleted.');
+
+		def pending = params?.payments?.find{ it.state == 'PENDING' }
+		if (pending) throw new Exception('Cannot remit collection. There are still pending void requests.');
+
+		if (params.hascash == true) {
+			def cb = collection_cb.findCashbreakdown([collectionid: data?.objid, groupid: data?.objid, grouptype: 'OTHER_RECEIPT']);
+			if (!cb) {
+				throw new Exception('There\'s no CBS created for this collection.');
+			}
+
+			if (params.cbsno != cb.cbsno) {
+				throw new Exception('CBS No. inputted does not match cbs no. generated for this collection.');
+			}
+
+			data.cbsno = cb.cbsno;
+		}
+
+		data.txnstate = 'REMITTED';
+		data.dtremitted = dateSvc.serverDate;
+		data.remittedby = getUser();
+		em.update(data, 'remit');
+
+		def list = params?.payments?.findAll{ !it.state }
+		data.totalamount = list?.amount?.sum();
+		if (!data.totalamount) data.totalamount = 0;
+		em.update([objid: data?.objid, totalamount: data?.totalamount]);
+
+		data = getOtherReceiptInformation(data);
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def postCollection( params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Other Receipt record does not exist or has already been deleted.');
+
+		data.txnstate = 'POSTED';
+		data.dtposted = dateSvc.serverDate;
+		data.poster = getUser();
+		em.update(data, 'post');
+
+		def payments = getPayments(data);
+		def hascash = false;
+		if (payments?.find{ it.payoption == 'cash' && it.state != 'VOIDED'}) {
+			hascash = true;
+		}
+
+		if (hascash) {
+			def cb = collection_cb.findCashbreakdown([collectionid: data?.objid, groupid: data?.objid, grouptype: 'OTHER_RECEIPT']);
+			if (cb) {
+				cb.state = 'FOR_VERIFICATION';
+				collection_cb.update(cb);
+				def i = collection_cb.read([objid: cb.objid], 'cb-forverification');
+				if (!i) {
+					collection_cb.create(cb, 'cb-forverification');
+
+					def msginfo = [ 
+						objid 		: cb.objid, 
+						dtcreated	: data.dtposted, 
+						refid 		: cb.objid, 
+						filetype 	: 'cashbreakdown', 
+						message 	: 'For verification of Cash Breakdown Sheet with CBS No. '+ cb.cbsno, 
+						senderid	: env.USERID, 
+						sendername 	: env.NAME, 
+						recipientid : 'ACCT_ASSISTANT' 
+					]; 
+					inboxSvc.addMessage( msginfo );
+				}
+			}
+		}
+
+		def hascheck = false;
+		if (payments?.find{ it.payoption=='check' && it.state!='VOIDED' && it.onlinedeposit==0 }) {
+			def currentdate = data.dtposted;
+			def list = payments?.findAll{ it.payoption=='check' && it.state!='VOIDED' && it.onlinedeposit==0 }
+			list?.each{ o->
+				def ca = checkaccount.findByRefid([refid: o.objid]);
+				if (!ca) {
+					ca = [
+						objid		: 'CA' + new UID(),
+						state 		: 'CLEARED',
+						reftype		: 'OTHER_RECEIPT',
+						dtcreated	: currentdate,
+						author		: [objid: env.USERID, name: env.NAME],
+						refid 		: o.objid,
+						checkno 	: o.check.no,
+						txndate 	: o.check.date,
+						amount 		: o.amount,
+						bank 		: o.bank
+					];
+					checkaccount.create(ca);
+				}
+			}
+		}
+
+		data = getOtherReceiptInformation(data);
+		return data;
+	}
+
+	@ProxyMethod
+	public def saveBreakdown( params ) {
+		def cb = collection_cb.read(params);
+		if (!cb) throw new Exception('Cash Breakdown Sheet record does not exist or has already been deleted.');
+
+		params?.items?.each{ o->
+			collection_cb.update(o, 'cb-detail');
+		}
+
+		cb.items = collection_cb.getDetails(cb);
+
+		return cb;
+	}
+
+	/*
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'cbsno', caption: 'CBS No.'];
+		cols << [name: 'collector.name', caption: 'Collector'];
+
+		if (params.state == 'REMITTED') {
+			cols << [name: 'dtremitted', caption: 'Date Remitted'];
+			cols << [name: 'remittedby.name', caption: 'Remitted By'];
+		} else if (params.state == 'POSTED') {
+			cols << [name: 'dtposted', caption: 'Date Posted'];
+			cols << [name: 'poster.name', caption: 'Posted By'];
+		}
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'REMITTED', state: 'REMITTED'],
+			[caption: 'POSTED', state: 'POSTED']
+		];
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+	*/
+
+}

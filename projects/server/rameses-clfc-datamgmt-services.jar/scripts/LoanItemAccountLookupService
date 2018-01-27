@@ -1,0 +1,26 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class LoanItemAccountLookupService extends ActiveListService {
+
+	@ActiveDB("loan_itemaccount")
+	def em;
+
+	String listMethod = "getLookupListByState";
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'code', caption: 'Acct. Code'];
+		cols << [name: 'title', caption: 'Acct. Title'];
+		cols << [name: 'type', caption: 'Item Type'];
+		
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+		params.state = "ACTIVATED";
+	}
+}

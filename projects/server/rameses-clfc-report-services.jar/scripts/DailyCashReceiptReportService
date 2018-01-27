@@ -1,0 +1,126 @@
+import com.rameses.annotations.*;
+import java.text.SimpleDateFormat;
+
+class DailyCashReceiptReportService {
+	
+	@Env
+	def env;
+
+	@ActiveDB("daily_cash_receipt")
+	def em;
+
+	@ActiveDB("encashment")
+	def encashment;
+
+	@ActiveDB("dailycollection")
+	def dailycollection;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("BranchService")
+	def branchSvc;
+
+	private def DATE_FORMAT1 = new SimpleDateFormat("MMM-dd-yyyy");
+	private def DATE_FORMAT2 = new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a");
+	private def DATE_FORMAT3 = new SimpleDateFormat("MM/dd/yyyy");
+
+	@ProxyMethod
+	public def getReportData() {
+		def params = [date: "2016-11-09"];
+		return getReportData(params);
+	}
+
+	@ProxyMethod
+	public def getReportData( params ) {
+
+		//def txndate = java.sql.Date.valueOf("2016-11-09");
+		def txndate = parseDate(params.date);
+
+		def list = em.getPostedCollectionByDate([date: txndate]);
+		def or = em.getPostedOtherReceiptByDate([date: txndate]);
+		if (!list && !or) {
+			throw new RuntimeException("No Daily Cash Receipt for " + txndate + ".");
+		}
+
+		//println 'list ' + list;
+		list?.each{ o->
+			o.series = o.startseries.toString().padLeft(6, "0") + " - " + o.endseries.toString().padLeft(6, "0");
+			o.totalaccts = Integer.parseInt(o.totalaccts + "");
+			o.acctswithpymt = Integer.parseInt(o.acctswithpymt + "");
+
+			o.items = em.getCollectionItems([objid: o.remittanceid]);
+			def ec = o.items?.findAll{ it.type == 'encashment'}
+			ec?.each{ i->
+				def cbs = encashment.read([objid: i.objid], "encashment-cbs");
+				i.cashremitted =  cbs?.breakdown?.amount.sum();
+				if (!i.cashremitted) i.cashremitted = 0.00;
+			}
+		}
+
+		def totalundeposited = 0.00;
+		def prevdate;
+		def prevdc = em.findPreviousDailyCollectionByDate([date: txndate]);
+		if (prevdc) {
+			def ds = dailycollection.getDepositSlips([objid: prevdc.objid]);
+			if (ds) totalundeposited = ds?.amount.sum();
+			prevdate = DATE_FORMAT3.format(prevdc.txndate);
+		}
+
+		def totalcollection = list?.amount.sum();
+		if (!totalcollection) totalcollection = 0.00;
+
+		def totalor = or?.amount.sum();
+		if (!totalor) totalor = 0.00;
+
+
+		def totalcashreceipt = totalcollection + totalundeposited + totalor;
+
+		def deposits = em.getConfirmedBankDepositByDate([date: txndate]);
+		def nc = em.getNoncashCollectionByDate([date: txndate]);
+		if (nc) {
+			deposits << [description: "Non-cash", amount: nc?.amount.sum()];
+		}
+
+		def totaldeposit = deposits?.amount.sum();
+		if (!totaldeposit) totaldeposit = 0.00;
+
+		def totalcashonhand = totalcashreceipt - totaldeposit;
+
+
+		def breakdown = em.getBreakdownByDate([date: txndate]);
+
+		def serverdate = dateSvc.serverDate;
+		def branch = branchSvc.open([:]);
+		def data = [
+			date_period 	: DATE_FORMAT1.format(parseDate(txndate)),//startdate + " TO " + enddate,
+			dtprinted		: DATE_FORMAT2.format(serverdate),
+			printedby 		: env.NAME,
+			items			: list,
+			totalcollection : totalcollection,
+			totalundeposited: totalundeposited,
+			totalcashreceipt: totalcashreceipt,
+			totalcashonhand : totalcashonhand,
+			prevdate 		: prevdate,
+			collectiondate 	: DATE_FORMAT3.format(txndate),
+			otherreceipts 	: or,
+			deposits 		: deposits,
+			breakdown 		: breakdown
+		];
+		branch.each{ k, v->
+			data["branch_"+k] = v;
+		}
+
+		return data;
+	}
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date; 
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+}

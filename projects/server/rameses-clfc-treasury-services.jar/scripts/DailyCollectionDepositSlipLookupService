@@ -1,0 +1,28 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class DailyCollectionDepositSlipLookupService extends ActiveListService {
+	
+	@ActiveDB("depositslip")
+	def em;
+
+	String listMethod = "getListForDailyCollection";
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'controlno', caption: 'Control No.'];
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'passbook.acctno', caption: 'Acct. No.'];
+		cols << [name: 'passbook.acctname', caption: 'Acct. Name'];
+		cols << [name: 'amount', caption: 'Amount', type: 'decimal', format: '#,##0.00'];
+
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+	}
+}

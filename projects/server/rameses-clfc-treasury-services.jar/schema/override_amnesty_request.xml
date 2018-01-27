@@ -1,0 +1,37 @@
+<schema>
+
+	<element tablename='override_amnesty_request'>
+		<field name='objid' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='txnstate' required='true' />
+		<field name='txndate' required='true' />
+		<field name='refid' required='true' />
+		<field name='refno' required='true' />
+		<field name='amnesty_objid' required='true' />
+		<field name='amnesty_refno' required='true' />
+		<field name='borrower_objid' required='true' />
+		<field name='borrower_name' required='true' />
+		<field name='loanapp_objid' required='true' />
+		<field name='loanapp_appno' required='true' />
+		<field name='ledger_objid' required='true' />
+		<field name='description' required='true' />
+		<field name='amount' required='true' />
+		<field name='month' required='true' />
+		<field name='day' required='true' />
+		<field name='date' />
+		<field name='dtposted' />
+		<field name='poster_objid' />
+		<field name='poster_name' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<element name='post' tablename='override_amnesty_request'>
+		<field name='objid' primary='true' />
+		<field name='dtposted' required='true' />
+		<field name='poster_objid' required='true' />
+		<field name='poster_name' required='true' />
+	</element>
+
+</schema>

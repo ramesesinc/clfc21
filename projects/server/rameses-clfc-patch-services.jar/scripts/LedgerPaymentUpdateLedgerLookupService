@@ -1,0 +1,29 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class LedgerPaymentUpdateLedgerLookupService extends ActiveListService
+{
+	@ActiveDB('ledger_payment_update')
+	def em;
+
+	String listMethod = 'getLookupList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'state', caption: 'Status'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+		cols << [name: 'loantype', caption: 'Loan Type'];
+		cols << [name: 'appno', caption: 'App. No.'];
+		cols << [name: 'amount', caption: 'Loan Amount', type: 'decimal', format: '#,##0.00'];
+		cols << [name: 'dtreleased', caption: 'Release Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'dtmatured', caption: 'Maturity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '')  + '';
+	}
+}

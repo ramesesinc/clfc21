@@ -1,0 +1,526 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class LoanLedgerPhoneFollowupResultService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('phone_followup_result')
+	def em;
+
+	@ActiveDB('phone_followup_result_cancel')
+	def followup_cancel;
+
+	@ActiveDB('collector_remarks')
+	def collector_remarks;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('fieldcollection')
+	def fieldcollection;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('datatxnlog')
+	def txnlog;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('ledgeramnesty_fix')
+	def ledgeramnesty_fix;
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('borrower')
+	def borrower;
+
+	@ActiveDB('override_amnesty_request')
+	def override_amnesty_request;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('SequenceService')
+	def seqSvc;
+
+	@Service('OverrideAmnestyRequestService')
+	def overrideAmnestySvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'State'];
+
+		cols << [name: 'txndate', caption: 'Follow-up Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+
+		if (params.state == 'CONFIRMED') {
+			cols << [name: 'dtconfirmed', caption: 'Date Confirmed'];
+			cols << [name: 'confirmedby.name', caption: 'Confirmed By'];
+		} else if (params.state == 'CANCELLED') {
+			cols << [name: 'dtcancelled', caption: 'Date Cancelled'];
+			cols << [name: 'cancelledby.name', caption: 'Cancelled By'];
+		}
+
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'CONFIRMED', state: 'CONFIRMED'],
+			[caption: 'FOR CANCEL', state: 'FOR_CANCEL'],
+			[caption: 'CANCELLED', state: 'CANCELLED']
+		];
+	}
+
+	private def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	void validate( data ) {
+		def txndate = parseDate(String.valueOf(data.txndate).split(' ')[0]);
+		def currentdate = parseDate(dateSvc.getServerDateAsString().split(' ')[0]);
+
+		if (txndate.compareTo(currentdate) > 0) {
+			throw new Exception('Follow-up date must not be greater than current date.');
+		}
+	}
+
+	def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+	void beforeCreate( data ) {
+		validate(data);
+		def currentdate = dateSvc.parseCurrentDate();
+		data.dtcreated = currentdate.date;
+		data.author = getUser();
+
+		def year = currentdate.year + "";
+		def seqname = 'phone-followup-result' + year;
+		def prefix = 'PFR' + year[2] + year[3];
+		data.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname, 6);
+
+	}
+
+	void beforeUpdate( data ) {
+		validate(data);
+	}
+
+	void afterCreate( data ) {
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateInfo(data);
+	}
+
+	void updateInfo( data ) {
+		data?._removerequest?.each{ o->
+			override_amnesty_request.delete(o);
+		}
+
+		def list = data?._request?.findAll{ it._new == true }
+		list?.each{ o->
+			if (!o.refid) o.refid = data.objid;
+			o = overrideAmnestySvc.create(o);
+		}
+
+		list = data?._request?.findAll{ it._edit == true }
+		list?.each{ o->
+			if (!o.refid) o.refid = data.objid;
+			o = overrideAmnestySvc.update(o);
+		}
+
+		data?.overriderequest = data?.remove('_request');
+		data?.remove('_removerequest');
+	}
+
+	void afterOpen( data ) {
+		data?.overriderequest = getOverrideAmnestyList(data);
+
+		def ca = followup_cancel.findCancelRequestByRefidAndState([refid: data.objid, state: 'DRAFT']);
+		if (ca) {
+			data._hascancel = true;
+			data.cancelremarks = ca.remarks;
+		}
+
+		if (data.txnstate == 'CANCELLED') {
+			ca = followup_cancel.findCancelRequestByRefidAndState([refid: data.objid, state: 'APPROVED'])
+			if (ca) {
+				data._hascancel = true;
+				data.cancelremarks = ca.remarks;
+			}
+		}
+	}
+
+	@ProxyMethod
+	public def getOverrideAmnestyList( params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Follow-up record does not exist or has already been deleted.');
+
+		//def list = override_amnesty_request.getListByLedgerid([ledgerid: data?.ledgerid]);
+		def list = override_amnesty_request.getListByRefid([refid: data?.objid]);
+		list?.each{ o->
+			def info = o.remove('info');
+			info = em.serializer.read(info);
+			o.putAll(info);
+		}
+
+		return list;
+	}
+	
+	void validateConfirm( data ) {
+		def item = override_amnesty_request.findByStateAndRefid([state: 'DRAFT', ledgerid: data?.objid]);
+		if (item) {
+			throw new Exception('Cannot confirm document. There are still draft override amnesty request(s).');
+		}
+
+		item = override_amnesty_request.findByStateAndRefid([state: 'FOR_APPROVAL', ledgerid: data?.objid]);
+		if (item) {
+			throw new Exception('Cannot confirm document. There are still override amnesty request(s) that needs approval.');
+		}
+	}
+
+	@ProxyMethod
+	public def confirmFollowup( params ) {
+		def data = changeState('CONFIRMED', params);
+		validateConfirm(params);
+
+		data.dtconfirmed = dateSvc.serverDate;
+		data.confirmedby = getUser();
+		em.update(data, 'confirm');
+
+		switch (data?.amnestyoption) {
+			case 'avail'	: processAvail(data); break;
+			case 'reject'	: processReject(data); break;
+		}
+
+
+		def item = collector_remarks.read(data);
+		if (!item) {
+			item = [
+				objid 		: data.objid,
+				ledgerid	: data.ledgerid,
+				dtcreated 	: data.dtcreated,
+				author		: data.author,
+				txndate 	: data.txndate,
+				collector 	: data?.author,
+				remarks 	: data.remarks
+			];
+			collector_remarks.create(item);
+			collector_remarks.create(item, 'followup-remarks');
+		} else {
+			collector_remarks.update([objid: item.objid, remarks: data.remarks]);
+		}
+
+		return open(params);
+	}
+
+
+
+	void processAvail( data) {
+		def availed = data?.availedamnesty;
+		processAvail(availed, data);
+	}
+
+	void processAvail( availed, data ) {
+		def currentdate = data?.dtconfirmed;
+		def user = data?.confirmedby;
+
+		if (availed?.dtended) {
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(availed.dtended));
+
+			def xdate = parseDate(currentdate.toString().split(' ')[0]);
+			def dtended = cal.getTime();
+			if (xdate.compareTo(dtended) > 0) {
+				throw new Exception('Cannot avail this recommendation. Maturity date for this recommendation has already passed.');
+			}
+		}
+
+		/*
+		if (availed.usedate == 0) {
+			if (availed.month > 0) {
+				cal.add(Calendar.MONTH, availedamnesty.month);
+			}
+			if (availed.day > 0) {
+				cal.add(Calendar.DATE, availed.day);
+			}
+		} else {
+			cal.setTime(parseDate(availed.date));
+		}
+		def dtended = cal.getTime();
+
+		def xdate = parseDate(currentdate.toString().split(' ')[0]);
+		if (xdate.compareTo(dtended) > 0) {
+			throw new Exception('Cannot avail this recommendation. Maturity date for this recommendation has already passed.');
+		}
+		*/
+
+		def app = loanapp.read([objid: data?.loanapp?.objid]);
+		if (!app) throw new Exception('Loan application record does not exist or has already been deleted.');
+
+		def appc = loanapp.read(app, 'loanapp_capture');
+		if (appc) {
+			app.dtreleased = appc?.dtreleased;
+		}
+
+		def br = data.borrower;
+		def xbr = borrower.read([objid: br.objid]);
+		if (!xbr) throw new Exception('Borrower record does not exist or has already been deleted.');
+
+		br.address = xbr.address;
+
+		def ld = loan_ledger.read([objid: data.ledgerid]);
+		if (!ld) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		app.dtmatured = ld.dtmatured;
+		
+
+		def item = ledgeramnesty_fix.findByRefid([refid: availed.objid]);
+		//println '\nitem';
+		//item?.each{ println it }
+		if (!item) {
+			item = [
+				objid		: 'LAF' + new UID(),
+				dtcreated	: currentdate,
+				author		: user,
+				txndate 	: data.txndate,
+				txnstate	: 'AVAILED',
+				txnmode 	: 'ONLINE',
+				refid 		: availed?.objid,
+				refno		: availed?.refno,
+				borrower 	: br,
+				loanapp 	: app,
+				//borrower 	: data.borrower,
+				//loanapp 	: data.loanapp,
+				ledger 		: availed.ledger,
+				description	: availed?.description,
+				amount 		: availed?.amount,
+				balance 	: availed?.amount,
+				dtstarted	: availed?.dtstarted,
+				dtended 	: availed?.dtended
+			];
+			ledgeramnesty_fix.create(item);
+		}
+
+		//throw new Exception('stopping');
+		//println 'availed ' + availed;
+
+		def am = ledgeramnesty.read([objid: availed?.parentid]);
+		if (am) {
+			am.txnstate = 'AVAILED';
+			ledgeramnesty.update(am);
+		}
+
+		def ac = ledgeramnesty_collection.findByRefid([refid: availed?.parentid]);
+		if (ac) {
+			ledgeramnesty_collection.delete(ac);
+		}
+
+		def item2 = ledgeramnesty_collection.findByRefid([refid: item.objid]);
+		if (!item2) {
+			item2 = [
+				objid		: item.objid,
+				dtcreated 	: currentdate,
+				author		: user,
+				txnstate	: item.txnstate,
+				txnmode		: 'ONLINE',
+				refid 		: item.objid,
+				reftype 	: 'FIX',
+				borrower 	: item.borrower,
+				loanapp 	: item.loanapp,
+				description : item.description,
+				dtstarted 	: item.dtstarted,
+				dtended 	: item.dtended
+			];
+			ledgeramnesty_collection.create(item2);
+		}
+	}
+
+	void processReject( data ) {
+		def rejected = data?.rejectedamnesty;
+		processReject(rejected, data);
+	}
+
+	void processReject( rejected, data ) {
+		def am = ledgeramnesty.read(data);
+		if (!am) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+	}
+
+	private def changeState( state, params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Phone follow-up record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Phone follow-up record already ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.update(data);
+
+		def action, remarks;
+		switch (state) {
+			case 'CONFIRMED'	: action = 'Confirmed';
+								  remarks = 'Document confirmed with Ref. No. ' + data.refno;
+								  break;
+			case 'FOR_CANCEL' 	: action = 'For Cancellation';
+								  remarks = 'Document submitted for cancellation with Ref. No. ' + data.refno;
+								  break;
+			case 'CANCELLED' 	: action = 'Cancelled';
+								  remarks = 'Document cancelled with Ref. No. ' + data.refno;
+								  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def cancelFollowup( params ) {
+		def data = changeState('FOR_CANCEL', params);
+
+		def currentdate = dateSvc.serverDate;
+		def ca = followup_cancel.findCancelRequestByRefidAndState([refid: data.objid, state: 'DRAFT']);
+		if (!ca) {
+			ca = [
+				objid 		: 'PFCR' + new UID(),
+				dtcreated 	: currentdate,
+				author 		: getUser(),
+				txnstate 	: 'DRAFT',
+				txndate 	: currentdate,
+				refid 		: data?.objid,
+				loanapp 	: data?.loanapp,
+				borrower 	: data?.borrower,
+				remarks 	: params?.cancelremarks
+			];
+			followup_cancel.create(ca);
+		}
+
+		def msginfo = [
+			objid		: data?.objid,
+			dtcreated 	: currentdate,
+			refid 		: data?.objid,
+			filetype 	: 'phonefollowupresult',
+			message 	: 'Phone follow-up cancel request for approval with Ref. No. ' + data?.refno,
+			senderid 	: env.USERID,
+			sendername 	: env.NAME,
+			recipientid : 'APPROVER'
+		];
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def approveCancel( params ) {
+		def data = changeState('CANCELLED', params);
+		data = postCancelImpl('APPROVED', data);
+
+		data.dtcancelled = dateSvc.serverDate;
+		data.cancelledby = getUser();
+		em.update(data, 'cancel');
+
+		def item = collector_remarks.read(data);
+		if (item) {
+			collector_remarks.delete(item, 'followup-remarks')
+			collector_remarks.delete(item);
+		}
+		
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def disapproveCancel( params ) {
+		def data = changeState('CONFIRMED', params);
+		data = postCancelImpl('DISAPPROVED', data);
+
+		return open(data);
+	}
+
+	private def postCancelImpl( state, params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Phone follow-up record does not exist or has already been deleted.');
+
+		def ca = followup_cancel.findCancelRequestByRefidAndState([refid: data?.objid, state: 'DRAFT']);
+		if (ca) {
+
+			def currentdate = dateSvc.serverDate;
+
+			ca.txnstate = state;
+			ca.dtposted = currentdate;
+			ca.poster = getUser();
+			followup_cancel.update(ca);
+
+
+			def action, remarks;
+			switch (state) {
+				case 'APPROVED'		: action = 'Approve';
+									  remarks = 'Approve cancel request for Phone follow-up with Ref. No. ' + data.refno;
+									  break;
+				case 'DISAPPROVED' 	: action = 'Disapprove';
+									  remarks = 'Dispprove cancel request for Phone follow-up with Ref. No. ' + data.refno;
+									  break;
+			}
+
+			if (action && remarks) {
+				def loginfo = [
+					objid 	: 'TLOG' + new UID(), 
+					txndate : currentdate, 
+					txnid   : ca.objid, 
+					user    : [objid: env.USERID, username: env.USER], 
+					action	: action,
+					remarks : remarks
+				]; 
+				txnlog.create( loginfo ); 
+			}
+		}
+
+		inboxSvc.removeMessageByRefid([refid: data?.objid]);
+
+		return open(data);
+	}
+}

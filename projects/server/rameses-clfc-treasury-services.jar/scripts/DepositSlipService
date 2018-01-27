@@ -1,0 +1,350 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class DepositSlipService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB("depositslip")
+	def em;
+
+	@ActiveDB("collection_cb")
+	def collection_cb;
+
+	@ActiveDB('datatxnlog')
+	def txnlog;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("SequenceService")
+	def seqSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'state', caption: 'Status'];
+
+		cols << [name: 'depositstatus', caption: 'Deposit Status'];
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'controlno', caption: 'Control No.'];
+		//cols << [name: 'reftype', caption: 'Ref. Type'];
+		cols << [name: 'passbook.acctno', caption: 'Acct. No.'];
+		cols << [name: 'passbook.acctname', caption: 'Acct. Name'];
+
+		switch (params.state) {
+			case 'APPROVED' 	: cols << [name: 'dtposted', caption: 'Date Approved'];
+								  cols << [name: 'poster.name', caption: 'Approved By'];
+								  break;
+			case 'DISAPPROVED' 	: cols << [name: 'dtposted', caption: 'Date Disapproved'];
+								  cols << [name: 'poster.name', caption: 'Disapproved By'];
+								  break;
+			case 'CANCELLED' 	: cols << [name: 'dtcancelled', caption: 'Date Cancelled'];
+								  cols << [name: 'cancelledby.name', caption: 'Cancelled By'];
+								  break;
+		}
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'APPROVED', state: 'APPROVED'],
+			[caption: 'DISAPPROVED', state: 'DISAPPROVED'],
+			[caption: 'FOR CANCEL', state: 'FOR_CANCEL'],
+			[caption: 'CANCELLED', state: 'CANCELLED'],
+			[caption: 'CLOSED', state: 'CLOSED']
+		]
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	void validate( data ) {
+		if (data.type == 'check' && !data.checks) 
+			throw new Exception("At least 1 check is required.");
+
+		if (data.type == 'cash' && !data.cbs)
+			throw new Exception("At least 1 cash breakdown sheet is required.");
+	}
+
+	void beforeCreate( data ) {
+		//validate(data);
+
+		data.dtcreated = dateSvc.serverDate;
+		data.author = [objid: env.USERID, name: env.NAME];
+		//def year = dateSvc.getServerYear().toString();
+		//def seqname = "depositslip" + year;
+		//data.controlno = "DS" + year[2] + year[3] + seqSvc.getNextFormattedSeriesA(seqname, 7);
+	}
+
+	void beforeUpdate( data ) {
+		//validate(data);
+	}
+
+	void afterCreate( data ) {
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateInfo(data);
+	}
+
+	private void updateInfo( data ) {
+		data._removedcbs?.each{ o->
+			em.delete(o, 'cbs');
+		}
+
+		data._addedcbs?.each{ o->
+			em.create(o, 'cbs');
+		}
+
+		data._removedcheck?.each{ o->
+			em.delete(o, 'check');
+		}
+
+		data._addedcheck?.each{ o->
+			em.create(o, 'check');
+		}
+	}
+
+	/*
+	private void validateBeforeApprove( params ) {
+		if (!params.checks && !params.cbs) {
+			throw new Exception('Please specify at least 1 check or 1 cash breakdown sheet.')
+		}
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		validateBeforeApprove(params);
+		def data = changeState(params, 'APPROVED');
+
+		addInfo(params);
+		//throw new Exception('stopping');
+
+		return open(data);
+	}
+	*/
+
+	private def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Deposit slip record does not exist or has already been deleted.');
+
+		if (data.state == state) {
+			throw new Exception('Deposit slip record already ' + state + '.');
+		}
+
+		data.state = state;
+		em.update(data);
+
+		def action, remarks;
+		switch (state) {
+			case 'FOR_APPROVAL' : action = 'For Approval';
+								  remarks = 'Deposit Slip Submit for Approval';
+								  break;
+			case 'APPROVED'		: action = 'Approve';
+								  remarks = 'Deposit Slip Approved';
+								  break;
+			case 'DISAPPROVED'  : action = 'Disapprove';
+								  remarks = 'Deposit Slip Disapproved';
+								  break;
+			case 'CANCELLED' 	: action = 'Cancel';
+								  remarks = 'Deposit Slip Cancelled';
+								  break;
+		}
+
+		if (action && remarks) {
+			def logdata = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate,
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,  
+				remarks : remarks
+			]; 
+			txnlog.create( logdata ); 
+		}
+
+		return open(data);
+	}
+
+	void afterOpen( data ) {
+		data.checks = em.getChecks(data);
+		data.cbs = em.getCbs(data);
+
+		data.items = [];
+
+		data?.cbs?.each{ o->
+			//o._filetype = "cashbreakdown";
+			if (o.isencashed == 0) {
+				o.items = collection_cb.getDetails([objid: o.cbsid]);
+				def m;
+				o.items.each{ i->
+					m = data.items.find{ it.denomination == i.denomination }
+					if (!m) {
+						data.items.add(i);
+					} else {
+						m.qty += i.qty;
+						m.amount += i.amount;
+					}
+				}
+			}
+		}
+
+		def cr;
+		switch (data.state) {
+			case 'FOR_CANCEL'	: cr = em.findCurrentCancelRequestByState([objid: data?.objid, state: 'DRAFT']); break;
+			case 'CANCELLED' 	: cr = em.findCurrentCancelRequestByState([objid: data?.objid, state: 'APPROVED']); break;
+		}
+		if (cr) data.cancelremarks = cr.remarks;
+	}
+
+	void validateBeforeSubmitForApproval( data ) {
+		def checks = em.getChecks(data);
+		def cbs = em.getCbs(data);
+		if (!cbs && !checks) {
+			throw new Exception('Please add 1 CBS or 1 check to deposit.');
+		}
+	}
+
+	@ProxyMethod
+	public def submitForApproval( params ) {
+		def data = changeState(params, 'FOR_APPROVAL');
+		validateBeforeSubmitForApproval(data);
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: data.objid, 
+			filetype 	: 'depositslip', 
+			message 	: 'For approval of deposit slip with Control No. '+ data.controlno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'ACCT_ASSISTANT' 
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		def data = postImpl(params, 'APPROVED');
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		def data = postImpl(params, 'DISAPPROVED');
+
+		return data;
+	}
+
+	def postImpl( params, state ) {
+		def data = changeState(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = getUser();
+		em.update(data, 'post-depositslip');
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]); 
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def cancelDepositSlip( params ) {
+		if (!params.cancelremarks) throw new Exception('Please specify cancel remarks.');
+		def data = changeState(params, 'FOR_CANCEL');
+
+		def currdate = dateSvc.serverDate;
+		def cr = em.findCurrentCancelRequestByState([objid: data?.objid, state: 'DRAFT']);
+		if (!cr) {
+			cr = [
+				objid		: 'DSCR' + new UID(),
+				parentid	: data?.objid,
+				dtcreated 	: currdate,
+				author		: getUser(),
+				txndate 	: currdate,
+				txnstate 	: 'DRAFT',
+				remarks 	: params.cancelremarks
+			];
+			em.create(cr, 'cancel-request');
+		}
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: currdate, 
+			refid 		: data.objid, 
+			filetype 	: 'depositslip', 
+			message 	: 'For cancellation of deposit slip with Control No. '+ data.controlno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'APPROVER' 
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}
+
+	def postCancelImpl( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Deposit slip record does not exist or has already been deleted.');
+
+		def cr = em.findCurrentCancelRequestByState([objid: data?.objid, state: 'DRAFT']);
+		if (cr) {
+			cr.txnstate = state;
+			em.update(cr, 'cancel-request');
+
+			cr.dtposted = dateSvc.serverDate;
+			cr.poster = getUser();
+			em.update(cr, 'post-cancel-request');
+		}
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def approveCancel( params ) {
+		def data = changeState(params, 'CANCELLED');
+		data = postCancelImpl(data, 'APPROVED');
+
+		data.dtcancelled = dateSvc.serverDate;
+		data.cancelledby = getUser();
+		em.update(data, 'cancel-depositslip');
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def disapproveCancel( params ) {
+		def data = postCancelImpl(params, 'DISAPPROVED');
+		data.state = 'APPROVED';
+		em.update(data);
+
+		return open(data);
+	}
+}

@@ -1,0 +1,334 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+import java.text.*;
+
+class LedgerAmnestyCaptureWaiverService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('ledgeramnesty_waiver')
+	def em;
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('borrower')
+	def borrower;
+
+	@ActiveDB('datatxnlog')
+	def txnlog; 
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('SequenceService')
+	def seqSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	private String MODE = 'CAPTURE';
+	private def decFormat = new DecimalFormat('#,##0.00');
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+		cols << [name: 'dtstarted', caption: 'Start Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'dtended', caption: 'Maturity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+
+		if (params.state == 'DISAPPROVED') {
+			cols << [name: 'dtposted', caption: 'Date Disapproved'];
+			cols << [name: 'poster.name', caption: 'Disapproved By'];
+		}
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'DISAPPROVED', state: 'DISAPPROVED'],
+			[caption: 'ACTIVE', state: 'ACTIVE']
+		]
+	}
+
+	void beforeList( params ) {
+		params.txnmode = MODE;
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	private void validate( data ) {
+		if (data.overrideinterest == 1 && data.interest == 0) {
+			throw new Exception('Please specify interest amount.');
+		}
+
+		if (data.overridepenalty == 1 && data.penalty == 0) {
+			throw new Exception('Please specify penalty amount.');
+		}
+	}
+
+	void beforeCreate( data ) {
+		validate(data);
+		def dt = dateSvc.parseCurrentDate();
+		data.dtcreated = dt.date;//dateSvc.serverDate;
+		data.author = [objid: env.USERID, name: env.NAME];
+		if (!data.txnmode) data.txnmode = MODE;
+		if (!data.txnstate) data.txnstate = 'DRAFT';
+
+		def year = dt.year + '';
+		def seqname = 'amnestywaivercapture' + year;
+		def prefix = 'WVRC' + year[2] + year[3];
+		data.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname, 6);
+		if (!data.description) data.description = createDescription(data);
+	}
+
+	void beforeUpdate( data ) {
+		validate(data);
+		if (!data.description) data.description = createDescription(data);
+	}
+
+	void afterCreate( data ) {
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateInfo(data);
+	}
+
+	private void updateInfo( data ) {
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) {
+			ac = [
+				objid		: data.objid,
+				dtcreated 	: data.dtcreated,
+				author		: data.author,
+				txnstate	: data.txnstate,
+				txnmode 	: data.txnmode,
+				refid 		: data.objid,
+				reftype 	: 'WAIVER',
+				borrower 	: data.borrower,
+				loanapp 	: data.loanapp,
+				description : data.description,//createDescription(data),
+				dtstarted 	: data.dtstarted,
+				dtended 	: data.dtended
+			]
+			ledgeramnesty_collection.create(ac);
+		} else {
+			ac.borrower = data.borrower;
+			ac.loanapp = data.loanapp;
+			ac.description = data.description; //createDescription(data);
+			ac.dtstarted = data.dtstarted;
+			ac.dtended = data.dtended;
+			ledgeramnesty_collection.update(ac);
+		}
+	}
+
+
+	private def createDescription( data ) {
+		def str;
+
+		if (data.waiveinterest == 1) {
+			str = 'Waive Interest ';
+		} else if (data.overrideinterest == 1) {
+			str = 'Override Interest with amount of ' + decFormat.format(data.interest) + ' ';
+		}
+
+		if (data.waivepenalty == 1 || data.overridepenalty == 1) {
+			str += 'and ';
+			if (data.waivepenalty == 1) {
+				str += 'Waive Penalty ';
+			} else if (data.overridepenalty == 1) {
+				str += 'Override Penalty with amount of ' + decFormat.format(data.penalty) + ' ';
+			}
+		}
+
+		return str;
+	}
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		if (!params.ledgerid) throw new Exception('Please specify ledgerid.');
+
+		def data  = [:];
+
+		def ledger = loan_ledger.read([objid: params.ledgerid]);
+		if (!ledger) throw new Exception('Loan ledger record does not or has already been deleted.');
+
+		def xledger = [
+			objid		: ledger.objid,
+			interest 	: ledger.interestamount,
+			balance		: ledger.balance,
+			dailydue	: ledger.dailydue,
+			dtmatured 	: ledger.dtmatured
+		];
+		data.ledger = xledger;
+
+		def app = loanapp.read([objid: ledger.appid]);
+		if (!app) throw new Exception('Loanapp record does not exist or has already been deleted.');
+
+		def xapp = [
+			objid		: app.objid,
+			appno		: app.appno,
+			loanamount 	: app.loanamount,
+			dtmatured	: ledger.dtmatured
+		]
+
+		def ac = loanapp.read(app, 'loanapp_capture');
+		xapp.dtreleased = ac?.dtreleased;
+
+		data.loanapp = xapp;
+
+		def pb = borrower.read([objid: app.borrower.objid]);
+		if (!pb) throw new Exception('Borrower record does not exist or has already been deleted.');
+
+		data.borrower = pb;
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def submitForApproval( params ) {
+		def data = changeState(params, 'FOR_APPROVAL');
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: data.objid, 
+			filetype 	: 'ledgeramnesty:' + data.txnmode?.toLowerCase() + ':waiver', 
+			message 	: 'For approval waiver with Ref. No. ' + data.refno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'AUDIT_APPROVER' 
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return data;
+	}
+
+	private def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Waiver record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Waiver record has already been ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.changeState(data);
+
+		/*
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (ac) {
+			ac.txnstate = state;
+			ledgeramnesty_collection.update(ac);
+		}
+		*/
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		ac.txnstate = state;
+		ledgeramnesty_collection.update(ac);
+
+		def action, remarks;
+		switch (state) {
+			case 'FOR_APPROVAL'	: action = 'For Approval';
+								  remarks = 'Submit for Approval document with Ref. No. ' + data.refno;
+								  break;
+			case 'APPROVED'		: action = 'Approve';
+								  remarks = 'Approve document with Ref. No. ' + data.refno;
+								  break;
+			case 'DISAPPROVED'	: action = 'Disapprove';
+								  remarks = 'Disapprove document with Ref. No. ' + data.refno;
+								  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		def data = approveImpl(params, 'APPROVED');
+
+		def ac = ledgeramnesty_collection.read([objid: data.objid]);
+		if (!ac) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		ac.txnstate = 'ACTIVE';
+		ledgeramnesty_collection.update(ac);
+
+		def activ = ledgeramnesty.read([objid: data.objid], 'active');
+		if (!activ) {
+			activ = [
+				objid		: data.objid,
+				dtfiled 	: dateSvc.serverDate,
+				author		: [objid: env.USERID, name: env.NAME],
+				amnestyid 	: data.objid,
+				refid 		: data.objid,
+				ledgerid	: data.ledger?.objid,
+				type 		: 'WAIVER',
+				description : data.description,
+				dtstarted 	: data.dtstarted,
+				dtended 	: data.dtended
+			];
+			ledgeramnesty.create(activ, 'active');
+		}
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		def data = approveImpl(params, 'DISAPPROVED');
+
+		return data;
+	}
+
+	private def approveImpl( params, state ) {
+		def data = changeState(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = [objid: env.USERID, name: env.NAME];
+		em.update(data, 'post');
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+
+		return open(data);
+	}
+
+}

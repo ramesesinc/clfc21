@@ -1,0 +1,71 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class LedgerAmnestyCollectionService extends ActiveListService
+{
+	@ActiveDB('ledgeramnesty_collection')
+	def em;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'state', caption: 'Status'];
+
+		cols << [name: 'reftype', caption: 'Type'];
+		if (!params.ledgerid) {
+			cols << [name: 'loanapp.appno', caption: 'App. No.'];
+			cols << [name: 'borrower.name', caption: 'Borrower'];
+		}
+		cols << [name: 'description', caption: 'Description'];
+		cols << [name: 'dtstarted', caption: 'Effectivity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'dtended', caption: 'Maturity Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+
+		if (params.ledgerid) {
+			params._listMethod = 'getListByLedgerid';
+		}
+
+		if (params.state && params.ledgerid) {
+			params._listMethod = 'getListByStateAndLedgerid';
+		}
+	}
+
+	void afterList( params, list ) {
+		list?.each{ o->
+			o.filetype = 'ledgeramnesty:' + o.txnmode.toLowerCase() + ':' + o.reftype.toLowerCase();
+			def i = ledgeramnesty.findActiveByRefid([refid: o?.objid]);
+			if (i) o.isActive = true;
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			/*
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'AVAILED', state: 'AVAILED'],
+			[caption: 'SEND BACK', state: 'SEND_BACK'],
+			[caption: 'FOR VERIFICATION', state: 'FOR_VERIFICATION'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'DISAPPROVED', state: 'DISAPPROVED'],
+			[caption: 'ACTIVE', state: 'ACTIVE']
+			*/
+		];
+	}
+
+}

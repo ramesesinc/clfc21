@@ -1,0 +1,96 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+
+class BillingSupportService
+{
+	@ActiveDB('ledger_billing_resolve')
+	def em;
+
+	@ActiveDB('ledger_billing')
+	def ledger_billing;
+
+	@ActiveDB('specialcollection')
+	def specialcollection;
+
+	private int SIZE = 20;
+	private int LIMIT = SIZE + 1;
+	private def STATES = [
+		POSTED 		: 'POSTED', 
+		FOR_POSTING : 'FOR_POSTING',
+		REMITTED 	: 'REMITTED'
+	];
+
+	@Async
+	@ProxyMethod
+	public def resolvePostedCollection() {
+		while (true) {
+			def params = [state: STATES.POSTED, _limit: LIMIT];
+			def list = em.getRemittanceByState(params);
+			if (!list) throw new RuntimeException('No ' + params.state + ' billing to resolve.');
+
+			def size = (list?.size() >= SIZE? SIZE : list?.size());
+
+			for (def i=0; i<size; i++) {
+				def item = list[i];
+				def data = ledger_billing.findByBillingidAndItemid([objid: item?.collection?.objid, itemid: item?.group?.objid]);
+				if (data) {
+					data.state = params.state;
+					ledger_billing.update(data, 'billing-item');
+
+					def sc = specialcollection.read([objid: data?.item?.objid]);
+					if (sc) {
+						sc.state = data.state;
+						specialcollection.update(sc);
+					}
+				}
+
+				def xitem = [objid: item?.objid, state: data?.state];
+				def xi = em.findByIdAndState(item);
+				if (!xi) {
+					em.create(item);
+				}
+			}
+
+			if (list?.size() <= SIZE) {
+				break;
+			}
+		}
+	}
+
+	@Async
+	@ProxyMethod
+	public def resolveRemittedCollection() {
+		while (true) {
+			def params = [state: STATES.FOR_POSTING, _limit: LIMIT];
+			def list = em.getRemittanceByState(params);
+			if (!list) throw new RuntimeException('No ' + STATES.REMITTED + ' billing to resolve.');
+
+			def size = (list?.size() >= SIZE? SIZE : list?.size());
+
+			for (def i=0; i<size; i++) {
+				def item = list[i];
+				def data = ledger_billing.findByBillingidAndItemid([objid: item?.collection?.objid, itemid: item?.group?.objid]);
+				if (data) {
+					data.state = STATES.REMITTED;
+					ledger_billing.update(data, 'billing-item');
+				
+					def sc = specialcollection.read([objid: data?.item?.objid]);
+					if (sc) {
+						sc.state = data.state;
+						specialcollection.update(sc);
+					}	
+				}
+
+				def xitem = [objid: item?.objid, state: params?.state];
+				def xi = em.findByIdAndState(item);
+				if (!xi) {
+					em.create(item);
+				}
+			}
+
+			if (list?.size() <= SIZE) {
+				break;
+			}
+		}
+	}
+}

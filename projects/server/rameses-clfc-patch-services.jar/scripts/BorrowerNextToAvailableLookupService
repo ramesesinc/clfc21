@@ -1,0 +1,24 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class BorrowerNextToAvailableLookupService extends ActiveListService
+{
+	@ActiveDB('borrower_nextto')
+	def em;
+
+	String listMethod = 'getAvailableBorrowerLookupList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'name', caption: 'Name'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+	}
+}

@@ -1,0 +1,125 @@
+<schema>
+
+	<element tablename="mobile_tracker">
+		<field name="objid" primary="true" />
+		<field name="state" required="true" />
+		<field name="dtfiled" required="true" />
+		<field name="terminalid" required="true" />
+		<field name="userid" required="true" />
+		<field name="branch_objid" required="true" />
+		<field name="branch_name" required="true" />
+		<field name="dtstart" required="true" />
+		<field name="startlng" required="true" />
+		<field name="startlat" />
+		<field name="dtclosed" />
+		<field name="closedby" />
+		<field name="closedremarks" />
+		<field name="closedlng" />
+		<field name="closedlat" />
+		<complex name="info" required="false" serializer="default" merge="true" />
+	</element>
+
+    <element name="close-tracker" tablename="mobile_tracker">
+		<field name="objid" primary="true"/>
+		<field name="state" required="true"/>
+		<field name="dtclosed" required="true"/>
+		<field name="closedby" required="true"/>
+		<field name="closedremarks" required="true"/>
+		<field name="closedlng" required="true"/> 
+		<field name="closedlat" required="true"/> 		
+    </element>
+
+	<element name="detail" tablename="mobile_tracker_detail">
+		<field name="objid" primary="true" />
+		<field name="parentid" required="true" />
+		<field name="branch_objid" required="true" />
+		<field name="branch_name" required="true" />
+		<field name="dtfiled" required="true" />
+		<field name="txndate" required="true" />
+		<field name="txntype" required="true" />
+		<field name="refid" required="true" />
+		<field name="reftype" required="true" />
+		<field name="lng" required="true" />
+		<field name="lat" required="true" />
+		<field name="remarks" />
+		<field name="state" required="true" />
+		<complex name="info" required="false" serializer="default" merge="true" />
+	</element>
+
+	<element name="item" tablename="mobile_tracker_item">
+		<field name="objid" primary="true" />
+		<field name="parentid" required="true" />
+		<field name="branchid" required="true" />
+		<field name="billingitemid" required="true" />
+		<field name="item_objid" required="true" />
+		<field name="item_type" required="true" />
+		<complex name="info" required="false" serializer="default" merge="true" />
+	</element>
+
+	<element name="branch" tablename="mobile_tracker_branch">
+		<field name="objid" primary="true" />
+		<field name="name" required="true" />
+		<field name="code" required="true" />
+		<field name="address" required="true" />
+		<field name="contactno" />
+		<field name="email" />
+		<complex name="info" required="false" serializer="default" merge="true" />
+	</element>
+
+	<element name="branch-route" tablename="mobile_tracker_branch_route">
+		<field name="objid" primary="true" />
+		<field name="parentid" required="true" />
+		<field name="branchid" required="true" />
+		<field name="route_code" required="true" />
+		<field name="route_description" required="true" />
+		<field name="route_area" required="true" />
+		<complex name="info" required="false" serializer="default" merge="true" />
+	</element>
+
+	<!--
+    <element name="mobile_tracker" tablename="mobile_tracker">
+		<field name="objid" primary="true"/>
+		<field name="state" required="true"/>
+		<field name="terminalid"/>
+		<field name="userid"/>
+		<field name="dtstart" required="true"/>
+		<field name="startlng" required="true"/>
+		<field name="startlat" required="true"/>
+		<field name="dtclosed"/>
+		<field name="closedby"/>
+		<field name="closedremarks"/>
+		<field name="closedlng"/> 
+		<field name="closedlat"/> 
+    </element>
+
+    <element name="detail" tablename="mobile_tracker_detail">
+		<field name="objid" primary="true"/>
+		<field name="parentid" required="true"/>		
+		<field name="txndate" required="true"/>
+		<field name="txntype" required="true"/>
+		<field name="refid" required="true"/>
+		<field name="reftype" required="true"/>
+		<field name="lng" required="true"/>
+		<field name="lat" required="true"/>
+		<field name="remarks"/>
+		<field name="state"/>
+    </element> 
+
+    <element name="route" tablename="mobile_tracker_route">
+    	<field name="objid" primary="true"/>
+		<field name="parentid" required="true"/>
+		<field name="routecode" required="true"/>
+    </element>
+
+    <element name="close-tracker" tablename="mobile_tracker">
+		<field name="objid" primary="true"/>
+		<field name="state" required="true"/>
+		<field name="dtclosed" required="true"/>
+		<field name="closedby" required="true"/>
+		<field name="closedremarks" required="true"/>
+		<field name="closedlng" required="true"/> 
+		<field name="closedlat" required="true"/> 		
+    </element>
+	-->
+	
+</schema>

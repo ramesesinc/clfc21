@@ -1,0 +1,28 @@
+<schema>
+
+	<element tablename="ledger_billing_cancelrequest">
+		<field name="objid" primary="true" />
+		<field name="dtfiled" required="true" />
+		<field name="author_objid" required="true" />
+		<field name="author_name" required="true" />
+		<field name="billing_itemid" required="true" />
+		<field name="billing_state" required="true" />
+		<field name="billing_date" required="true" />
+		<field name="billing_description" required="true" />
+		<field name="collector_objid" required="true" />
+		<field name="collector_name" required="true" />
+		<field name="txnstate" required="true" />
+		<field name="remarks" required="true" />
+		<field name="dtposted" />
+		<field name="poster_objid" />
+		<field name="poster_name" />
+	</element>
+
+	<element name="post" tablename="ledger_billing_cancelrequest">
+		<field name="objid" primary="true" />
+		<field name="dtposted" required="true" />
+		<field name="poster_objid" required="true" />
+		<field name="poster_name" required="true" />
+	</element>
+
+</schema>

@@ -1,0 +1,30 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class OverrideAmnestyRequestAmnestyLookupService extends ActiveListService
+{
+	@ActiveDB('override_amnesty_request')
+	def em;
+
+	String listMethod = 'getAmnestyLookupList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.ledgerid) {
+			params._listMethod = 'getAmnestyLookupListByLedgerid';
+		}
+	}
+}

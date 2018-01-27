@@ -1,0 +1,298 @@
+/*
+import java.io.OutputStream;
+import java.io.InputStream;
+import gnu.io.SerialPort;
+import gnu.io.SerialPortEvent;
+import gnu.io.CommPortIdentifier;
+*/
+import com.rameses.annotations.*;
+import java.util.concurrent.*;
+
+class SendToRemoteSMSTask
+{
+	@ActiveDB('sms_for_sending')
+	def sms_for_sending;
+
+	/*
+	@ActiveDB('sms_provider')
+	def sms_provider;
+	*/
+
+	@Service('BranchService')
+	def branchSvc;
+
+	/*
+	@Service('SMSSenderService')
+	def sender;
+	*/
+
+	@ActiveDB('entityindividual')
+	def entityindividual;
+
+	@Service(value='ServerSMSService', connection='remote_proxy')
+	def serverSmsSvc;
+
+	private def SPLITTER = ',';
+	private def REGEX = '^[0|\\+63]+(9)+(\\d{9})';
+
+	private def waiter = new LinkedBlockingQueue();
+
+	//@Schedule(interval=5, timeUnit='SECONDS')
+	public void sendToRemoteSMSServer( task ) {
+		//println 'sending'
+		def list = sms_for_sending.getList();
+		if (!list) return;
+
+		def xlist = [], item;
+		def branch = branchSvc.open([:]);
+		list.each{ o->
+			item = sms_for_sending.read(o);
+			if (item) {
+				def indv = entityindividual.read([objid: o?.borrower?.objid]);
+				if (indv) {
+					item.borrower.lastname = indv.lastname;
+					item.borrower.firstname = indv.firstname;
+				}
+				item.branch = branch;
+				xlist << item;
+			}
+		}
+
+		xlist = serverSmsSvc.sendForSMSSending([list: xlist]);
+		//list = serverSmsSvc.saveForSMSSending([list: list]);
+
+		xlist?.each{ o->
+			if (o._created == true) {
+				sms_for_sending.delete([objid: o.objid]);
+			}
+		}
+	}
+
+
+	/*
+	//@Schedule(interval=5, timeUnit="SECONDS")
+	//@Schedule(interval=1, timeUnit='DAYS')
+	public void sendSMS( task ) {
+		//println 'sms task';
+
+		//def list = sms_for_sending.getList([_limit: 10]);
+		//if (!list) return;
+
+		def sms = sms_for_sending.findFirstSmsForSending();
+		if (!sms) return;
+		def list = [];
+		list << sms;
+
+		addProvider(list);
+		def providers = getProviders(list);
+		sendSMSImpl(providers);
+
+		//println 'for sending messages';
+		//list?.each{ println it }
+
+		/*
+		def sms = sms_for_sending.findFirstSmsForSending();
+		if (!sms) return;
+
+		def mobileno = sms.mobileno?.split(SPLITTER);
+		if (mobileno) {
+			mobileno?.each{ n->
+				try {
+					send(n, sms);
+					waiter.poll(10000, TimeUnit.MILLISECONDS);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		def list = sms_for_sending.getList([:]);
+		//println 'list ' + list;
+		if (!list) return;
+
+
+		try {
+			sendSmsImpl(list);
+			//CommPortIdentifier portId = CommPortIdentifier.getPortIdentifier('COM11');
+
+
+
+		} catch (Exception e) {
+			println e.printStackTrace();
+		}
+	}
+
+	void addProvider( list ) {
+		def mobileno, prefix, provider;
+		list?.each{ o->
+			mobileno = o.mobileno;
+			if (mobileno.matches(REGEX)) {
+				mobileno = mobileno.replace('+63', '0');
+				prefix = mobileno.substring(0, 4);
+				provider = sms_provider.findProviderByPrefix([prefix: prefix]);
+				if (provider) o.provider = provider;
+			}
+		}
+	}
+
+	def getProviders( list ) {
+		def providers = [];
+		list?.each{ o->
+			if (o.provider) providers << o.provider;
+		}
+		//providers.addAll(list.collect{ it.provider });
+
+		providers?.unique{ it.code }
+
+
+		providers?.each{ o->
+			//println o;
+			def xlist = list.findAll{ it.provider?.code == o.code }
+			xlist?.each{ l->
+				l.remove('provider');
+				if (!o.messages) o.messages = [];
+				o.messages << l;
+			}
+
+			//o.messages = list.findAll{ it.provider?.code == o.code }
+			//println o.code + ' messages';
+			//o.messages?.each{ println it }
+		}
+
+		return providers;
+	}
+
+	void sendSMSImpl( providers ) {
+		providers?.each{ p->
+			if (p?.portname) {
+				try {
+					sender.connect(p.portname);
+					if (sender.getIsConnected() == true) {
+						def messages = [];
+						p.messages?.each{ m->
+							def item = [objid: m.objid, mobileno: m.mobileno];
+
+							item.message = createSMSMessage(m);
+
+							def message = 'You have paid the loan of ' + m.borrower?.name;
+							message += ' with the Loan No. ' + m.loanapp?.appno;
+							message += ' with the amount of ' + m.amount;
+							message += ' received by collector ' + m.collector?.name + '.';
+
+							//item.message = message;
+							messages << item;
+						}
+						sender.sendMessage(messages);
+
+						while (sender.getIsSending() == true) {
+							//Thread.sleep(5000);
+							//println 'sending';
+							waiter.poll(5000, TimeUnit.MILLISECONDS);
+						}
+
+						//println 'SMS task messages';
+						messages?.each{ o->
+							if (o.sent == true) {
+								sms_for_sending.delete([objid: o.objid]);
+							}
+						}
+
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					//do nothing
+				} finally {
+					sender?.disconnect();
+				}
+			}
+		}
+	}
+
+	def createSMSMessage( data ) {
+		def msg = 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.';
+
+
+		return msg;
+	}
+
+	def convertToHexadecimal( str ) {
+		byte[] bytes = str?.getBytes();
+
+		def len = bytes?.length;
+		def format = "";
+		if (len > 0) {
+			format = "%0" + (len * 2) + "x";
+		}
+
+		return String.format(format, new BigInteger(1, bytes));
+	}
+
+	void xsendSmsImpl( list ) throws Exception {
+		def mobileno;
+		list?.each{ o->
+			mobileno = o.mobileno?.split(SPLITTER);
+			if (mobileno) {
+				mobileno?.each{ n->
+					try {
+						send(n, o);
+						//Thread.sleep(10000);
+						waiter.poll(10000, TimeUnit.MILLISECONDS);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		//println '';
+
+	}
+
+	private def getTime() {
+		def cal = Calendar.getInstance();
+		return cal?.getTime();
+	}
+
+	void send( mobileno, data ) {
+		//mobileno = mobileno.replace('+63', '0');
+		if (mobileno.matches(REGEX)) {
+			mobileno = mobileno.replace('+63', '0');
+			def prefix = mobileno.substring(0, 4);
+			def provider = sms_provider.findProviderByPrefix([prefix: prefix]);
+
+			//println 'port name: ' + provider?.portname;
+			if (provider?.portname) {
+			//	println 'connecting';
+				sender.connect(provider?.portname);
+			//	println 'connected ' + sender.getIsConnected();
+
+				def message = 'You have paid the loan of ' + data.borrower?.name;
+				message += ' with the Loan No. ' + data.loanapp?.appno;
+				message += ' with the amount of ' + data.amount;
+				message += ' received by collector ' + data.collector?.name + '.';
+
+
+				if (sender.getIsConnected() == true) {
+					//println 'before send message ' + getTime();
+					sender.sendMessage(mobileno, message);
+					//println 'after send message ' + getTime();
+				}
+
+				while (sender.getIsSending() == true) {
+					//Thread.sleep(5000);
+					waiter.poll(5000, TimeUnit.MILLISECONDS);
+				}
+
+				println 'is message sent ' + sender.getIsSent() + ' ' + getTime();
+				if (sender.getIsSent() == true) {
+					sms_for_sending.delete(data);
+				}
+
+				//println 'disconnecting';
+				sender.disconnect();
+				//println 'disconnected';
+			}
+
+		}
+	}
+	*/
+}

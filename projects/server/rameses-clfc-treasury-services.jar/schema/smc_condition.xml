@@ -1,0 +1,26 @@
+<schema>
+
+	<element tablename='smc_condition'>
+		<field name='code' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='title' required='true' />
+		<field name='description' required='true' />
+		<field name='conditiontype' required='true' />
+		<field name='datatype' />
+		<field name='handler' required='true' />
+		<field name='vardatatype' />
+	</element>
+
+	<!--
+	<element tablename="smc_condition">
+		<field name="name" primary="true" />
+		<field name="title" required="true" />
+		<field name="datatype" required="true" />
+		<field name="handler" required="true" />
+		<field name="vardatatype" required="true" />
+	</element>
+	-->
+	
+</schema>

@@ -1,0 +1,48 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class SMCDocumentService extends ActiveCrudListService 
+{
+	@Env
+	def env;
+
+	@ActiveDB('smc_document')
+	def em;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'code', caption: 'Code'];
+		cols << [name: 'title', caption: 'Title'];
+		cols << [name: 'description', caption: 'Description'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	void beforeCreate( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = getUser();
+		if (!data.type) data.type = 'USER';
+	}
+
+	void afterOpen( data ) {
+		data._allowedit = true
+		if (data.type == 'SYSTEM') {
+			data._allowedit = false;
+		}
+	}
+
+
+}

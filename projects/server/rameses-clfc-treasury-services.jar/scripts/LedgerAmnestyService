@@ -1,0 +1,375 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class LedgerAmnestyService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('ledgeramnesty')
+	def em;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loan_ledger_payment')
+	def ledger_payment;
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('datatxnlog')
+	def txnlog; 
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('SequenceService')
+	def seqSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	private String MODE = 'ONLINE';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'loanapp.appno', caption: 'App. No.'];
+		cols << [name: 'borrower.name', caption: 'Borrower'];
+
+		if (params.state == 'RETURNED') {
+			cols << [name: 'dtreturned', caption: 'Date Returned'];
+			cols << [name: 'returnedby.name', caption: 'Returned By'];
+		}
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'RETURNED', state: 'RETURNED'],
+			[caption: 'AVAILED', state: 'AVAILED'],
+			[caption: 'REJECTED', state: 'REJECTED']
+		];
+	}
+
+
+	void beforeList( params ) {
+		params.txnmode = MODE;
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+		if (params.state && params.txnmode) {
+			params._listMethod = 'getListByStateAndMode';
+		}
+	}
+
+	void beforeCreate( data ) {
+		def dt = dateSvc.parseCurrentDate();
+		data.dtcreated = dt.date;
+		data.author = [objid: env.USERID, name: env.NAME];
+		if (!data.txnstate) data.txnstate = 'DRAFT';
+		if (!data.txndate) data.txndate = data.dtcreated;
+		if (!data.txnmode) data.txnmode = 'ONLINE';
+
+		def year = dt.year + '';
+		def seqname = 'amnesty' + year;
+		def prefix = 'AMNESTY' + year[2] + year[3];
+		data.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname, 6);
+	}
+
+	void afterCreate( data ) {
+		updateItems(data);
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateItems(data);
+		updateInfo(data);
+	}
+
+	void updateItems( data ) {
+		data?._removeditems?.each{ o->
+			em.delete(o, 'detail');
+		}
+
+		data?._addeditems?.each{ o->
+			if (!o.parentid) o.parentid = data.objid;
+			em.create(o, 'detail');
+		}
+
+		def list = data?.items?.findAll{ it._edited == true }
+		list?.each{ o->
+			if (!o.parentid) o.parentid = data.objid;
+			em.update(o, 'detail');
+		}
+		/*
+		data?._removeditems?.each{ o->
+			em.delete(o, 'detail');
+		}
+
+		data?._addeditems?.each{ o->
+			if (!o.parentid) o.parentid = data.objid;
+			em.create(o, 'detail');
+		}
+
+		def list = data?.items?.findAll{ it._edited==true }
+		list?.each{ o->
+			if (!o.parentid) o.parentid = data.objid;
+			em.update(o, 'detail');
+		}
+		*/
+	}
+
+	void updateInfo( data ) {
+		def item = ledgeramnesty_collection.findByRefid([refid: data?.objid]);
+		if (!item) {
+			item = [
+				objid		: data?.objid,
+				dtcreated 	: data?.dtcreated,
+				author		: data?.author,
+				txnstate	: data?.txnstate,
+				txnmode		: data?.txnmode,
+				refid		: data?.objid,
+				reftype		: 'REQUEST',
+				borrower 	: data?.borrower,
+				loanapp 	: data?.loanapp,
+				description	: 'Amnesty request'
+			];
+			ledgeramnesty_collection.create(item);
+		} else if (item) {
+			item.borrower = data?.borrower;
+			item.loanapp = data?.loanapp;
+			ledgeramnesty_collection.update(item);
+		}
+	}
+
+	void afterOpen( data ) {
+		def list = em.getDetails(data);
+
+		def items = [], map;
+		list?.each{ o->
+			map = em.read(o, 'detail');
+			items << map;
+		}
+		data.items = items;
+
+		def ac = em.read(data, 'active');
+		if (ac) {
+			data.availed = ac;
+		}
+	}
+
+	void validateBeforeForApproval( params ) {
+		def item = em.findDetail(params);
+		if (!item) throw Exception('Cannot submit for approval. You have no recommendation(s) to submit for approval.');
+	}
+
+	@ProxyMethod
+	public def submitForApproval( params ) {
+		validateBeforeForApproval(params);
+		def state =  'FOR_APPROVAL';
+		def currentdate = dateSvc.serverDate;
+
+		def data = changeState(params, state);
+		def items = data.remove('items');
+
+		data.dtsubmittedforapproval = currentdate;
+		data.submittedby = [objid: env.USERID, name: env.NAME];
+		em.update(data);
+
+		def itm;
+		items?.each{ o->
+			itm = em.read(o, 'detail');
+			if (itm) {
+				itm.txnstate = state;
+				itm.allowremove = false;
+				itm.allowedit = false;
+				em.update(itm, 'detail');
+			}
+		}
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: data.objid, 
+			filetype 	: 'ledgeramnesty:online:request',
+			message 	: 'For approval amnesty with Ref. No. '+ data.refno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'FLA_OFFICER' 
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}
+
+	private def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Amnesty record alreay ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.changeState(data);
+
+		def xi = ledgeramnesty_collection.findByRefid([refid: data?.objid]);
+		if (xi) {
+			xi.txnstate = state;
+			ledgeramnesty_collection.update(xi);
+		}
+
+		def action, remarks;
+		switch (state) {
+			case 'FOR_APPROVAL'	: action = 'For Approval';
+								  remarks = 'Submitted for Approval document with Ref. No. ' + data.refno;
+								  break;
+			case 'RETURNED'		: action = 'Returned';
+								  remarks = 'Document Returned with Ref. No. ' + data.refno;
+								  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		if (!params.ledgerid) throw new Exception("Please specify ledgerid.");
+
+		def ledger = loan_ledger.read([objid: params.ledgerid]);
+		if (!ledger) throw new Exception("Ledger record does not exist or has already been deleted.");
+
+		def app = loanapp.read([objid: ledger?.appid]);
+		if (!app) throw new Exception("Loanapp record does not or has already been deleted.");
+
+		def appc = loanapp.read([objid: app.objid], 'loanapp_capture');
+
+		def ap = [objid: app.objid, appno: app.appno];
+		def borrower = app.borrower;
+		def data = [
+			objid			: ledger?.objid,
+			balance 		: ledger?.balance,
+			dtreleased		: appc?.dtreleased,
+			dtmatured 		: ledger.dtmatured,
+			dtlastpaid 		: ledger?.dtlastpaid,
+			loanamount 		: app?.loanamount,
+			appno 			: app?.appno,
+			loantype 		: app?.loantype,
+			apptype 		: app?.apptype,
+			updatedbalance 	: 0,
+		];
+
+		def payments = ledger_payment.getList([objid: ledger?.objid]);
+		if (payments) {
+			def tp = payments.amount.sum();
+			if (!tp) tp = 0;
+			data.totalpayment = tp;
+		}
+
+		return [ledger: data, loanapp: ap, borrower: borrower];
+	}
+
+	@ProxyMethod
+	public def approveItem( params ) {
+		def data = approveItemImpl(params, 'APPROVED');
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def disapproveItem( params ) {
+		def data = approveItemImpl(params, 'DISAPPROVED');
+
+		return data;
+	}
+
+	private def approveItemImpl( params, state ) {
+		def data = changeStateItemImpl(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = [objid: env.USERID, name: env.NAME];
+		em.update(data, 'detail');
+
+		return openItem(data);
+	}
+
+	private def changeStateItemImpl( params, state ) {
+		def data = em.read(params, 'detail');
+		if (!data) throw new Exception('Amnesty recommendation record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Amnesty recommendation already ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.update(data, 'detail');
+
+		return openItem(data);
+	}
+
+	private def openItem( params ) {
+		def data = em.read(params, 'detail');
+		if (!data) throw new Exception('Amnesty recommendation record does not exist or has already been deleted.');
+
+		return data;
+	}
+
+	private void validateReturnDocument( params ) {
+		def item = em.findDetailByState([objid: params.objid, state: 'FOR_APPROVAL']);
+		if (item) throw new Exception("Cannot return document. There are still recommendation(s) that needs approval.");
+	}
+
+	@ProxyMethod
+	public def returnDocument( params ) {
+		validateReturnDocument(params);
+		def data = changeState(params, 'RETURNED');
+		def items = data.remove('items');
+
+		data.dtreturned = dateSvc.serverDate;
+		data.returnedby = [objid: env.USERID, name: env.NAME];
+		em.update(data);
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);	
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def saveRecommendations( params ) {
+		updateItems(params);
+		return open(params);
+	}
+
+
+}
