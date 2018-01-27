@@ -11,6 +11,22 @@
 */temp
 */tmp
 
+android/*/_tmp
+android/*/.settings
+android/*/assets
+android/*/bin
+android/*/dist
+android/*/build
+android/*/build.xml
+android/*/nbproject/private
+android/*/nbproject/build-impl.xml~
+android/*/nbproject/genfiles.properties
+android/*/nbproject/groovy-build.xml
+android/*/.terminal
+android/*/Thumbs.db
+
+android/**/bin
+
 _tmp
 _dev
 
