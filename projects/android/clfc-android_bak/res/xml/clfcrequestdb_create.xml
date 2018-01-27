@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<db>    
+    <sql>
+		CREATE TABLE VOID_REQUEST ( 
+			objid text PRIMARY KEY,  
+			paymentid text,  
+			loanappid text,  
+			state text,  
+			collectorid text, 
+			collectorname text, 
+			reason text 
+		) 
+    </sql>
+</db>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<db>
+    <sql>
+		CREATE TABLE REMARKS ( 
+			loanappid text PRIMARY KEY,  
+			state text,  
+			remarks text,  
+			longitude text,  
+			latitude text,  
+			trackerid text,  
+			detailid text,
+			appno text,
+			borrowerid text,
+			borrowername text,
+			sessionid text,
+			routecode text,
+			collectorid text,  
+			collectorname text,
+			txndate text,
+			cstype text
+		) 
+    </sql>
+</db>

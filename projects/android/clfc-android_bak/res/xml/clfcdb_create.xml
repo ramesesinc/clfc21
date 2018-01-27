@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<db>    
+    <sql>
+		CREATE TABLE COLLECTIONSHEET ( 
+			loanappid text PRIMARY KEY,  
+			detailid text, 
+			seqno numeric,  
+			appno text,  
+			acctid text,
+			acctname text,  
+			amountdue numeric,  
+			overpaymentamount numeric,  
+			refno text,  
+			routecode text,  
+			term numeric,  
+			loanamount numeric,  
+			dailydue numeric,  
+			balance numeric,  
+			interest numeric, 
+			penalty numeric,  
+			others numeric,  
+			duedate text,  
+			isfirstbill numeric,  
+			paymentmethod text, 
+			homeaddress text,  
+			collectionaddress text,  
+			sessionid text,  
+			type text  
+		) 
+    </sql> 
+    <sql>
+		CREATE TABLE NOTES ( 
+			objid text PRIMARY KEY,  
+			state text,  
+			loanappid text,  
+			fromdate text,  
+			todate text,  
+			remarks text 
+		) 
+    </sql> 
+    <sql>
+		CREATE TABLE SYS_VAR ( 
+			name text PRIMARY KEY,   
+			value text 
+		) 
+    </sql>
+    <sql>
+		CREATE TABLE ROUTE ( 
+			routecode text PRIMARY KEY,  
+			state text,  
+			routedescription text,  
+			routearea text,  
+			sessionid text,  
+			collectorid text 
+		) 
+    </sql>
+    <sql>
+		CREATE TABLE SPECIALCOLLECTION ( 
+			objid text PRIMARY KEY,  
+			state text,  
+			remarks text ,
+			collectorid text,
+			collectorname text
+		) 
+    </sql>
+</db>

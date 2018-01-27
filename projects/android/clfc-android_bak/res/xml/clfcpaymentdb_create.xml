@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<db> 
+    <sql>
+		CREATE TABLE PAYMENT (  
+			objid text PRIMARY KEY,  
+			state text,  
+			refno text,  
+			txndate text,  
+			paymenttype text,  
+			paymentamount numeric,  
+			paidby text,    
+			collectorid text,
+			collectorname text,
+			borrowerid text,
+			borrowername text,
+			loanappid text,
+			appno text,
+			detailid text, 
+			routecode text,  
+			isfirstbill numeric, 
+			longitude numeric,  
+			latitude numeric,  
+			trackerid text,
+			cstype text,
+			sessionid text
+		) 
+    </sql>
+</db>

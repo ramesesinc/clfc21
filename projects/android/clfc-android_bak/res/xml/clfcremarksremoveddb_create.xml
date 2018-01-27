@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<db>
+    <sql>
+		CREATE TABLE REMARKS_REMOVED ( 
+			loanappid text PRIMARY KEY, 
+			state text,
+			detailid text
+		) 
+    </sql>
+</db>
