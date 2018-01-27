@@ -1,0 +1,20 @@
+<workunit>
+    <invokers>
+        <invoker type='ledgeramnesty:capture:waiver:create' action='create' caption='Waiver' target='popup' />
+        <invoker type='ledgeramnesty:capture:waiver:open' action='open' caption='Waiver' target='popup' />
+        
+        <invoker type='formActions' action='submitForApproval' caption='Submit for Approval' mnemonic='s'
+            shortcut='ctrl s' visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='DRAFT'}" role='AUDIT_AMNESTY' />
+            
+        <invoker type='formActions' action='approveDocument' caption='Approve' mnemonic='a' shortcut='ctrl a'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='FOR_APPROVAL'}" role='AUDIT_APPROVER' />
+        <invoker type='formActions' action='disapprove' caption='Disapprove' mnemonic='d' shortcut='ctrl d'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='FOR_APPROVAL'}" role='AUDIT_APPROVER' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.waiver.WaiverAmnestyController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.waiver.WaiverAmnestyPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,25 @@
+<workunit extends="wtemplates/LookupController.xml" >
+    <invokers>
+        <invoker type="dailycollection:depositslip:lookup" caption="Lookup Deposit Slip" target="popup" />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class DailyCollectionDepositSlipLookupController extends LookupController {
+            
+            String serviceName = "DailyCollectionDepositSlipLookupService";
+            
+            def dailycollectionid;
+        
+            List fetchList(Map params) {
+                params.dailycollectionid = dailycollectionid;
+                return super.fetchList(params);
+            }
+            
+        }
+    </code>
+</workunit>

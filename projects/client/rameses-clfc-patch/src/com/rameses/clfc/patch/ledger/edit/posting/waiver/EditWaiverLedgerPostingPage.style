@@ -1,0 +1,5 @@
+"listHandler:item.*" [item.selected == true] {
+    color: black;
+    font-weight: bold;
+    background-color: red;
+}

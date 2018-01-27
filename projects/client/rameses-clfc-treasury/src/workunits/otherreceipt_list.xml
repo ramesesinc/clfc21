@@ -1,0 +1,90 @@
+
+<workunit>
+    <invokers>
+        <invoker folderid='/home/online/collection' action='init' caption='Post Other Receipt Collection' role='CASHIER' />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shorcut='ctrl w' 
+            visibleWhen="${action=='default'}" immediate='true' />
+        <invoker type='formActions' action='back' caption='Back' mnemonic='b' shortcut='ctrl b'
+            visibleWhen="${action=='posting' &amp;&amp; mode=='read'}" immediate='true' />
+        <invoker type='formActions' action='cancelBreakdown' caption='Cancel' mnemonic='c' shortcut='ctrl c'
+            visibleWhen="${action=='posting' &amp;&amp; mode!='read'}" />
+        
+        <invoker type='formActions' action='next' caption='Next' mnemonic='n' shortcut='ctrl n'
+            visibleWhen="${action=='default'}" />
+        <invoker type='formActions' action='collectPayment' caption='Collect Payment' immediate='true' 
+            visibleWhen="${action=='default'}" role='CASHIER' />
+        
+        <invoker type='formActions' action='voidPayment' caption='Void Payment' mnemonic='v' shortcut='ctrl v'
+            visibleWhen="${action=='posting' &amp;&amp; entity.txnstate=='DRAFT' &amp;&amp; selectedPayment!=null}" immediate='true' 
+            role='CASHIER' />
+        <invoker type='formActions' action='remitCollection' caption='Remit' mnemonic='r' shortcut='ctrl r' 
+            visibleWhen="${action=='posting' &amp;&amp; entity.txnstate=='DRAFT'}" 
+            role='CASHIER' />
+        
+        <invoker type='formActions' action='editBreakdown' caption='Edit' mnemonic='e' shortcut='ctrl e'
+            visibleWhen="${action=='posting' &amp;&amp; mode=='read' &amp;&amp; entity.txnstate == 'REMITTED' &amp;&amp; entity.hascash==true}" />
+        <invoker type='formActions' action='saveBreakdown' caption='Save' mnemonic='s' shortcut='ctrl s'
+            visibleWhen="${action=='posting' &amp;&amp; mode!='read'}" />
+        
+        <invoker type='formActions' action='postCollection' caption='Post' mnemonic='p' shortcut='ctrl p'
+            visibleWhen="${action=='posting' &amp;&amp; mode=='read' &amp;&amp; entity.txnstate=='REMITTED' &amp;&amp; (totalcollection==totalbreakdown || entity.hascash==false)}" />
+        
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.otherreceipt.OtherReceiptController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.otherreceipt.OtherReceiptPostingInitPage' />
+        <page template='com.rameses.clfc.treasury.otherreceipt.OtherReceiptPostingPage' name='posting' />
+    </pages>
+</workunit>
+<!--
+<workunit extends='wtemplates/ListController.xml'>
+    <invokers>
+        <invoker folderid='/home/online/collection' caption='Other Receipts' role='CASHIER' />
+        
+        <invoker type='formActions' action='collectPayment' caption='Collect Payment' role='CASHIER' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class OtherReceiptListController extends ListController
+        {
+            @Service('OtherReceiptService')
+            def svc;
+        
+            String serviceName = 'OtherReceiptService';
+            String entityName = 'otherreceipt';
+        
+            boolean allowCreate = false;
+        
+            void beforeGetColumns(Map params) {
+                params.state = selectedOption?.state;
+            }
+        
+            def collectPayment = Inv.lookupOpener('otherreceipt:payment', [:]);
+        
+            def selectedOption;
+            def optionsModel = [
+                fetchList: { 
+                    return svc.getStates();
+                },
+                onselect: {o-> 
+                    query.state = selectedOption?.state; 
+                    reloadAll(); 
+                }
+            ] as ListPaneModel;
+        
+        }
+    </code>
+    
+    <pages>
+        <page template="com.rameses.clfc.ui.ListPage" />
+    </pages>
+</workunit>
+-->

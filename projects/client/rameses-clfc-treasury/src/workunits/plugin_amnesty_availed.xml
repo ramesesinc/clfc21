@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:plugin' reftype='availedamnesty' caption='Availed Amnesty' index='3' />
+        <invoker type='amnesty:availedamnesty' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.AvailedAmnestyController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.AvailedAmnestyPage' />
+    </pages>
+</workunit>

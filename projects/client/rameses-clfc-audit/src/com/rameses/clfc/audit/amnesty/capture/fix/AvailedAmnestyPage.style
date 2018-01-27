@@ -1,0 +1,24 @@
+"availed.*" [mode!='read'] {
+    enabled: true;
+}
+"availed.usedate" [availed.withmd==1] {
+    enabled: true;
+}
+"availed.usedate" [!availed.withmd] {
+    enabled: false;
+}
+"availed.(day|month)" [availed.withmd==1 && !availed.usedate] {
+    enabled: true;
+}
+"availed.(day|month)" [!availed.withmd || availed.usedate==1] {
+    enabled: false;
+}
+"availed.date" [availed.withmd==1 && availed.usedate==1] {
+    enabled: true;
+}
+"availed.date" [!availed.withmd || !availed.usedate] {
+    enabled: false;
+}
+"availed.*" [mode=='read'] {
+    enabled: false;
+}

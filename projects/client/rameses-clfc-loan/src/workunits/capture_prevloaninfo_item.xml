@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="capture:prevloaninfo:item:create" action="init" caption="Prev. Loan" target="popup" />
+        <invoker type="capture:prevloaninfo:item:open" action="open" caption="Prev. Loan" target="popup" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.capture.PrevLoanItemController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.capture.PrevLoanItemPage" />
+    </pages>
+</workunit>

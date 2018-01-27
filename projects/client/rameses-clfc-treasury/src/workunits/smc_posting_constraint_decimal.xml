@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="smc:posting:constraint:decimal" action="init"/>
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.settings.smc.posting.constraint.NumberHandler' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.settings.smc.posting.constraint.DecimalHandler' />
+    </pages>
+</workunit>

@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='capture:amnesty:smc:plugin' reftype='filinginfo' caption='Filing Information' index='1' />
+        <invoker type='capture:amnesty:smc:filinginfo' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.smc.FilingInfoController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.smc.FilingInfoPage' />
+    </pages>
+</workunit>

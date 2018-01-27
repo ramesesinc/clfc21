@@ -1,0 +1,23 @@
+<workunit extends='wtemplates/LookupController.xml'>
+    <invokers>
+        <invoker type='amnestycapture:ledger:lookup' caption='Ledger Lookup' target='popup' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class AmnestyCaptureLedgerLookupController extends LookupController
+        {
+            String serviceName = 'AmnestyCaptureLedgerLookupService';
+        
+            def type;
+            List fetchList(Map params) {
+                params.type = type;
+                return super.fetchList(params);
+            }
+        }
+    </code>
+</workunit>

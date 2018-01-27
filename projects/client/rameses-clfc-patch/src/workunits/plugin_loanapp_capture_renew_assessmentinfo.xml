@@ -1,0 +1,15 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapp:capture:renew:plugin" reftype="assessmentinfo" caption="Assessment Info." index="2" />
+        <invoker type="loanapp:capture:renew:assessmentinfo" action="init" />
+        
+        <invoker type="formActions" action="assess" caption="Assess" role="CAO_OFFICER" domain="LOAN"
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='ASSESSMENT'}" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.patch.loan.CaptureAssessmentInfoController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.patch.loan.CaptureAssessmentInfoPage" />
+    </pages>
+</workunit>

@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='capture:amnesty:smc:court:plugin' reftype='condition' caption='Conditions' index='1' />
+        <invoker type='capture:amnesty:smc:court:condition' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.smc.SMCConditionsListController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.smc.SMCConditionsListPage' />
+    </pages>
+</workunit>

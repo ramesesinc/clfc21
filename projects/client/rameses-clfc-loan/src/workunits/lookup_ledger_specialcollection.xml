@@ -1,0 +1,95 @@
+<workunit extends="wtemplates/LookupController.xml">
+    <invokers>
+        <invoker type="specialcollectionledger:lookup" caption="Ledger Lookup" target="popup" resizable="false"/>
+        
+        <invoker type='formActions' caption='Refresh' action='refresh' icon='images/toolbars/refresh.png' mnemonic='r' shortcut='ctrl r' />
+        
+        <invoker type="navActions" caption="" action="moveFirstPage" icon="images/navbar/first.png" immediate="true"/>
+        <invoker type="navActions" caption="" action="moveBackPage" icon="images/navbar/previous.png" immediate="true"/>
+        <invoker type="navActions" caption="" action="moveNextPage" icon="images/navbar/next.png" immediate="true"/>
+        <invoker type="navActions" caption="" action="moveLastPage" icon="images/navbar/last.png" immediate="true"/>
+        
+    </invokers>
+    
+    <code class='com.rameses.clfc.ledger.specialcollection.SpecialCollectionLedgerLookupController' />
+    <!--
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class SpecialCollectionLedgerLookupController
+        {
+            @Service('LoanSpecialCollectionLedgerLookupService')
+            def service;
+            
+            def collectorid, billdate;
+        
+            def listHandler = [
+                getRows: { 
+                    return 20; 
+                },
+                fetchList: { o->
+                    o.collectorid = collectorid;
+                    o.billdate = billdate;
+                    return service.getList(o);
+                },
+                getColumns: { o->
+                    return service.getColumns(o);
+                }
+            ] as PageListModel;
+        
+            def selectedOption;
+            def optionsHandler = [
+                getItems: {
+                    return service.getOptions();
+                    //return svc.getStates();
+                }, 
+                onselect: { o->
+                    listHandler?.reload();
+                    //reloadAll();
+                }
+            ] as ListPaneModel;
+        }
+        
+        /*
+        class SpecialCollectionLedgerLookupController extends LookupController
+        {
+            @Service('LoanSpecialCollectionLedgerLookupService')
+            def svc;
+        
+            String serviceName = "LoanSpecialCollectionLedgerLookupService";
+            String entityName = "specialcollectionledger";
+            
+            boolean allowSearch = true;
+        
+            def collectorid;
+            def billdate;
+            
+            List fetchList(Map params) {
+                params.collectorid = collectorid;
+                params.billdate = billdate;
+                return super.fetchList(params);
+            }
+        
+            def selectedOption;
+            def optionsHandler = [
+                getItems: {
+                    return svc.getOptions();
+                    //return svc.getStates();
+                }, 
+                onselect: { o->
+                    reload();
+                    //reloadAll();
+                }
+            ] as ListPaneModel;
+        }
+        */
+    </code>
+    -->
+    
+    <pages>
+        <page template='com.rameses.clfc.ledger.specialcollection.SpecialCollectionLedgerLookupPage' />
+    </pages>
+</workunit>

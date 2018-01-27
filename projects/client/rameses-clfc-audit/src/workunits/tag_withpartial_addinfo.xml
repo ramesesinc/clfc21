@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='tag:withpartial:addinfo' caption='Additional Info' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.tag.withpartial.AdditionalInfoController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.tag.withpartial.AdditionalInfoPage' />
+    </pages>
+</workunit>

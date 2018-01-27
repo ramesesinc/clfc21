@@ -1,0 +1,36 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}
+"entity.remarks" [1==1] {
+    enabled: true;
+}
+"entity.remarks" [mode!='read'] {
+    readonly: false;
+}
+"entity.remarks" [mode=='read'] {
+    readonly: true;
+}
+
+
+
+
+
+
+
+
+"xentity.*" [ mode != 'read' ] {
+    enabled: true;
+}
+"xentity.*" [ mode == 'read' ] {
+    enabled: false;
+    disabledTextColor: #000;
+    readonly: true;
+}
+"xentity.txndate|xentity.collector|xentity.remarks" [ entity.txntype == 'REQUEST' ] {
+    enabled: false;
+    disabledTextColor: #000;
+    readonly: true;
+}

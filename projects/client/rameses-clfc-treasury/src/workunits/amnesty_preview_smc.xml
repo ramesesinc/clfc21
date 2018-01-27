@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:preview:smc' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.preview.AmnestyDefaultInformationController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.preview.AmnestySMCInformationPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,42 @@
+<workunit>
+    <invokers>
+        <invoker type='smc:date:handler:term' />
+    </invokers>
+    
+    <code>
+        <![CDATA[
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class DateTermHandlerController
+        {
+            def action;
+        
+            def getMonthList() {
+                return listImpl(1, 12);
+            }
+            
+            def getDaysList() {
+                return listImpl(1, 31);
+            }
+            
+            def listImpl( start, max ) {
+                def list = [];
+                def counter = start;
+                for (; counter <= max; counter++) {
+                    list << counter;
+                }
+                
+                return list;
+            }
+        }
+        ]]>
+    </code>
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.handler.DateTermHandlerPage' />
+    </pages>
+</workunit>
+    

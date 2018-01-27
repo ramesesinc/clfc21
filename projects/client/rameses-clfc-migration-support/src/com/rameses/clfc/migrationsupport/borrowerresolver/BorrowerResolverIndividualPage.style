@@ -1,0 +1,9 @@
+"entity.*|civilstatus|gender" [mode!='read'] {
+    enabled: true;
+}
+"entity.*|civilstatus|gender" [mode=='read'] {
+    enabled: false;
+}
+"entity.birthdate" [1==1] {
+    enabled: false;
+}

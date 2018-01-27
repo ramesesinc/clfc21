@@ -1,0 +1,15 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapp:capture:plugin" reftype="assessmentinfo" caption="Assessment Info." index="2" />
+        <invoker type="loanapp:capture:assessmentinfo" action="init" />
+        
+        <invoker type="formActions" action="assess" caption="Assess" role="CAO_OFFICER" 
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='ASSESSMENT'}" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.capture.CaptureAssessmentInfoController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.capture.CaptureAssessmentInfoPage" />
+    </pages>
+</workunit>

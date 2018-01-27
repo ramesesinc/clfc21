@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='capture:amnesty:smc:plugin' reftype='appinfo' caption='App. Information' index='0' />
+        <invoker type='capture:amnesty:smc:appinfo' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.smc.GeneralInformationController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.smc.GeneralInformationPage' />
+    </pages>
+</workunit>

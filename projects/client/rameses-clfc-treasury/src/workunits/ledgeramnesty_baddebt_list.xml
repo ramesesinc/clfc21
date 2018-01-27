@@ -1,0 +1,41 @@
+<workunit extends='wtemplates/ListController.xml'>
+    <invokers>
+        <invoker folderid='/home/online/loan' caption='Bad Debt Requests' domain='LOAN' 
+             role='CAO_OFFICER,LEGAL_OFFICER,BRANCH_MANAGER,ASST_BRANCH_MANAGER' />
+    </invokers>
+        
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class LedgerAmnestyBadDebtListController extends ListController
+        {
+            @Service('LedgerAmnestyBadDebtService')
+            def svc;
+        
+            String serviceName = 'LedgerAmnestyBadDebtService';
+            String entityName = 'ledgeramnesty:online:bad_debt';
+        
+            void beforeGetColumns(Map params) {
+                params.state = selectedOption?.state;
+            }
+        
+            def selectedOption;
+            def optionsModel = [
+                fetchList: { 
+                    return svc.getStates();
+                },
+                onselect: {o-> 
+                    query.state = selectedOption?.state; 
+                    reloadAll(); 
+                }
+            ] as ListPaneModel;
+        }
+    </code>
+    
+    <pages>
+        <page template='com.rameses.clfc.ui.ListPage' />
+    </pages>
+</workunit>

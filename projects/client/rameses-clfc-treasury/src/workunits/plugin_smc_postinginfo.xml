@@ -1,0 +1,34 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:smc:plugin' reftype='postinginfo' caption='Posting Information' index='3' />
+        <invoker type='amnesty:smc:postinginfo' action='init' />
+        
+        <!--
+        <invoker type='formActions' action='reload' caption='Refresh' icon='images/toolbars/refresh.png' immediate='true' />
+        <invoker type='formActions' action='addPostingHeader' caption='Add' icon='images/toolbars/create.png' immediate='true' 
+            visibleWhen="#{postingmode!='read'}" />
+        <invoker type='formActions' action='removePostingHeader' caption='Remove' icon='images/toolbars/trash.png' immediate='true' 
+            visibleWhen="#{postingmode!='read' &amp;&amp; selectedOption!=null}" />
+        -->
+        <!--
+        <invoker type='formActions' action='addGroupWith' caption='Add items to be grouped with' 
+            visibleWhen="#{postingmode!='read' &amp;&amp; selectedOption!=null}" />
+        <invoker type='formActions' action='removeGroupWith' caption='Remove items grouped with'
+            visibleWhen="#{postingmode!='read' &amp;&amp; selectedOption!=null &amp;&amp; selectedOption.groupwith!=null}" />
+        -->
+        <!--
+        <invoker type='formActions' action='generateDefaultPosting' caption='Generate Default Posting' 
+            visibleWhen="#{postingmode!='read'}" immediate='true' />
+        <invoker type='formActions' action='moveUp' caption='Move Up' immediate='true'
+            visibleWhen="#{postingmode!='read' &amp;&amp; selectedOption!=null &amp;&amp; selectedOption?.isfirst==false}" />
+        <invoker type='formActions' action='moveDown' caption='Move Down' immediate='true'
+            visibleWhen="#{postingmode!='read' &amp;&amp; selectedOption!=null &amp;&amp; selectedOption?.islast==false}" />
+        -->
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.PostingInfoController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.PostingInfoPage' />
+    </pages>
+</workunit>

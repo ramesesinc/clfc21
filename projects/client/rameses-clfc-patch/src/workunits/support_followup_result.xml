@@ -1,0 +1,14 @@
+<workunit>
+    <invokers>
+        <invoker folderid="/home/online/support" caption="Follow-up Result Support" 
+            role="ADMIN_SUPPORT" />
+            
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.support.followupresult.FollowupResultSupportController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.support.followupresult.FollowupResultSupportPage' />
+    </pages>
+</workunit>

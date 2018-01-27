@@ -1,0 +1,5 @@
+<workunit extends='wtemplates/ServiceLookupController.xml' serviceName="DepositSlipCheckLookupService">
+    <invokers>
+        <invoker type='depositslip:check:lookup' caption='Lookup Check' target='popup' />
+    </invokers>
+</workunit>

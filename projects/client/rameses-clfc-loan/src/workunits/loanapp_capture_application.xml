@@ -1,0 +1,56 @@
+<workunit>
+    <invokers>
+        <invoker folderid="/menu/txn/application" caption="Capture Application" 
+            role="CAO_OFFICER" action="create" index="1" target="popup" />             
+            
+        <invoker type="quick_launcher" code="CLA" caption="Capture Application" 
+            role="CAO_OFFICER" action="create" target="popup" />  
+        
+        <invoker type='loanapp:capture:create' action='create' caption='Capture Application' target='popup' />
+        <invoker type='loanapp:capture:open' action='open' caption='Capture Application' target='popup' />
+        
+        <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl w" immediate="true" 
+            visibleWhen="#{mode=='read'}" />
+        <invoker type="formActions" action="cancel" caption="Cancel" mnemonic="c" shortcut="ctrl c" immediate="true" 
+            visibleWhen="#{mode!='read'}" />
+        
+        <invoker type="formActions" action="create" caption="New" mnemonic="n" shortcut="ctrl n"
+            visibleWhen="#{mode=='read'}" />
+        <invoker type="formActions" action="edit" caption="Edit" mnemonic="e" shortcut="ctrl e"
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='DRAFT'}" />
+        <invoker type="formActions" action="save" caption="Save" mnemonic="s" shortcut="ctrl s"
+            visibleWhen="#{mode!='read'}" />
+        <invoker type="formActions" action="submitForAssessment" caption="Submit for Assessment" mnemonic="s" shortcut="ctrl s"
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='DRAFT'}" 
+            icon="images/toolbars/arrow_right.png" />
+            
+        <invoker type="formActions" action="returnFromAssessment" caption="Return" mnemonic="r" shortcut="ctrl r"
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='ASSESSMENT'}" 
+            icon="images/toolbars/arrow_left.png" />
+        <invoker type="formActions" action="submitForVerification" caption="Submit for Verification" mnemonic="s" shortcut="ctrl s"
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='ASSESSMENT'}" 
+            icon="images/toolbars/arrow_right.png" />
+            
+        <invoker type="formActions" action="returnFromForVerification" caption="Return" mnemonic="r" shortcut="ctrl r"
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='FOR_VERIFICATION'}" 
+            icon="images/toolbars/arrow_left.png" />
+        <invoker type="formActions" action="verify" caption="Verify" mnemonic="v" shortcut="ctrl v"
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='FOR_VERIFICATION'}" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.capture.ManualCaptureLoanAppController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.capture.ManualCaptureLoanAppPage" />
+    </pages>
+    
+</workunit>
+
+
+<!--
+<code class="com.rameses.clfc.loan.capture.NewCaptureLoanAppController"/>
+
+<pages>
+    <page template="com.rameses.clfc.loan.capture.NewCaptureLoanAppPage"/>
+</pages>
+-->

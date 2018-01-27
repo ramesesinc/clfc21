@@ -1,0 +1,36 @@
+<workunit extends='wtemplates/LookupController.xml' >
+    <invokers>
+        <invoker type='amnesty:update:lookup' caption='Lookup Amnesty' target='popup' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class AmnestyUpdateLookupController extends LookupController {
+            
+            String serviceName = 'AmnestyUpdateLookupService';
+        
+            def type;
+            List fetchList(Map params) {
+                params.type = type;
+                return super.fetchList(params);
+            }
+        
+            List getColumnList() {
+                def params = [type: type];
+                return service.getColumns(params);
+            }
+        }
+    </code>
+</workunit>
+
+<!--
+<workunit extends="wtemplates/ServiceLookupController.xml" serviceName="AmnestyOnlineLookupService">
+    <invokers>
+        <invoker type='amnestyonline:lookup' caption="Lookup Amnesties" target='popup' />
+    </invokers>
+</workunit>
+-->

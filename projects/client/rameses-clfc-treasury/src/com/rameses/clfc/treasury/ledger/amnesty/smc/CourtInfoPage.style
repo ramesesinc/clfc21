@@ -1,0 +1,15 @@
+"entity.courtinfo.(branch|judge|schedule)" [filingmode=='read' && courtmode=='read'] {
+    enabled: false;
+}
+"entity.courtinfo.(branch|judge|schedule)" [filingmode!='read' || courtmode!='read'] {
+    enabled: true;
+}
+"entity.courtinfo.dtended" [1==1] {
+    enabled: false;
+}
+"entity.courtinfo.dtstarted" [courtmode=='read'] {
+    enabled: false;
+}
+"entity.courtinfo.dtstarted" [courtmode!='read'] {
+    enabled: true;
+}

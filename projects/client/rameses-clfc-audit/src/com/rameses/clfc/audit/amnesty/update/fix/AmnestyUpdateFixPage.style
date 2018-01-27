@@ -1,0 +1,35 @@
+"entity.*" [mode != 'read'] {
+    enabled: true;
+}
+
+"entity.(amnesty.(dtstarted|dtended)|availed.*)" [1==1] {
+    enabled: false;
+}
+
+"entity.update.(usedate|date|day|month)" [entity.update.withmd == 1] {
+    enabled: true;
+}
+
+"entity.update.(day|month)" [entity.update.withmd == 1 && (!entity.update.usedate || entity.update.usedate == 0)] {
+    enabled: true;
+}
+
+"entity.update.(day|month)" [entity.update.withmd == 1 && entity.update.usedate == 1] {
+    enabled: false;
+}
+
+"entity.update.date" [entity.update.withmd == 1 && entity.update.usedate == 1] {
+    enabled: true;
+}
+
+"entity.update.date" [entity.update.withmd == 1 && (!entity.update.usedate || entity.update.usedate == 0)] {
+    enabled: false;
+}
+
+"entity.update.(usedate|date|day|month)" [!entity.update.withmd || entity.update.withmd == 0] {
+    enabled: false;
+}
+
+"entity.*" [mode == 'read'] {
+    enabled: false;
+}

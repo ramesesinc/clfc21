@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='edit:posting:smc' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.smc.EditSMCLedgerPostingController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.smc.EditSMCLedgerPostingPage' />
+    </pages>
+</workunit>

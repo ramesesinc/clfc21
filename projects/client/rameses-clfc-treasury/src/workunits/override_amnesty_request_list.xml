@@ -1,0 +1,45 @@
+<workunit extends='wtemplates/ListController.xml'>
+    <invokers>
+        <invoker folderid="/home/online/loan" caption="Override Amnesties" 
+            role="ACCT_OFFICER" domain="LOAN" />
+            
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class OverrideAmnestyRequestListController extends ListController
+        {
+            @Service('OverrideAmnestyRequestService')
+            def svc;
+        
+            String serviceName = 'OverrideAmnestyRequestService';
+            String entityName = 'override:amnesty:request';
+        
+            boolean allowCreate = false;
+            //Map createPermission = [domain: 'LOAN', role: 'LEGAL_OFFICER'];
+            
+            def selectedOption;
+            def optionsModel = [
+                getItems: {
+                    return svc.getStates();
+                }, 
+                onselect: { o->
+                    query.state = o.state;
+                    reloadAll();
+                }
+            ] as ListPaneModel;
+        
+            void beforeGetColumns(Map params) {
+                params.state = selectedOption?.state;
+            }
+        }
+    </code>
+    
+    <pages>
+        <page template="com.rameses.clfc.ui.ListPage" />
+    </pages>
+</workunit>

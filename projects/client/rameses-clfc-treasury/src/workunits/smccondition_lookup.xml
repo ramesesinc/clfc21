@@ -1,0 +1,5 @@
+<workunit extends='wtemplates/ServiceLookupController.xml' serviceName='SMCConditionLookupService'>
+    <invokers>
+        <invoker type='smc:condition:lookup' caption='Condition Lookup' target='popup' />
+    </invokers>
+</workunit>

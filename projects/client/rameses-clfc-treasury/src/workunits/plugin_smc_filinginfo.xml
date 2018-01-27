@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:smc:plugin' reftype='filinginfo' caption='Filing Information' index='1' />
+        <invoker type='amnesty:smc:filinginfo' action='init' />
+        
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.FilingInfoController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.FilingInfoPage' />
+    </pages>
+</workunit>

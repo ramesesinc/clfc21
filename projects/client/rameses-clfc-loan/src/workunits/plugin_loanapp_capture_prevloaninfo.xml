@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapp:capture:plugin" reftype="prevloaninfo" caption="Prev. Loan" index="1" />
+        <invoker type="loanapp:capture:prevloaninfo" action="init" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.capture.CapturePrevLoanInfoController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.capture.CapturePrevLoanInfoPage" />
+    </pages>
+</workunit>

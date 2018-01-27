@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapp:capture:renew:plugin" reftype="appinfo" caption="Application Info." index="0" />
+        <invoker type="loanapp:capture:renew:appinfo" action="init" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.patch.loan.CaptureAppInfoController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.patch.loan.CaptureAppInfoPage" />
+    </pages>
+</workunit>

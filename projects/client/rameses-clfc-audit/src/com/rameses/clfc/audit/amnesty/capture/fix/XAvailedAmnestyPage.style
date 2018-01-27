@@ -1,0 +1,18 @@
+"availed.*" [mode!='read'] {
+    enabled: true;
+}
+"availed.date" [availed.usedate==1] {
+    enabled: true;
+}
+"availed.date" [availed.usedate==0 || availed.usedate==null] {
+    enabled: false;
+}
+"availed.(day|month)" [availed.usedate==1] {
+    enabled: false;
+}
+"availed.(day|month)" [availed.usedate==0 || availed.usedate==null] {
+    enabled: true;
+}
+"availed.*" [mode=='read'] {
+    enabled: false;
+}

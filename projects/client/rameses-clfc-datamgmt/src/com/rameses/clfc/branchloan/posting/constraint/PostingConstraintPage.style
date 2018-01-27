@@ -1,0 +1,12 @@
+"entity.isdeductabletoamount" [mode != 'read' && entity.datatype == 'decimal'] {
+    enabled: true;
+}
+"entity.isdeductabletoamount" [mode == 'read' || entity.datatype != 'decimal'] {
+    enabled: false;
+}
+"entity.isincrementafterposting" [mode != 'read' && entity.datatype == 'date'] {
+    enabled: true;
+}
+"entity.isincrementafterposting" [mode == 'read' || entity.datatype != 'date'] {
+    enabled: false;
+}

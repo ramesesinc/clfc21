@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <!--
+        <invoker folderid="/menu/rule" caption="SMC Rules" />
+        -->
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.rule.SMCRuleTestController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.rule.SMCRuleTestPage' />
+    </pages>
+</workunit>

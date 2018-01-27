@@ -1,0 +1,12 @@
+"entity.withpartialpayment" [entity.state == 'FOR_CLEARING'] {
+    enabled: true;
+}
+"entity.postingdate" [entity.withpartialpayment == 1] {
+    enabled: true;
+}
+"entity.postingdate" [entity.withpartialpayment == null|| entity.withpartialpayment == 0] {
+    enabled: false;
+}
+"entity.(withpartialpayment|postingdate)" [entity.state != 'FOR_CLEARING' || entity.loantype != 'BRANCH'] {
+    enabled: false;
+}

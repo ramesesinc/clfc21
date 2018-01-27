@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='edit:posting:waiver' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.waiver.EditWaiverLedgerPostingController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.waiver.EditWaiverLedgerPostingPage' />
+    </pages>
+</workunit>

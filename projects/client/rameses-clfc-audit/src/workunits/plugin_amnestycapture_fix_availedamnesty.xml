@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='capture:amnesty:fix:plugin' reftype='availed' caption='Availed Amnesty' index='2' />
+        <invoker type='capture:amnesty:fix:availed' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.fix.AvailedAmnestyController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.fix.AvailedAmnestyPage' />
+    </pages>
+</workunit>

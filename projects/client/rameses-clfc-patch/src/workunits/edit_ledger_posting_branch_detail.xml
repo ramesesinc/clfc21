@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='edit:posting:branch:detail:create' action='create' caption='Posting Detail' target='popup' />
+        <invoker type='edit:posting:branch:detail:edit' action='edit' caption='Posting Detail' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.branch.PostingDetailController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.branch.PostingDetailPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='smcfee:create' action='create' caption='SMC Fee' target='popup' />
+        <invoker type='smcfee:open' action='open' caption='SMC Fee' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.fee.SMCFeeController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.fee.SMCFeePage' />
+    </pages>
+</workunit>

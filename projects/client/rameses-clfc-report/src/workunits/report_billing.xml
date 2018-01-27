@@ -1,0 +1,21 @@
+<workunits>
+    <invokers>
+        <invoker folderid='/home/online/report/aa' action='init' caption='Billing Report' 
+            role="ACCT_ASSISTANT" domain="TREASURY" />
+        
+        <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl w"
+            immediate="true" visibleWhen="#{mode=='init'}" />
+        <invoker type="formActions" action="preview" caption="Preview" mnemonic="v" shortcut="ctrl v"
+            visibleWhen="#{mode=='init'}" />
+        
+        <invoker type="formActions" action="back" caption="Back" mnemonic="b" shortcut="ctrl b"
+            immediate="true" visibleWhen="#{mode=='preview'}" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.report.billing.BillingReportController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.report.billing.BillingReportInitPage" />
+        <page template="com.rameses.osiris2.common.ui.ReportPreviewPage" name='preview'/>
+    </pages>
+</workunits>

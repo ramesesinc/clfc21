@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='followup:result:amnesty:plugin' reftype='reject' caption='Reject' index='1' />
+        <invoker type='followup:result:amnesty:reject' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.followup.result.AmnestyRejectController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.followup.result.AmnestyRejectPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,26 @@
+<workunit>
+    <invokers>
+        <invoker type='phonefollowupresult:create' action='create' caption='Phone Follow-up' target='popup' />
+        <invoker type='phonefollowupresult:open' action='open' caption='Phone Follow-up' target='popup' />
+        
+        <invoker type='formActions' action='confirmFollowup' caption='Confirm' mnemonic='f' shortcut='ctrl f' 
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='DRAFT'}" role='CASHIER,BRANCH_MANAGER,ASST_BRANCH_MANAGER' />
+        <!--
+        <invoker type='formActions' action='cancelFollowup' caption='Cancel Follow-up' mnemonic='a' shortcut='ctrl a'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='CONFIRMED'}" role='CASHIER' />
+        -->    
+        <invoker type='formActions' action='approveCancel' caption='Approve' mnemonic='a' shortcut='ctrl a'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='FOR_CANCEL'}" role='APPROVER' />
+        <invoker type='formActions' action='disapproveCancel' caption='Disapprove' mnemonic='d' shortcut='ctrl d'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='FOR_CANCEL'}" role='APPROVER' />
+            
+        <invoker type='formActions' action='viewCancelRemarks' caption='View Cancel Remarks' mnemonic='v' shortcut='ctrl v'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.cancelremarks!=null}" />
+    </invokers>
+    
+    <code class='com.rameses.clfc.followup.phone.PhoneFollowupResultController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.followup.phone.PhoneFollowupResultPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,26 @@
+<workunit extends='wtemplates/LookupController.xml'>
+    <invokers>
+        <invoker type='followup:amnesty:reject:lookup' caption='Lookup Amnesty' target='popup' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class FollowupResultAmnestyRejectLookupController extends LookupController
+        {
+            String serviceName = 'LoanLedgerFollowupAmnestyRejectLookupService';
+        
+            def txndate, loanappid;
+        
+            List fetchList(Map params) {
+                if (txndate) params.date = txndate;
+                if (loanappid) params.loanappid = loanappid;
+                println 'params ' + params;
+                return super.fetchList(params);
+            }
+        }
+    </code>
+</workunit>

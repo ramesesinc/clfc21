@@ -1,0 +1,49 @@
+<workunit>
+    <invokers>
+        <!--
+        <invoker folderid="/menu/txn/collection" caption="New Collection Sheet" action="create" role="ACCT_ASSISTANT" index="6" separator="before"/>
+        <invoker type="quick_launcher" code="NCS" caption="New Collection Sheet" action="create" role="ACCT_ASSISTANT"/> 
+        <invoker folderid="/home/online/billing" caption="New Collection Sheet" action="create" role="ACCT_ASSISTANT"/>
+        -->
+        
+        <invoker type='ledgerbilling:create' action='create' caption='Collection Sheet' target='popup' />
+        <invoker type="ledgerbilling:open" action="open" caption="Collection Sheet" target="popup" />  
+        
+        <invoker type="formActions" action="close" caption="Close" mnemonic="c" shorcut="ctrl W"
+            visibleWhen="#{mode=='read'}" immediate="true" />
+        <invoker type="formActions" action="cancel" caption="Cancel" mnemonic="c" shortcut="ctrl C"
+            visibleWhen="#{mode!='read'}" immediate="true" />
+        
+        <invoker type="formActions" action="create" caption="New" mnemonic="n" shortcut="ctrl N"
+            visibleWhen="#{mode=='read'}" role="ACCT_ASSISTANT" />
+        
+        <invoker type="formActions" action="edit" caption="Edit" mnemonic="e" shortcut="ctrl E"
+            visibleWhen="#{editable}" role="ACCT_ASSISTANT" />
+        <invoker type="formActions" action="save" caption="Save" mnemonic="s" shortcut="ctrl S"
+            visibleWhen="#{mode!='read'}" />
+        
+        <invoker type="formActions" action="reset" caption="Reset" mnemonic="r" shortcut="ctrl R"
+            visibleWhen="#{resetable}" role="ACCT_ASSISTANT" />
+        
+        <invoker type='formActions' action='cancelBilling' caption='Cancel Billing'
+            visibleWhen="#{entity.allowcancel==true}" role='ACCT_ASSISTANT' />
+        
+        <invoker type='formActions' action='createSubBilling' caption='Sub Collection Sheet'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.forsubbilling==true &amp;&amp; entity.subbillingid==null}"
+            role='ACCT_ASSISTANT' />
+        <invoker type='formActions' action='openSubBilling' caption='Sub Collection Sheet'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.subbillingid!=null}" />
+        <!--
+        <invoker type='ledgerbilling:formActions' caption='Sub Collection Sheet' action='create' target='popup' resizable='false'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.forsubbilling &amp;&amp; entity.subbillingid == null}" role='ACCT_ASSISTANT' />
+        <invoker type='ledgerbilling:formActions' caption='Sub Collection Sheet' action='open' target='popup' resizable='false'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.subbillingid != null}" />
+        -->
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.billing.LoanLedgerBillingController"/>
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.billing.LoanLedgerBillingPage"/>
+    </pages>
+</workunit>

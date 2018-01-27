@@ -1,0 +1,12 @@
+"data.*" [mode=='read'] {
+    enabled: false;
+}
+"data.*" [mode!='read'] {
+    enabled: true;
+}
+"data.(computationterm|term)" [data.handler!='expression'] {
+    enabled: false;
+}
+"data.(computationterm|term)" [data.handler=='expression' && mode!='read'] {
+    enabled: true;
+}

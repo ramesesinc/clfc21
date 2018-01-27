@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='dailycollection:plugin' reftype='noncash' caption='Non-cash' index='2' />
+        <invoker type="dailycollection:noncash" action="init" caption="Non-cashes" /> 
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.dailycollection.DailyCollectionNoncashController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.dailycollection.DailyCollectionNoncashPage' />
+    </pages>
+</workunit>

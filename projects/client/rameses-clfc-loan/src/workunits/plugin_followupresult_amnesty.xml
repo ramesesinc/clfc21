@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='followup:result:plugin' reftype='amnestyinformation' caption='Amnesty Information' index='2' />
+        <invoker type='followup:result:amnestyinformation' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.followup.result.AmnestyInformationController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.followup.result.AmnestyInformationPage' />
+    </pages>
+</workunit>

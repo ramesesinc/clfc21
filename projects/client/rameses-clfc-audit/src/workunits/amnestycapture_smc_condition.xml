@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='capture:smc:condition:create' action='init' caption='SMC Condition' target='popup' />
+        <invoker type='capture:smc:condition:open' action='open' caption='SMC Condition' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.smc.condition.ConditionController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.smc.condition.ConditionPage' />
+    </pages>
+</workunit>

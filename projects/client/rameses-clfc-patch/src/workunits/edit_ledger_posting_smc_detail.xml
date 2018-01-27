@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='edit:posting:business:detail:create' action='create' caption='Posting Detail' target='popup' />
+        <invoker type='edit:posting:business:detail:edit' action='edit' caption='Posting Detail' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.business.PostingDetailController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.business.PostingDetailPage' />
+    </pages>
+</workunit>

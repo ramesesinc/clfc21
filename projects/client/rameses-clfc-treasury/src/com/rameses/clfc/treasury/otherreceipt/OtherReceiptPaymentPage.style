@@ -1,0 +1,9 @@
+"entity.txndate" [1 == 1] {
+    enabled: false;
+}
+"entity.(check|bank).*" [entity.payoption == 'check'] {
+    enabled: true;
+}
+"entity.(check|bank).*" [entity.payoption != 'check'] {
+    enabled: false;
+}

@@ -1,0 +1,22 @@
+<workunit>
+    <invokers>
+        <invoker type='smc:date:handler:specify' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class DateSpecificHandlerController
+        {
+            def action;
+        }
+    </code>
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.handler.DateSpecificHandlerPage' />
+    </pages>
+</workunit>
+    

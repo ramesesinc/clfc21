@@ -1,0 +1,21 @@
+<workunit>
+    <invokers>
+        <invoker type='loanledger:amnestypreview:smc' action='init' caption='SMC' />
+        
+        <invoker type="formActions" caption="Refresh" action="reload" icon="images/toolbars/refresh.png" immediate="true"
+            mnemonic="r" shortcut="ctrl r" />
+        
+        <invoker type='formActions' caption='Print' action='printLedger' mnemonic='p' shortcut='ctrl p' />
+        
+        <invoker type="navActions2" caption="" action="moveFirstPage" icon="images/navbar/first.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveBackPage" icon="images/navbar/previous.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveNextPage" icon="images/navbar/next.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveLastPage" icon="images/navbar/last.png" immediate="true" />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.preview.AmnestySMCPreviewController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.preview.AmnestySMCPreviewPage' />
+    </pages>
+</workunit>

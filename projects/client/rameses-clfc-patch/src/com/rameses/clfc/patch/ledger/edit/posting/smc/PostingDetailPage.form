@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Form version="1.3" maxVersion="1.8" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
+  <AuxValues>
+    <AuxValue name="FormSettings_autoResourcing" type="java.lang.Integer" value="0"/>
+    <AuxValue name="FormSettings_autoSetComponentName" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true"/>
+    <AuxValue name="FormSettings_generateMnemonicsCode" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_i18nAutoMode" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_layoutCodeTarget" type="java.lang.Integer" value="1"/>
+    <AuxValue name="FormSettings_listenerGenerationStyle" type="java.lang.Integer" value="0"/>
+    <AuxValue name="FormSettings_variablesLocal" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_variablesModifier" type="java.lang.Integer" value="2"/>
+  </AuxValues>
+
+  <Layout>
+    <DimensionLayout dim="0">
+      <Group type="103" groupAlignment="0" attributes="0">
+          <Group type="102" alignment="0" attributes="0">
+              <EmptySpace max="-2" attributes="0"/>
+              <Component id="xFormPanel1" pref="420" max="32767" attributes="0"/>
+              <EmptySpace max="-2" attributes="0"/>
+          </Group>
+      </Group>
+    </DimensionLayout>
+    <DimensionLayout dim="1">
+      <Group type="103" groupAlignment="0" attributes="0">
+          <Group type="102" alignment="0" attributes="0">
+              <EmptySpace max="-2" attributes="0"/>
+              <Component id="xFormPanel1" pref="244" max="32767" attributes="0"/>
+              <EmptySpace max="-2" attributes="0"/>
+          </Group>
+      </Group>
+    </DimensionLayout>
+  </Layout>
+  <SubComponents>
+    <Container class="com.rameses.rcp.control.XFormPanel" name="xFormPanel1">
+      <Properties>
+        <Property name="captionWidth" type="int" value="130"/>
+      </Properties>
+      <SubComponents>
+        <Component class="com.rameses.rcp.control.XDateField" name="xDateField1">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Schedule of Payment"/>
+            <Property name="name" type="java.lang.String" value="entity.dtschedule" noResource="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField1">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Partial Payment"/>
+            <Property name="name" type="java.lang.String" value="entity.partialpayment" noResource="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField2">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Balance"/>
+            <Property name="name" type="java.lang.String" value="entity.balance" noResource="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField3">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Interest Paid"/>
+            <Property name="name" type="java.lang.String" value="entity.interest" noResource="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField4">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Penalty Charge"/>
+            <Property name="name" type="java.lang.String" value="entity.penalty" noResource="true"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="xDecimalField4ActionPerformed"/>
+          </Events>
+        </Component>
+        <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField5">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Total Payment"/>
+            <Property name="name" type="java.lang.String" value="entity.totalpayment" noResource="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XTextField" name="xTextField1">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="OR No."/>
+            <Property name="name" type="java.lang.String" value="entity.refno" noResource="true"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="xTextField1ActionPerformed"/>
+          </Events>
+        </Component>
+        <Component class="com.rameses.rcp.control.XDateField" name="xDateField2">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Date Paid"/>
+            <Property name="name" type="java.lang.String" value="entity.dtpaid" noResource="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField6">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Lacking Interest"/>
+            <Property name="name" type="java.lang.String" value="entity.lackinginterest" noResource="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField7">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Lacking Penalty"/>
+            <Property name="name" type="java.lang.String" value="entity.lackingpenalty" noResource="true"/>
+          </Properties>
+        </Component>
+      </SubComponents>
+    </Container>
+  </SubComponents>
+</Form>

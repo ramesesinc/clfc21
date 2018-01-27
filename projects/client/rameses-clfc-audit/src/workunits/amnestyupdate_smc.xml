@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:update:plugin' reftype='smc' caption='SMC' index='2' />
+        <invoker type='amnesty:update:smc' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.update.smc.AmnestyUpdateSMCController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.update.smc.AmnestyUpdateSMCPage' />
+    </pages>
+</workunit>

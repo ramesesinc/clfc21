@@ -1,0 +1,5 @@
+<workunit extends='wtemplates/ServiceLookupController.xml' serviceName='LedgerAmnestySMCLookupService' >
+    <invokers>
+        <invoker type='smc:ledgeramnesty:lookup' caption='Lookup SMC' target='popup' />
+    </invokers>
+</workunit>

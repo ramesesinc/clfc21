@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='dailycollection:plugin' reftype='shortage' caption='Shortage' index='3' />
+        <invoker type="dailycollection:shortage" action="init" caption="Shortages" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.treasury.dailycollection.DailyCollectionShortageController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.treasury.dailycollection.DailyCollectionShortagePage" />
+    </pages>
+</workunit>

@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='capture:amnesty:fix:plugin' reftype='generalinformation' caption='General Information' index='1' />
+        <invoker type='capture:amnesty:fix:generalinformation' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.fix.GeneralInformationController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.fix.GeneralInformationPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,24 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.usedate" [entity.withmd==1] {
+    enabled: true;
+}
+"entity.usedate" [!entity.withmd] {
+    enabled: false;
+}
+"entity.(day|month)" [entity.withmd==1 && !entity.usedate] {
+    enabled: true;
+}
+"entity.(day|month)" [!entity.withmd || entity.usedate==1] {
+    enabled: false;
+}
+"entity.date" [entity.withmd==1 && entity.usedate==1] {
+    enabled: true;
+}
+"entity.date" [!entity.withmd || !entity.usedate] {
+    enabled: false;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}
