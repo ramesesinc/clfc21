@@ -9,7 +9,9 @@
 
 package com.rameses.client.android;
 
+import android.util.Log;
 import com.rameses.client.services.CommonService;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -58,6 +60,7 @@ class TimeTicker
                 task = new TaskImpl();
                 
                 changeCalendar();
+//                dateChanged();
                 timer.schedule(task, 0, 1000);  
             } 
         } 
@@ -69,17 +72,22 @@ class TimeTicker
             if (logger != null) logger.log("[TimeTicker] restarting..."); 
             
             changeCalendar();
+//            dateChanged();
             timer.schedule(new TimeFetcher(), 0);
         } 
     }
     
     private void changeCalendar() {
         boolean isConnected = Platform.getApplication().getIsConnected();
+        boolean isDateSync = Platform.getApplication().getIsDateSync();
         long timemillis = 0;
         System.out.println("[TimeTicker] is date synced " + Platform.getApplication().getIsDateSync());
-        if (isConnected == true) {
+        if (isConnected == true && isDateSync == false) {
             timemillis = getServerTime();
-            Platform.getApplication().setIsDateSync(true);
+            Log.i("TimeTicker", "timemillis-> " + timemillis);
+            if (timemillis > 0) {
+                Platform.getApplication().setIsDateSync(true);
+            }
         } else {
             timemillis = Platform.getApplication().getServerTime();
         }
@@ -88,7 +96,15 @@ class TimeTicker
             date = null;
         } else {
             calendar.setTimeInMillis(timemillis);
-        } 
+        }
+        dateChanged();
+        
+//        if (1==1) {
+//            Log.i("TimeTicker", "isConnected " + isConnected + " isDateSync " + isDateSync + " serverdate: " + calendar.getTime());
+//            AppSettings settings = Platform.getApplication().getAppSettings();
+//            Log.i("TimeTicker", "settings-> " + settings.getAll());
+//            throw new RuntimeException("stopping");
+//        }
     }
     
     private void dateChanged() {
@@ -108,7 +124,8 @@ class TimeTicker
             
             AppSettings settings = Platform.getApplication().getAppSettings();
             settings.put("timedifference", diff);
-            settings.put("phonedate", cal.getTime().toString());
+//            settings.put("phonedate", new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(cal.getTime()));
+            settings.put("phonedate", new Timestamp(cal.getTimeInMillis()));
             
         } catch(Throwable t) { 
             t.printStackTrace();

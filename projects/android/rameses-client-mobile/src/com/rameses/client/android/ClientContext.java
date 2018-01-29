@@ -45,19 +45,19 @@ public final class ClientContext
     ClientContext(UIApplication uiapp, AppContext appContext) {
         this.uiapp = uiapp;
         this.appContext = appContext;
-        println("without session context");
+//        println("without session context");
     }
     
     ClientContext(UIApplication uiapp, AppContext appContext, SessionContext sessContext) {
         this.uiapp = uiapp;
         this.appContext = appContext;
         this.sessContext = sessContext;
-        println("with session context");
+//        println("with session context");
     }
 
     private void init() { 
-        println("init");
-        println("session context: " + sessContext);
+//        println("init");
+//        println("session context: " + sessContext);
         if (this.sessContext != null) {
             AppContext.setInstance(this.appContext, this.sessContext);
         } else {

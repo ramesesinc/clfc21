@@ -253,9 +253,12 @@ public abstract class UIApplication extends Application
     public boolean getIsDateSync() { return isDateSync; }
     public void setIsDateSync(boolean isDateSync) {
         this.isDateSync = isDateSync;
+        afterSetIsDateSync(isDateSync);
     }
     
     protected long getServerTime() { return 0L; }
+    
+    protected void afterSetIsDateSync(boolean isDateSync) {}
     
     protected void dateChanged(Date date) {}
     

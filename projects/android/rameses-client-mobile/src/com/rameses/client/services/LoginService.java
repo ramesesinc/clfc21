@@ -64,24 +64,23 @@ public class LoginService extends AbstractService
             saveProfile( profile );
         } else {
             boolean isConnectionError = isConnectionError(error);
-            println("is connection error " + isConnectionError);
+//            println("is connection error " + isConnectionError);
             if (isConnectionError) {
                 Map profile = readProfile(); 
                 validateProfile(username, encpwd, profile, error); 
                 xresult = profile; 
                 xresult.remove("AUTH_OPTIONS"); 
             } else {
-                println("profile " + readProfile());
+//                println("profile " +  readProfile());
                 throw error;
             }
         }
         
-        println("error " + error);
+//        println("error " + error);
         
         result = new HashMap();
         result.putAll(xresult);
         
-        println("result " + xresult);
         SessionProviderImpl sessImpl = new SessionProviderImpl(xresult);
         SessionContext sess = AppContext.getSession();
         sess.setProvider(sessImpl); 
@@ -97,6 +96,18 @@ public class LoginService extends AbstractService
                 sess.set(key, authOpts.get(key)); 
             } 
         } 
+        
+        if (result.containsKey("env")) {
+            Map env = (Map) result.get("env");
+            Map report = (Map) env.remove("REPORT");
+            if (report != null) {
+                Iterator keys = report.keySet().iterator(); 
+                while (keys.hasNext()) { 
+                    String key = keys.next().toString(); 
+                    sess.set(key, report.get(key)); 
+                } 
+            } 
+        }
     } 
     
     private void println(String str) {
