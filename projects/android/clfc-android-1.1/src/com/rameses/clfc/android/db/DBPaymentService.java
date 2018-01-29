@@ -1,5 +1,6 @@
 package com.rameses.clfc.android.db;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,7 +14,7 @@ public class DBPaymentService extends AbstractDBMapper
 	public boolean hasUnpostedPayments() throws Exception {		
 		DBContext ctx = createDBContext();
 		try {
-			String sql = "SELECT objid FROM "+ getTableName() +" WHERE state='PENDING' LIMIT 1";
+			String sql = "SELECT objid FROM "+ getTableName() +" WHERE state='PENDING' AND forupload=1 LIMIT 1";
 			
 //			sql = "SELECT loanappid FROM remarks WHERE state='PENDING' LIMIT 1";
 //			if (ctx.getCount(sql, new Object[]{}) > 0) return true;
@@ -30,7 +31,7 @@ public class DBPaymentService extends AbstractDBMapper
 			throw e; 
 		} finally {
 			if (isCloseable()) ctx.close(); 
-		}		
+		}		 
 	}
 	
 	public boolean hasUnpostedPaymentsByCollector(String id) throws Exception {
@@ -156,11 +157,64 @@ public class DBPaymentService extends AbstractDBMapper
 		}
 	}
 	
+	public List<Map> getPaymentsByForupload(Map params) throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT * FROM " + getTableName() + " WHERE forupload=$P{forupload}";
+			return ctx.getList(sql, params);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
 	public boolean hasPaymentsByRoutecode(String routecode) throws Exception {
 		DBContext ctx = createDBContext();
 		try {
 			String sql = "SELECT objid FROM "+getTableName()+" WHERE routecode=? LIMIT 1";
 			return (ctx.getCount(sql, new Object[]{routecode}) > 0);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public List<Map> getForUploadPayments(int limit) throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT * FROM " + getTableName() + " WHERE forupload=1 AND state='PENDING'";
+			if (limit > 0) sql += " LIMIT " + limit;
+			return ctx.getList(sql, new Object[]{});
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public List<Map> getForUploadPayments() throws Exception {
+		return getForUploadPayments(0);
+	}
+	
+	public List<Map> getPaymentsForDateResolving() throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT * FROM " + getTableName() + " WHERE dtposted IS NULL";
+			return ctx.getList(sql, new HashMap());
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public boolean hasPaymentForDateResolving() throws Exception {
+		DBContext ctx= createDBContext();
+		try {
+			String sql = "SELECT objid FROM " + getTableName() + " WHERE dtposted IS NULL LIMIT 1";
+			return (ctx.getCount(sql, new HashMap()) > 0);
 		} catch (Exception e) {
 			throw e;
 		} finally {
@@ -200,7 +254,7 @@ public class DBPaymentService extends AbstractDBMapper
 	public Map findPaymentById(String id) throws Exception {
 		DBContext ctx = createDBContext();
 		try {
-			String sql = "SELECT objid FROM " + getTableName() + " WHERE objid=? LIMIT 1";
+			String sql = "SELECT * FROM " + getTableName() + " WHERE objid=? LIMIT 1";
 			return ctx.find(sql, new Object[]{id});
 		} catch (Exception e) {
 			throw e;

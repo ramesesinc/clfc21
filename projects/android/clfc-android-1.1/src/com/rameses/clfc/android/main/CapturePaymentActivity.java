@@ -1,5 +1,7 @@
 package com.rameses.clfc.android.main;
 
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -32,6 +34,7 @@ import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
 import com.rameses.clfc.android.db.DBBankService;
 import com.rameses.clfc.android.db.DBSystemService;
+import com.rameses.client.android.AppSettings;
 import com.rameses.client.android.NetworkLocationProvider;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
@@ -74,6 +77,8 @@ public class CapturePaymentActivity extends ControlActivity
 	private String amount;
 	private String paidby;
 	private String objid;
+	
+	private SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 	
 	@Override
 	protected void onCreateProcess(Bundle savedInstanceState) {
@@ -361,14 +366,14 @@ public class CapturePaymentActivity extends ControlActivity
 						txn.beginTransaction();
 						execPayment(txn, clfcdb);
 						txn.commit();
-						app.captureSvc.start();
+						app.captureDateResolverSvc.start();
 						finish();
 					} catch (Throwable t) {
 						t.printStackTrace();
 						UIDialog.showMessage(t, CapturePaymentActivity.this);
 					} finally {
-						clfcdb.close();
 						txn.endTransaction();
+						clfcdb.close();
 					}
 				}
 			}
@@ -409,6 +414,8 @@ public class CapturePaymentActivity extends ControlActivity
 				Location location = NetworkLocationProvider.getLocation();
 				double lng = (location == null? 0.0 : location.getLongitude());
 				double lat = (location == null? 0.0 : location.getLatitude());
+				
+				String strLng = String.valueOf(lng), strLat = String.valueOf(lat);
 //				System.out.println("location-> "+location);
 				Map params = new HashMap();
 				params.put("objid", objid);
@@ -422,8 +429,10 @@ public class CapturePaymentActivity extends ControlActivity
 				params.put("payoption", option);
 				params.put("paidby", paidby);
 				params.put("dtpaid", dt.toString());
-				params.put("lng", lng);
-				params.put("lat", lat);
+//				params.put("lng", lng);
+//				params.put("lat", lat);
+				params.put("lng", strLng);
+				params.put("lat", strLat);
 				params.put("type", "CAPTURE");
 				params.put("collector_objid", (prof != null? prof.getUserId() : ""));
 				params.put("collector_name", (prof != null? prof.getFullName() : ""));
@@ -436,6 +445,26 @@ public class CapturePaymentActivity extends ControlActivity
 					params.put("check_date", java.sql.Date.valueOf(checkdate));
 				}		
 //				System.out.println("params-> "+params);
+				
+				
+				params.put("forupload", 0);
+				
+				Calendar cal = Calendar.getInstance();
+//				Date phonedate = java.sql.Timestamp.valueOf(DATE_FORMAT.format(cal.getTime()));
+				Date phonedate = new Timestamp(cal.getTimeInMillis());
+				params.put("dtsaved", phonedate.toString());
+				
+				AppSettings settings = Platform.getApplication().getAppSettings();
+				Map map = settings.getAll();
+				
+				long timedifference = 0L;
+				if (map.containsKey("timedifference")) {
+					timedifference = settings.getLong("timedifference");
+				}
+				
+				params.put("timedifference", timedifference);
+				
+				
 				txn.insert("capture_payment", params);
 //				System.out.println("done insert");
 			}

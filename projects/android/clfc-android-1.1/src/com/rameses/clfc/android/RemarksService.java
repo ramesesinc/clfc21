@@ -57,6 +57,7 @@ public class RemarksService
 			delay = appSettings.getUploadTimeout()*1000;
 			createTask();
 			Platform.getTaskManager().schedule(actionTask, 1000, delay);
+			ApplicationUtil.println("RemarksService", "starting service");
 		}
 	}
 	
@@ -81,7 +82,8 @@ public class RemarksService
 					remarksSvc.setCloseable(false);
 					try {
 //						remarksdb.beginTransaction();
-						list = remarksSvc.getPendingRemarks(SIZE);					
+//						list = remarksSvc.getPendingRemarks(SIZE);	
+						list = remarksSvc.getForUploadRemarks(SIZE);
 //						remarksdb.commit();
 					} catch (Throwable t) {
 						t.printStackTrace();
@@ -137,8 +139,10 @@ public class RemarksService
 						params.put("routecode", proxy.getString("routecode"));
 						params.put("trackerid", proxy.getString("trackerid"));
 						params.put("mode", mode);
-						params.put("longitude", proxy.getDouble("lng"));
-						params.put("latitude", proxy.getDouble("lat"));
+//						params.put("longitude", proxy.getDouble("lng"));
+//						params.put("latitude", proxy.getDouble("lat"));
+						params.put("longitude", Double.parseDouble(proxy.getString("lng")));
+						params.put("latitude", Double.parseDouble(proxy.getString("lat")));
 						params.put("type", proxy.getString("type"));
 						params.put("remarks", proxy.getString("remarks"));
 						params.put("txndate", proxy.getString("txndate"));

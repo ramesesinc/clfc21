@@ -2,6 +2,7 @@ package com.rameses.clfc.android.main;
 
 import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
@@ -44,6 +46,7 @@ import com.rameses.clfc.android.TextFormatter;
 import com.rameses.clfc.android.db.DBBankService;
 import com.rameses.clfc.android.db.DBCollectionSheet;
 import com.rameses.clfc.android.db.DBPaymentService;
+import com.rameses.client.android.AppSettings;
 import com.rameses.client.android.NetworkLocationProvider;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
@@ -89,6 +92,8 @@ public class PaymentActivity extends ControlActivity
 	
 	private List bankSrc;
 	private Map bank;
+	
+	private SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 
     private BluetoothDevice btDevice;
     private BluetoothAdapter btAdapter;
@@ -445,6 +450,10 @@ public class PaymentActivity extends ControlActivity
 		dialog.confirm(message, collectionSheet.get("borrower_name").toString(), 65);
 	}
 	
+	private void println(Object msg) {
+		Log.i("PaymentActivity", msg.toString());
+	}
+	
 	private void onApproveImpl() {
 		getHandler().post(new Runnable() {
 			public void run() {
@@ -459,7 +468,8 @@ public class PaymentActivity extends ControlActivity
 					paymentdb.commit();
 					clfcdb.commit();
 					
-					app.paymentSvc.start();
+//					app.paymentSvc.start();
+					app.paymentDateResolverSvc.start();
 					finish();
 				} catch (Throwable t) {
 					t.printStackTrace();
@@ -620,6 +630,13 @@ public class PaymentActivity extends ControlActivity
 				lng = (location == null? 0.0 : location.getLongitude());
 				lat = (location == null? 0.0 : location.getLatitude());
 //				System.out.println("location-> "+location);
+				
+				String strLng = String.valueOf(lng), strLat = String.valueOf(lat);
+				
+				
+//				String date = Platform.getApplication().getServerDate().toString();
+				Date date = Platform.getApplication().getServerDate();
+				
 				Map params = new HashMap();
 				params.put("objid", objid);
 				params.put("parentid", collectionSheet.getString("objid"));
@@ -635,14 +652,16 @@ public class PaymentActivity extends ControlActivity
 				params.put("loanapp_appno", collectionSheet.getString("loanapp_appno"));
 				params.put("routecode", collectionSheet.getString("routecode"));
 				params.put("refno", refno);
-				params.put("txndate", Platform.getApplication().getServerDate().toString());
+				params.put("txndate", date.toString());
 				params.put("paytype", type);
 				params.put("payoption", option);
 				params.put("amount", Double.parseDouble(et_amount.getText().toString()));
 				params.put("paidby", et_paidby.getText().toString());
 				params.put("isfirstbill", isfirstbill);
-				params.put("lng", lng);
-				params.put("lat", lat);
+//				params.put("lng", lng);
+//				params.put("lat", lat);
+				params.put("lng", strLng);
+				params.put("lat", strLat);
 				params.put("type", collectionSheet.getString("type"));
 				params.put("overpaymentamount", 0);
 				if ("over".equals(type)) {
@@ -676,6 +695,24 @@ public class PaymentActivity extends ControlActivity
 					params.put("check_date", java.sql.Date.valueOf(et_checkdate.getText().toString()));
 				}		
 //				System.out.println("params-> "+params);
+				
+				
+				params.put("forupload", 0);
+				Calendar cal = Calendar.getInstance();
+				
+//				Date phonedate = java.sql.Timestamp.valueOf(DATE_FORMAT.format(cal.getTime()));
+				Date phonedate = new Timestamp(cal.getTimeInMillis());
+				params.put("dtsaved", phonedate.toString());
+				
+				AppSettings settings = Platform.getApplication().getAppSettings();
+				Map map = settings.getAll();
+				
+				long timedifference = 0L;
+				if (map.containsKey("timedifference")) {
+					timedifference = settings.getLong("timedifference");
+				}
+				params.put("timedifference", timedifference);
+				
 				synchronized (PaymentDB.LOCK) {
 					paymentdb.insert("payment", params);
 				}

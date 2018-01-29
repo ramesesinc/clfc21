@@ -119,17 +119,21 @@ public class DownloadFollowupCollectionController
 				params.put("lat", lat);
 				params.put("userid", userid);
 				params.put("type", "ONLINE");
+				 
+//				ApplicationUtil.println("DownloadFollowupCollectionController", params.toString());
 				
 				LoanBillingService svc = new LoanBillingService();
 				Map response = svc.downloadSpecialCollection(params);
-
+//				ApplicationUtil.println("DownloadFollowupCollectionController", response.toString());
+//				if (1==1) throw new RuntimeException("stopping download followup");
 				saveSpecialCollection(response);
-				
+				  
 				boolean flag = ApplicationUtil.isCollectionCreated(collectionid);
 				if (flag == false) {
 					throw new RuntimeException("Collection not created.");
 				}
 
+				
 				params = new HashMap();
 				params.put("objid", collectionid);
 				params.put("trackerid", trackerid);
@@ -227,9 +231,16 @@ public class DownloadFollowupCollectionController
 			}					
 			
 			List billings = (List<Map>) map.get("list");
+			ApplicationUtil.println("DownloadFollowupController", "billings-> " + billings);
 			BigDecimal amountdue = new BigDecimal("0").setScale(2);
 			BigDecimal amount = amountdue;
 			if (!billings.isEmpty()) {	
+				
+				for (int i=0; i<billings.size(); i++) {
+					ApplicationUtil.println("DownloadFollowupController", billings.get(i).toString());
+				}
+				
+				
 				Map params = new HashMap(), item = new HashMap();
 				MapProxy m, offer;
 				List list;

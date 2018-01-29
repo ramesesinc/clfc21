@@ -871,7 +871,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 				lat = location.getLatitude();
 				
 			} else {
-				Map prevLocation = prevLocationSvc.getPrevLocation();
+				Map prevLocation = prevLocationSvc.getPrevLocation("");
 				if (prevLocation != null) {
 					lng = MapProxy.getDouble(prevLocation, "longitude");
 					lat = MapProxy.getDouble(prevLocation, "latitude");

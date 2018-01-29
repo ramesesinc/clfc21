@@ -22,9 +22,9 @@ public class ControlActivity extends UIActionBarActivity
 		} else if (networkStatus == 1) {
 			mode = "ONLINE_MOBILE";  
 		}
-		println(networkStatus+"");
+//		println(networkStatus+"");
 		((TextView) findViewById(R.id.tv_mode)).setText(mode);	
-		println("sessionid: " + SessionContext.getSessionId());
+//		println("sessionid: " + SessionContext.getSessionId());
 	}
 
 	

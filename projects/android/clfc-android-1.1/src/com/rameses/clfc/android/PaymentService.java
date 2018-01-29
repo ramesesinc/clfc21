@@ -62,6 +62,7 @@ public class PaymentService
 			delay = appSettings.getUploadTimeout()*1000;
 			createTask();
 			Platform.getTaskManager().schedule(actionTask, 1000, delay);
+			ApplicationUtil.println("PaymentService", "starting service");
 		}
 	}
 	
@@ -88,8 +89,15 @@ public class PaymentService
 					paymentSvc.setCloseable(false);
 					try {
 //						paymentdb.beginTransaction();
-						list = paymentSvc.getPendingPayments(SIZE);
-//						paymentdb.commit();
+//						list = paymentSvc.getPendingPayments(SIZE);
+						list = paymentSvc.getForUploadPayments(SIZE);
+						
+//						for (Map m : list) {
+//							println("for upload " + m);
+//						} 
+						
+//						println("for upload " + list.size());
+//						paymentdb.commit(); 
 					} catch (Throwable t) {
 						t.printStackTrace();
 					} finally {
@@ -102,6 +110,7 @@ public class PaymentService
 					execPayment(list);
 				} catch (Throwable t) {
 					t.printStackTrace();
+					println(t.getMessage());
 				}
 
 				hasUnpostedPayments = true;
@@ -110,10 +119,12 @@ public class PaymentService
 					paymentSvc.setDBContext(ctx);
 					paymentSvc.setCloseable(false);
 					try {
-						list = paymentSvc.getPendingPayments(SIZE);
+//						hasUnpostedPayments = paymentvc.hasUnpostedPayments()
+						list = paymentSvc.getForUploadPayments(1);
 						if (list.isEmpty() || list.size() == 0) {
 							hasUnpostedPayments = false;
 						}
+//						println("has unposted " + hasUnpostedPayments);
 					} catch (Throwable t) {
 						t.printStackTrace();
 					} finally {
@@ -152,8 +163,10 @@ public class PaymentService
 						params.put("trackerid", proxy.getString("trackerid"));
 						params.put("routecode", proxy.getString("routecode"));
 						params.put("mode", mode);
-						params.put("longitude", proxy.getDouble("lng"));
-						params.put("latitude", proxy.getDouble("lat"));
+//						params.put("longitude", proxy.getDouble("lng"));
+//						params.put("latitude", proxy.getDouble("lat"));
+						params.put("longitude", Double.parseDouble(proxy.getString("lng")));
+						params.put("latitude", Double.parseDouble(proxy.getString("lat")));
 						params.put("type", proxy.getString("type"));
 						
 						collector.clear();
@@ -209,19 +222,25 @@ public class PaymentService
 						String enc = new Base64Cipher().encode(params);
 						param.put("encrypted", enc);
 						
-						println("app.host " + ApplicationUtil.getAppHost());
+//						println("app.host " + ApplicationUtil.getAppHost());
 						
 						if (response == null) response = new HashMap();
 						response.clear();
 						for (int j=0; j<10; j++) {
 							try {
-								println("app.host " + ApplicationUtil.getAppHost());
+//								println("app.host " + ApplicationUtil.getAppHost());
+//								println("pass 1");
 								LoanPostingService svc = new LoanPostingService();
+//								println("pass 2");
 								response = svc.postPaymentEncrypt(param);
+//								println("pass 3");
+//								println("response " + response);
 								closePayment(response, proxy.getString("objid"));
+//								println("pass 4");
 								break;
 							} catch (Throwable e) {
 								e.printStackTrace();
+								println(e.getMessage());
 							} 
 						}
 					}
@@ -243,7 +262,10 @@ public class PaymentService
 						paymentSvc.setDBContext(paymentdb.getContext());
 						try {
 							paymentdb.beginTransaction();
+							println("objid " + objid);
 							paymentSvc.closePayment(objid);
+							Map m = paymentSvc.findPaymentById(objid);
+							println("payment " + m);
 							paymentdb.commit();
 						} catch (Throwable t) {
 							t.printStackTrace();

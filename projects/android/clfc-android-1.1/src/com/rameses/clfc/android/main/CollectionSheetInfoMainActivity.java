@@ -1,5 +1,8 @@
 package com.rameses.clfc.android.main;
 
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +30,7 @@ import com.rameses.clfc.android.db.DBCSRemarks;
 import com.rameses.clfc.android.db.DBCSVoid;
 import com.rameses.clfc.android.db.DBCollectionSheet;
 import com.rameses.clfc.android.db.DBPrevLocation;
+import com.rameses.client.android.AppSettings;
 import com.rameses.client.android.NetworkLocationProvider;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
@@ -237,7 +241,11 @@ public class CollectionSheetInfoMainActivity extends ControlActivity {
 					remarksdb.commit();	
 		 			getHandler().post(new Runnable() {
 						public void run() {
-							getApp().remarksSvc.start();
+//							getApp().remarksSvc.start();
+							getApp().remarksDateResolverSvc.start();
+							
+
+//							app.paymentDateResolverSvc.start();
 						}
 					});				
 				} catch (Throwable t) {
@@ -259,21 +267,24 @@ public class CollectionSheetInfoMainActivity extends ControlActivity {
 				Location location = NetworkLocationProvider.getLocation();
 				double lng = 0.00;
 				double lat = 0.00;
+
+				String trackerid = ((AppSettingsImpl) Platform.getApplication().getAppSettings()).getTrackerid();
 				
 				if (location != null) {
 					lng = location.getLongitude();
 					lat = location.getLatitude();
 					
 				} else {
-					Map prevLocation = prevLocationSvc.getPrevLocation();
+					Map prevLocation = prevLocationSvc.getPrevLocation(trackerid);
 					if (prevLocation != null) {
-						lng = MapProxy.getDouble(prevLocation, "longitude");
-						lat = MapProxy.getDouble(prevLocation, "latitude");
+//						lng = MapProxy.getDouble(prevLocation, "longitude");
+//						lat = MapProxy.getDouble(prevLocation, "latitude");
+						lng = Double.parseDouble(MapProxy.getString(prevLocation, "lng"));
+						lat = Double.parseDouble(MapProxy.getString(prevLocation, "lat"));
 					}
-					
 				}
-
-				String trackerid = ((AppSettingsImpl) Platform.getApplication().getAppSettings()).getTrackerid();
+				
+				String strLng = String.valueOf(lng), strLat = String.valueOf(lat);
 				
 				Map params = new HashMap();	
 				params.put("objid", objid);
@@ -290,10 +301,27 @@ public class CollectionSheetInfoMainActivity extends ControlActivity {
 				params.put("collector_name", SessionContext.getProfile().getFullName());
 				params.put("routecode", collectionsheet.getString("routecode"));
 				params.put("remarks", remarks);
-				params.put("lng", lng);
-				params.put("lat", lat);
-				params.put("type", collectionsheet.getString("type"));					
-				    			 
+//				params.put("lng", lng);
+//				params.put("lat", lat);
+				params.put("lng", strLng);
+				params.put("lat", strLat);
+				params.put("type", collectionsheet.getString("type"));	
+				params.put("forupload", 0);
+				Calendar cal = Calendar.getInstance();
+				
+//				Date phonedate = java.sql.Timestamp.valueOf(DATE_FORMAT.format(cal.getTime()));
+				Date phonedate = new Timestamp(cal.getTimeInMillis());
+				params.put("dtsaved", phonedate.toString());
+				
+				AppSettings settings = Platform.getApplication().getAppSettings();
+				Map map = settings.getAll();
+				
+				long timedifference = 0L;
+				if (map.containsKey("timedifference")) {
+					timedifference = settings.getLong("timedifference");
+				}
+				params.put("timedifference", timedifference);
+				
 				synchronized (RemarksDB.LOCK) {
 					remarksdb.insert("remarks", params);
 				}

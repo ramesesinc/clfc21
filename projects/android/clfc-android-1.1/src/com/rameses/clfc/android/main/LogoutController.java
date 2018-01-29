@@ -213,12 +213,13 @@ class LogoutController
 			
 			String collectorid = SessionContext.getProfile().getUserId();
 			List<Map> collectionGroups = clfcdb.getList("SELECT * FROM collection_group WHERE collectorid=?", new Object[]{collectorid});			
-			String objid;
+			String objid, billingid;
 			Map data;
 						
 			while (!collectionGroups.isEmpty()) {
 				data = collectionGroups.remove(0);
 				objid = MapProxy.getString(data, "objid");
+				billingid = MapProxy.getString(data, "billingid");
 				
 				paymentdb.delete("payment", "itemid=?", new Object[]{objid});
 				clfcdb.delete("payment", "itemid=?", new Object[]{objid});
@@ -230,6 +231,8 @@ class LogoutController
 				requestdb.delete("void_request", "itemid=?", new Object[]{objid});
 				processCollection(clfcdb, objid);
 				clfcdb.delete("collection_group", "objid=?", new Object[]{objid});
+				
+				capturedb.delete("capture_payment", "billingid=?", new Object[]{billingid});
 			}
 			clfcdb.delete("specialcollection", "collector_objid=?", new Object[]{collectorid});
 			capturedb.delete("capture_payment", "collector_objid=?", new Object[]{collectorid});

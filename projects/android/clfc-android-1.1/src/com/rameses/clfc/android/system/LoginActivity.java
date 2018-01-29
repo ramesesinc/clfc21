@@ -344,7 +344,8 @@ public class LoginActivity extends SettingsMenuActivity
 					synchronized (MainDB.LOCK) {
 						DBContext ctx = new DBContext("clfc.db");
 						try {
-							ctx.delete("segregation", new HashMap(), null);
+//							ctx.delete("segregation", new HashMap(), null);
+							ctx.execute("delete from segregation");
 						} catch (Throwable t) {
 							t.printStackTrace();
 						} finally {
@@ -380,7 +381,7 @@ public class LoginActivity extends SettingsMenuActivity
 						}
 					}
 				}
-
+				
 				AppSettingsImpl settings = (AppSettingsImpl) Platform.getApplication().getAppSettings();
 				String collector_state = settings.getCollectorState();
 

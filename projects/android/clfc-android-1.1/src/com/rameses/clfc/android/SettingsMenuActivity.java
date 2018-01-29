@@ -17,10 +17,20 @@ public class SettingsMenuActivity extends ControlActivity
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		if (item.getItemId() == R.id.settings) {
-			Intent intent = new Intent(this, SettingsActivity.class);
-			startActivity(intent);
+		
+		switch (item.getItemId()) {
+			case R.id.settings:
+				Intent intent = new Intent(this, SettingsActivity.class);
+				startActivity(intent);
+				break;
+			case R.id.datestatus:
+				ApplicationUtil.showServerDateStatus(this);
+				break;
 		}
+//		if (item.getItemId() == R.id.settings) {
+//			Intent intent = new Intent(this, SettingsActivity.class);
+//			startActivity(intent);
+//		}
 		return true;
 	}
 }

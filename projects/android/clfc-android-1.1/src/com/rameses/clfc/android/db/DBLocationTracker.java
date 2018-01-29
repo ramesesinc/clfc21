@@ -40,10 +40,10 @@ public class DBLocationTracker extends AbstractDBMapper
 		}
 	}
 	
-	public List<Map> getLocationTrackers(int limit) throws Exception {
+	public List<Map> getForUploadLocationTrackers(int limit) throws Exception {
 		DBContext ctx = createDBContext();
 		try {
-			String sql = "SELECT * FROM " + getTableName() + " ORDER BY seqno ";
+			String sql = "SELECT * FROM " + getTableName() + " WHERE forupload=1 ORDER BY seqno ";
 			if (limit > 0) sql += "LIMIT " + limit;
 			return ctx.getList(sql, new Object[]{});
 		} catch (Exception e) {
@@ -53,14 +53,14 @@ public class DBLocationTracker extends AbstractDBMapper
 		}
 	}
 	
-	public List<Map> getLocationTrackers() throws Exception {
-		return getLocationTrackers(0);
+	public List<Map> getForUploadLocationTrackers() throws Exception {
+		return getForUploadLocationTrackers(0);
 	}
 	
 	public boolean hasLocationTrackers() throws Exception {
 		DBContext ctx = createDBContext();
 		try {
-			String sql = "SELECT objid FROM " + getTableName() + " LIMIT 1";
+			String sql = "SELECT objid FROM " + getTableName() + " WHERE forupload=1 LIMIT 1";
 			return (ctx.getCount(sql, new Object[]{}) > 0);
 		} catch (Exception e) {
 			throw e;
@@ -69,14 +69,11 @@ public class DBLocationTracker extends AbstractDBMapper
 		}
 	}
 	
-	public boolean hasLocationTrackerByCollectoridLessThanDate(String collectorid, String date) throws Exception {
+	public List<Map> getTrackersForDateResolving() throws Exception {
 		DBContext ctx = createDBContext();
 		try {
-			Map params = new HashMap();
-			params.put("collectorid", collectorid);
-			params.put("date", date);
-			String sql = "SELECT objid FROM " + getTableName() + " WHERE collectorid = $P{collectorid} AND txndate <= $P{date} LIMIT 1";
-			return (ctx.getCount(sql, params) > 0);
+			String sql = "SELECT * FROM " + getTableName() + " WHERE dtposted IS NULL";
+			return ctx.getList(sql, new HashMap());
 		} catch (Exception e) {
 			throw e;
 		} finally {
@@ -84,13 +81,40 @@ public class DBLocationTracker extends AbstractDBMapper
 		}
 	}
 	
+	public boolean hasTrackerForDateResolving() throws Exception {
+		DBContext ctx= createDBContext();
+		try {
+			String sql = "SELECT objid FROM " + getTableName() + " WHERE dtposted IS NULL LIMIT 1";
+			return (ctx.getCount(sql, new HashMap()) > 0);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+//	public boolean xhasLocationTrackerByCollectoridLessThanDate(String collectorid, String date) throws Exception {
+//		DBContext ctx = createDBContext();
+//		try {
+//			Map params = new HashMap();
+//			params.put("collectorid", collectorid);
+//			params.put("date", date);
+//			String sql = "SELECT objid FROM " + getTableName() + " WHERE collectorid = $P{collectorid} AND txndate <= $P{date} LIMIT 1";
+//			return (ctx.getCount(sql, params) > 0);
+//		} catch (Exception e) {
+//			throw e;
+//		} finally {
+//			if (isCloseable()) ctx.close();
+//		}
+//	}
+	
 	public List<Map> getLocationTrackersByCollectoridAndLessThanDate(String collectorid, String date) throws Exception {
 		DBContext ctx = createDBContext();
 		try {
 			Map params = new HashMap();
 			params.put("collectorid", collectorid);
 			params.put("date", date);
-			String sql = "SELECT * FROM " + getTableName() + " WHERE collectorid = $P{collectorid} AND txndate <= $P{date}";
+			String sql = "SELECT * FROM " + getTableName() + " WHERE collectorid = $P{collectorid} AND txndate <= $P{date} AND forupload=1";
 			return ctx.getList(sql, params);
 		} catch (Exception e) {
 			throw e;

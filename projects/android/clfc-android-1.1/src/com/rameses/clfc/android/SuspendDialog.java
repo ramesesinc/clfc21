@@ -27,14 +27,14 @@ public final class SuspendDialog
 	public static void show(String content) {
 		show(content, null);
 	}
-	
+	 
 	public static void show(String content, Context context) {
 		synchronized (LOCKED) {
 			if (active) {
 				System.out.println("[SuspendDialog] suspend dialog is still active");
 				return;
 			}
-			if (context == null) context = Platform.getCurrentActivity();
+//			if (context == null) context = Platform.getCurrentActivity();
 			//if (context == null) context = Platform.getMainActivity();
 			if (context == null) context = Platform.getCurrentActionBarActivity();
 			if (context == null) context = Platform.getActionBarMainActivity();

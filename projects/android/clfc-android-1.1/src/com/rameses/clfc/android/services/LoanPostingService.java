@@ -10,6 +10,10 @@ public class LoanPostingService extends AbstractService
 		return "MobilePostingService";
 	}
 	
+	public Map checkBillingCancelledEncrypt(Map params) {
+		return (Map) invoke("checkBillingCancelledEncrypt", params);
+	}
+	
 	public Map voidPaymentEncrypt(Map params) {
 		return (Map) invoke("voidPaymentEncrypt", params);
 	}
@@ -84,5 +88,9 @@ public class LoanPostingService extends AbstractService
 	
 	public Map checkCancelledBilling(Map params) {
 		return (Map) invoke("checkCancelledBilling", params);
+	}
+	
+	public boolean checkIfCaptureIsRemitted(Map params) {
+		return Boolean.valueOf(invoke("checkIfCaptureIsRemitted", params).toString()) ;
 	}
 }

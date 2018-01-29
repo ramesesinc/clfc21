@@ -12,6 +12,18 @@ public class DBCapturePayment extends AbstractDBMapper
 
 	public String getTableName() { return "capture_payment"; }
 
+	public List<Map> getPaymentsByForupload(Map params) throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT * FROM " + getTableName() + " WHERE forupload=$P{forupload}";
+			return ctx.getList(sql, params);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
 	public List<Map> getPaymentsByCollector(String id) throws Exception {
 		DBContext ctx = createDBContext();
 		try {
@@ -24,11 +36,52 @@ public class DBCapturePayment extends AbstractDBMapper
 		}
 	}
 	
-	public List<Map> getPendingPayments() throws Exception {
-		return getPendingPayments(0);
+	public List<Map> getForUploadPayments() throws Exception {
+		return getForUploadPayments(0);
 	}
 	
-	public List<Map> getPendingPayments(int limit) throws Exception {
+	public List<Map> getForUploadPayments(int limit) throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT * FROM " + getTableName() + " WHERE forupload=1 AND state='PENDING'";
+			if (limit > 0) sql += " LIMIT " + limit;
+			return ctx.getList(sql, new Object[]{});
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public List<Map> getPaymentsForDateResolving() throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT * FROM " + getTableName() + " WHERE dtposted IS NULL";
+			return ctx.getList(sql, new HashMap());
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public boolean hasPaymentForDateResolving() throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT objid FROM " + getTableName() + " WHERE dtposted IS NULL LIMIT 1";
+			return (ctx.getCount(sql, new HashMap()) > 0);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public List<Map> xgetPendingPayments() throws Exception {
+		return xgetPendingPayments(0);
+	}
+	
+	public List<Map> xgetPendingPayments(int limit) throws Exception {
 		DBContext ctx = createDBContext();
 		try {
 			String sql = "SELECT * FROM " + getTableName() + " WHERE state = 'PENDING'";
@@ -56,6 +109,18 @@ public class DBCapturePayment extends AbstractDBMapper
 	public boolean hasUnpostedPayments() throws Exception {
 		DBContext ctx = createDBContext();
 		try {
+			String sql = "SELECT objid FROM " + getTableName() + " WHERE forupload=1 AND state='PENDING' LIMIT 1";
+			return (ctx.getCount(sql, new Object[]{}) > 0);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public boolean xhasUnpostedPayments() throws Exception {
+		DBContext ctx = createDBContext();
+		try {
 			String sql = "SELECT objid FROM " + getTableName() + " WHERE state = 'PENDING' LIMIT 1";
 			return (ctx.getCount(sql, new Object[]{}) > 0);
 		} catch(Exception e) {
@@ -77,7 +142,7 @@ public class DBCapturePayment extends AbstractDBMapper
 		}
 	}
 	
-	public boolean hasPaymentS(String collectorid, String date) throws Exception {
+	public boolean hasPayments(String collectorid, String date) throws Exception {
 		DBContext ctx = createDBContext();
 		try {
 			Map params = new HashMap();
@@ -96,7 +161,31 @@ public class DBCapturePayment extends AbstractDBMapper
 		}
 	}
 	
-	public boolean hasPendingPayments() throws Exception {
+	public boolean hasForUploadPayments() throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT objid FROM " + getTableName() + " WHERE forupload=1 AND state='PENDING' LIMIT 1";
+			return (ctx.getCount(sql, new HashMap()) > 0);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public boolean hasForUploadPayment(String collectorid) throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT objid FROM " + getTableName() + " WHERE forupload=1 AND state='PENDING' AND collector_objid=? LIMIT 1";
+			return (ctx.getCount(sql, new Object[]{collectorid}) > 0);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
+	public boolean xhasPendingPayments() throws Exception {
 		DBContext ctx = createDBContext();
 		try {
 			String sql = "SELECT objid FROM " + getTableName() + " WHERE state = 'PENDING' LIMIT 1";
@@ -108,7 +197,7 @@ public class DBCapturePayment extends AbstractDBMapper
 		}
 	}
 	
-	public boolean hasPendingPayments(String collectorid) throws Exception {
+	public boolean xhasPendingPayments(String collectorid) throws Exception {
 		DBContext ctx = createDBContext();
 		try {
 			String sql = "SELECT objid FROM " + getTableName() + " WHERE state = 'PENDING' AND collector_objid = ? LIMIT 1";

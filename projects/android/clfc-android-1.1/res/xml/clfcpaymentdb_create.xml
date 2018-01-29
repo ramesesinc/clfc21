@@ -27,10 +27,14 @@
 	        	check_no TEXT,
 	        	check_date TEXT,
 	        	isfirstbill NUMERIC NOT NULL,
-	        	lng NUMERIC NOT NULL,
-	        	lat NUMERIC NOT NULL,
+	        	lng TEXT NOT NULL,
+	        	lat TEXT NOT NULL,
 	        	type TEXT NOT NULL, -- 'NORMAL,FOLLOWUP,SPECIAL'
-	        	overpaymentamount NUMERIC NOT NULL
+	        	overpaymentamount NUMERIC NOT NULL,
+	        	forupload NUMERIC NOT NULL, -- 1 or 0
+	        	timedifference NUMERIC NOT NULL,
+	        	dtsaved TEXT NOT NULL,
+	        	dtposted TEXT
 	        )
         ]]>
     </sql>

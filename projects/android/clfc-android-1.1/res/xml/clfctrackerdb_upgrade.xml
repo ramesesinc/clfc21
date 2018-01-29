@@ -1,4 +1,5 @@
 <db>    
 	<sql> DROP TABLE IF EXISTS location_tracker </sql>
 	<sql> DROP TABLE IF EXISTS prev_location </sql>
+	<sql> DROP TABLE IF EXISTS mobile_status </sql>
 </db>

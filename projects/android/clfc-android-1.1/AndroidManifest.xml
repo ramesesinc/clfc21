@@ -75,6 +75,13 @@
         		<action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>
+        <receiver 
+            android:exported="true" 
+            android:name="com.rameses.clfc.android.receiver.TimeChangeListener">
+            <intent-filter>
+        		<action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
+        </receiver>
         <service 
             android:name="com.rameses.clfc.android.receiver.SmsService">
         </service>

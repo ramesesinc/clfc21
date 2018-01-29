@@ -13,6 +13,18 @@ public class DBCollectionGroup extends AbstractDBMapper
 		return "collection_group";
 	}
 	
+	public List<Map> getAllCollectionBilling() throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT * FROM " + getTableName();
+			return ctx.getList(sql, new Object[]{});
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
 	public List<Map> getCollectionDates() throws Exception {
 		DBContext ctx = createDBContext();
 		try {

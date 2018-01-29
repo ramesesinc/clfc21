@@ -10,6 +10,8 @@ import com.rameses.client.android.Platform;
 
 public class AppSettingsImpl extends AppSettings 
 {
+	public final Object LOCK = new Object();
+	
 	AppSettingsImpl() {
 		
 	}
@@ -82,12 +84,20 @@ public class AppSettingsImpl extends AppSettings
 		return getString(prefix + "trackerid", null);
 	}
 	
+	public void setCaptureid( String prefix, String captureid ) {
+		synchronized (LOCK) {
+			put(prefix + "captureid", captureid);
+		}
+	}
+	
 	public String getCaptureid() {
 		return getCaptureid(ApplicationUtil.getPrefix());
 	}
 	
 	public String getCaptureid(String prefix) {
-		return getString(prefix + "captureid", null);
+		synchronized (LOCK) {
+			return getString(prefix + "captureid", null);	
+		}
 	}
 	
 	private void println(String msg) {

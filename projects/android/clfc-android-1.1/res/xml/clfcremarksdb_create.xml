@@ -16,9 +16,13 @@
         	collector_name TEXT NOT NULL,
         	routecode TEXT NOT NULL,
         	remarks TEXT NOT NULL,
-        	lng NUMERIC NOT NULL,
-        	lat NUMERIC NOT NULL,
-        	type NUMERIC NOT NULL -- 'NORMAL,FOLLOWUP,SPECIAL'
+        	lng TEXT NOT NULL,
+        	lat TEXT NOT NULL,
+        	type NUMERIC NOT NULL, -- 'NORMAL,FOLLOWUP,SPECIAL'
+        	forupload NUMERIC NOT NULL, -- 1 or 0
+        	timedifference NUMERIC NOT NULL,
+        	dtsaved TEXT NOT NULL,
+        	dtposted TEXT
         )
     </sql>
 </db>
