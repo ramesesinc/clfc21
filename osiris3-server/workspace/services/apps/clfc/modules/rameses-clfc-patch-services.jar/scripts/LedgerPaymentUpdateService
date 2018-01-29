@@ -1,0 +1,111 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class LedgerPaymentUpdateService
+{
+	@Env
+	def env;
+
+	@ActiveDB('ledger_payment_update')
+	def em;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		def ledger = em.findLedgerByID([objid: params.objid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def app = loanapp.read([objid: ledger?.appid]);
+		if (!app) throw new Exception('App. record does not exist or has already been deleted.');
+
+		def appc = loanapp.read([objid: app?.objid], 'loanapp_capture');
+
+		def data = [
+			borrower: app?.borrower,
+			loanapp	: [appno: app?.appno, amount: app?.loanamount],
+			ledger 	: [objid: ledger?.objid, dtmatured: ledger?.dtmatured, dtreleased: appc?.dtreleased]
+		];
+
+		return data;
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	@ProxyMethod
+	public def getPayments( params ) {
+		params.objid = params.ledgerid;
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		def list = em.getLedgerPayments(params);
+		def info;
+		list?.each{ o->
+			if (o.info) {
+				info = o.remove('info');
+				info = em.serializer.read(info);
+				o.putAll(info);
+			}
+			//info = o.remove('info');
+			//info = em.serializer.read(info);
+			//println 'info ' + info;
+		}
+		return list;
+	}
+
+	@ProxyMethod
+	public def getPaymentListColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'amount', caption: 'Amount', type: 'decimal', format: '#,##0.00'];
+		//cols << [name: '', caption: ''];
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def removePayment( params ) {
+		def pyt = loan_ledger.read([objid: params?.objid], 'payment');
+		def ledger = loan_ledger.read([objid: pyt?.parentid]);
+		def app = loanapp.read([objid: ledger?.appid]);
+
+		def item = em.findPaymentDetailByAppidAndRefno([appid: app?.objid, refno: pyt?.refno]);
+		if (item) throw new Exception('Cannot remove this payment.');
+
+		item = em.findWithPartialByPaymentid([paymentid: pyt?.objid]);
+		if (item) throw new Exception('Cannot remove this payment.');
+
+		item = em.findNoncashByPaymentid([paymentid: pyt?.objid]);
+		if (item) throw new Exception('Cannot remove this payment.');
+
+		item = em.findProceedByPaymentid([paymentid: pyt?.objid]);
+		if (item) throw new Exception('Cannot remove this payment.');
+
+		loan_ledger.delete(pyt, 'payment');
+ 	}
+
+	@ProxyMethod
+	public def addPayment( params ) {
+		def ledger = loan_ledger.read([objid: params.ledgerid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def pyt = params.payment;
+		pyt.parentid = ledger.objid;
+		pyt.isonline = 1;
+		pyt.dtmodified = dateSvc.serverDate;
+		pyt.modifiedby = getUser();
+
+		loan_ledger.create(pyt, 'payment');
+
+		
+	}
+}

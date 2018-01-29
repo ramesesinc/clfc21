@@ -1,0 +1,13 @@
+<schema>
+
+	<element tablename='smc_fee'>
+		<field name='code' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='title' required='true' />
+		<field name='description' required='true' />
+		<field name='type' required='true' />
+	</element>
+
+</schema>

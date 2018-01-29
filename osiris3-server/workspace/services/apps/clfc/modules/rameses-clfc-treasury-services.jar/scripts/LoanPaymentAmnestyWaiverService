@@ -1,0 +1,596 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.server.common.*;
+import com.rameses.rules.common.RuleRequest;
+import java.rmi.server.UID;
+import org.joda.time.*;
+import org.drools.KnowledgeBase;
+import java.text.*;
+
+class LoanPaymentAmnestyWaiverService
+{
+	@ActiveDB('ledgeramnesty_waiver')
+	def ledgeramnesty_waiver;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('loan_ledger_payment')
+	def ledger_payment;
+
+	@ActiveDB('loan_exemption')
+	def loan_exemption;
+
+	@ActiveDB('loan_ledger_proceeds')
+	def ledger_proceed;
+
+	@ActiveDB('loan_ledger_noncash')
+	def ledger_noncash;
+
+	@Resource('RuleService')
+	def ruleSvc;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('LoanPaymentAmnestyService')
+	def amnestySvc;
+
+	private def df = new SimpleDateFormat('yyyy-MM-dd');
+
+	@ProxyMethod
+	public def post( params, amnesty ) {
+		def txndate;
+		if (params.entity) {
+			txndate = params.entity.txndate;
+		} else {
+			txndate = params.txndate;
+		}
+
+		def am = ledgeramnesty_waiver.read([objid: amnesty?.refid]);
+		if (!am) throw new Exception('Amesty waiver record does not exist or has already been deleted.');
+
+		def ledger = loan_ledger.read([objid: am.ledger.objid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def app = loanapp.read([objid: ledger.appid]);
+		if (!app) throw new Exception('Loanapp record does not exist or has already been deleted.');
+
+		def appc = loanapp.read(app, 'loanapp_capture');
+
+		def cal = Calendar.getInstance();
+		cal.setTime(appc?.dtreleased);
+
+		def lastledgeritem = loan_ledger.findLastLedgerItemByParentId([parentid: ledger?.objid]);
+		def day = 1;
+
+		//println 'last day ' + lastledgeritem?.day;
+
+		def xexempt = loan_exemption.findExemptionByDateAndLedgerid([txndate: txndate, ledgerid: ledger?.objid]);
+		def isexempted = false;
+		if (xexempt) {
+			isexempted = true;
+		}
+
+		def req = new RuleRequest("amnestywaiver");
+
+		def paymentFact = [
+			amountPaid 	: params.payamount,
+			currentDay	: (lastledgeritem? (lastledgeritem.day + 1): day)
+		];
+
+		if (lastledgeritem) {
+			cal.add(Calendar.DATE, (lastledgeritem.day - 1));
+		} else {
+			cal.add(Calendar.DATE, (day - 1));
+
+		}
+		def sd = java.sql.Date.valueOf(df.format(cal.getTime()));
+
+		def xparams = [
+			amount 			: params.payamount,
+			interest 		: (am? am.interest : 0),
+			penalty 		: (am? am.penalty : 0),
+			startdate 		: sd,
+			enddate 		: txndate,
+			waiveinterest 	: (am? am.waiveinterest : false),
+			waivepenalty 	: (am? am.waivepenalty : false),
+			lackinginterest : (lastledgeritem?.interestbal),
+			lackingpenalty 	: (lastledgeritem?.penaltybal),
+			isproceed 		: params.isproceedcollection,
+			isexempted 		: isexempted,
+			currentday 		: paymentFact.currentDay,
+			term 			: ledger?.term
+		]
+		//def noofschedule = waiverCountNoOfSchedule([amount: params.payamount, schedule: ledger?.dailydue]);
+		def noofschedule = waiverCountNoOfSchedule(xparams);
+		if (!noofschedule) noofschedule = 1;
+
+		def referencesFact = [
+			amountPaid 					: params.payamount,
+			balance 					: ledger?.balance,
+			noOfSchedule 				: noofschedule,
+			schedOfPayment 				: ledger?.dailydue,
+			interest 					: am.interest,
+			penalty 					: am.penalty,
+			waiveInterest 				: am.waiveinterest,//(am.waiveinterest == 1? true : false),
+			waivePenalty 				: am.waivepenalty,//(am.waivepenalty == 1? true : false),
+			isOffset					: false,
+			isProceed 					: params.isproceedcollection,
+			lessThanInterest 			: false,
+			lessThanInterestAndPenalty 	: false,
+			releaseDate					: (appc? appc.dtreleased : ledger.dtstarted),
+			isExempted 					: false,
+			hasLacking 					: false,
+			isExempted  				: isexempted
+		];
+
+		def lastpayment = [:];
+		if (lastledgeritem?.interestbal > 0 || lastledgeritem?.penaltybal > 0) {
+			referencesFact.hasLacking = true;
+			/*
+			def xcal = Calendar.getInstance();
+			xcal.setTime(appc?.dtreleased);
+			xcal.add(Calendar.DATE, paymentFact.currentDay);
+			println 'current day ' + xcal.getTime();
+			*/
+
+			if (lastledgeritem?.interestbal > 0) {
+				paymentFact.currentDay--;
+				lastpayment.lackinginterest = lastledgeritem.interestbal;
+			}
+			if (lastledgeritem?.penaltybal > 0) {
+				lastpayment.lackingpenalty = lastledgeritem.penaltybal;
+			}
+		}
+
+		if (params.payamount <= am.interest) {
+			referencesFact.lessThanInterest = true;
+			referencesFact.lessThanInterestAndPenalty = false;
+		}
+		if (referencesFact.isExempted == false && params.payamount > am.interest && params.payamount <= (am.interest + am.penalty)) {
+			referencesFact.lessThanInterest = false;
+			referencesFact.lessThanInterestAndPenalty = true;
+		}
+
+		def xpayment = loan_ledger.read([objid: params.ledgerpaymentid], 'payment');
+		if (xpayment) {
+			xpayment.balance = ledger.balance;
+			xpayment.amnestybalance = ledger.balance;
+			xpayment.startdate = sd;
+			xpayment.currentday = paymentFact.currentDay;
+			xpayment.haslacking = referencesFact.hasLacking;
+			xpayment.lackinginterest = lastledgeritem?.interestbal;
+			xpayment.lackingpenalty = lastledgeritem?.penaltybal;
+			loan_ledger.update(xpayment, 'payment');
+			xpayment = loan_ledger.read(xpayment, 'payment');
+		}
+
+		def lastpaymentdate;
+		if (ledger.dtlastpaid) {
+			lastpaymentdate = parseDate(ledger.dtlastpaid);
+		}
+
+		def xdate = parseDate(txndate);
+
+		if (lastpaymentdate && (xdate.compareTo(lastpaymentdate) == 0)) {
+			amnestySvc.offSetLastRecord(lastledgeritem);
+			if (referencesFact.hasLacking == false) {
+				paymentFact.currentDay--;
+			}
+			referencesFact.isOffset = true;
+			/*
+			def ti = xpayment.totalinterest;
+			if (!ti) ti = 0;
+			paymentFact.totalInterest = ti;
+
+			def tp = xpayment.totalpenalty;
+			if (!tp) tp = 0;
+			paymentFact.totalPenalty = tp;
+			*/
+
+			def xpayments = ledger_payment.getPaymentsByParentidAndTxndate([parentid: ledger.objid, txndate: txndate]);
+			xpayments.sort{ it.refno }
+
+			def idx = 0, xitm;
+			def xlist = [];
+			while (idx < xpayments.size()) {
+				xitm = xpayments[idx];
+				xlist.add(xitm);
+				if (xitm.objid == params.ledgerpaymentid) {
+					break;
+				}
+				idx++;
+			}
+			xpayments.clear();
+			xpayments.addAll(xlist);
+
+			def cp = xpayments.find{ it.objid == params.ledgerpaymentid }
+			if (cp) xpayments.remove(cp);
+
+			def totalprevious = xpayments?.amount.sum();
+			if (!totalprevious) totalprevious = 0;
+
+			//referencesFact.amountPaid = totalprevious + params.payamount;
+			paymentFact.amountPaid = totalprevious + params.payamount; //referencesFact.amountPaid;
+
+			//referencesFact.noOfSchedule--;
+			//if (!paymentFact.scheduleCounter) paymentFact.scheduleCounter = 0;
+			//paymentFact.scheduleCounter--;
+
+			referencesFact.lessThanInterest = false;
+			referencesFact.lessThanInterestAndPenalty = false;
+
+			if (referencesFact.amountPaid <= am.interest) {
+				referencesFact.lessThanInterest = true;
+				referencesFact.lessThanInterestAndPenalty = false;
+			}
+			if (referencesFact.isExempted == false && referencesFact.amountPaid > am.interest && referencesFact.amountPaid < (am.interest + am.penalty)) {
+				referencesFact.lessThanInterest = false;
+				referencesFact.lessThanInterestAndPenalty = true;
+			}
+
+			def xcurrentday = paymentFact.currentDay;
+			xpayments.sort{ it.refno }
+			def fp = xpayments[0];
+			if (fp) {
+				fp  = loan_ledger.read([objid: fp.objid], 'payment');
+				if (fp?.balance) {
+					referencesFact.balance = fp.balance;
+				}
+				if (fp?.startdate) {
+					sd = java.sql.Date.valueOf(fp.startdate);
+				}
+				if (fp?.currentday) {
+					xcurrentday = (fp.currentday - 1);
+				}
+
+				if (fp?.lackinginterest > 0) {
+					lastpayment.lackinginterest = fp.lackinginterest;
+				}
+				if (fp?.lackingpenalty > 0) {
+					lastpayment.lackingpenalty = fp.lackingpenalty;
+				}
+				referencesFact.hasLacking = (fp? fp.haslacking : false);
+			}
+
+			xparams = [
+				amount 			: paymentFact.amountPaid,
+				interest 		: (am? am.interest : 0),
+				penalty 		: (am? am.penalty : 0),
+				startdate 		: sd,
+				enddate 		: txndate,
+				waiveinterest 	: (am? am.waiveinterest : false),
+				waivepenalty 	: (am? am.waivepenalty : false),
+				lackinginterest : fp?.lackinginterest,
+				lackingpenalty 	: fp?.lackingpenalty,
+				isproceed 		: params.isproceedcollection,
+				isexempted 		: isexempted,
+				currentday 		: paymentFact.currentDay,
+				term 			: ledger?.term
+			];
+
+			/*
+			if (xdate.compareTo(parseDate('2002-10-25')) == 0) {
+				println 'before counter';
+				println 'params';
+				xparams?.each{ println it }
+				println '';
+			}
+			*/
+			noofschedule = waiverCountNoOfSchedule(xparams);
+			//noofschedule = waiverCountNoOfSchedule([amount: referencesFact.amountPaid, schedule: ledger?.dailydue]);
+			if (noofschedule == 0) noofschedule = 1;
+
+			/*
+			if (xdate.compareTo(parseDate('2002-10-25')) == 0) {
+				println 'no. of schedule-> ' + noofschedule;
+				println 'after counter';
+			}
+			*/
+
+			referencesFact.noOfSchedule = noofschedule;
+
+			cal = Calendar.getInstance();
+			cal.setTime(parseDate(referencesFact.releaseDate));
+			cal.add(Calendar.DATE, xcurrentday);
+			def past = new LocalDate(cal.getTime());
+
+			cal.setTime(parseDate(referencesFact.releaseDate));
+			cal.add(Calendar.DATE, (paymentFact.currentDay - 1));
+			def today = new LocalDate(cal.getTime());
+			/*
+			def past = cal.getTime();
+			def today;
+			println 'date ' + cal.getTime();
+			*/
+
+			//println 'past ' + past;
+			//println 'today ' + today;
+			def days = Days.daysBetween(past, today).getDays();
+			paymentFact.scheduleCounter = days;
+
+			if (days > 0) {
+				lastpayment.remove('lackinginterest');
+				lastpayment.remove('lackingpenalty');
+			}
+			//println 'between days ' + Days.daysBetween(past, today).getDays();
+
+			//throw new RuntimeException('stopping');
+
+			/*
+			if (xdate.compareTo(parseDate('2002-10-25')) == 0) {
+				println 'date ' + xdate;
+				println 'payments ' + xpayments?.size();
+				//println 'no. of schedule ' + referencesFact.noOfSchedule;
+				//println 'size ' + results?.size();
+			}
+			*/
+
+			fp = xpayments[xpayments?.size() - 1];
+			if (fp) {
+				fp = loan_ledger.read([objid: fp.objid], 'payment');
+				if (fp?.totalinterest) {
+					paymentFact.totalInterest = (fp.totalinterest - lastledgeritem.interestpaid);
+				}
+				if (fp?.totalpenalty) {
+					paymentFact.totalPenalty = (fp.totalpenalty - lastledgeritem.penaltypaid);
+				}
+			}
+
+			/*
+			if (xdate.compareTo(parseDate('2002-10-25')) == 0) {
+				println 'date ' + xdate;
+				//println 'payments ' + xpayments?.size();
+				//println 'no. of schedule ' + referencesFact.noOfSchedule;
+				//println 'size ' + results?.size();
+				println '\npayment fact';
+				paymentFact?.each{ println it }
+
+				println '\nreferences fact';
+				referencesFact?.each{ println it }
+
+			}
+			*/
+
+		}
+
+
+
+		def results = [];
+
+		req.addFact('amnestywaiver', 'Payment', paymentFact);
+		req.addFact('amnestywaiver', 'References', referencesFact);
+		req.addGlobal('results', results);
+		req.addGlobal('lastPayment', lastpayment);
+
+		try {
+			ruleSvc.execute( req );	
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		/*
+		if (xdate.compareTo(parseDate('2006-07-26')) == 0) {
+			println 'date ' + xdate;
+			println 'no. of schedule ' + referencesFact.noOfSchedule;
+			println 'size ' + results?.size();
+		}
+		*/
+
+		def lastitem;
+		if (results) {
+			lastitem = results[results.size() - 1];
+			def bal = lastitem.balance;
+
+			def tp = lastitem.totalpenalty;
+			if (!tp) tp = 0;
+			xpayment.totalpenalty = tp;
+
+			def ti = lastitem.totalinterest;
+			if (!ti) ti = 0;
+			xpayment.totalinterest = ti;
+
+			loan_ledger.update(xpayment, 'payment');
+
+			if (lastitem.lackinginterest) {
+				lastitem.interestbal = lastitem.lackinginterest;
+			}
+
+			if (lastitem.lackingpenalty) {
+				lastitem.penaltybal = lastitem.lackingpenalty;
+			}
+
+			if (params.isproceedcollection == true) {
+				if (!params.entity) {
+					def p = ledger_proceed.findByRefid([refid: params.ledgerpaymentid]);
+					lastitem.remarks = 'Proceed on sale of ' + p.description;
+				} else {
+					def p = proceeds.read([objid: params.proceedid]);
+					if (p) {
+						//def payment = ledger_payment.findByParentidAndRefno([parentid: ledger.objid, refno: params.refno]);
+						def payment = ledger_payment.findByParentidAndRefnoAndTxndate([parentid: ledger.objid, refno: params.refno, txndate: txndate]);
+						if (payment) {
+							p.refid = payment.objid;
+							ledger_proceed.update(p);
+						}
+						lastitem.remarks = 'Proceed on sale of ' + p.description;
+					}
+				}
+			}
+
+			if (params.isnoncash == true) {
+				lastitem.remarks = 'Non-cash';
+				if (params.entity) {
+					def p = ledger_noncash.read([objid: params.noncashid]);
+					if (p) {
+						def payment = ledger_payment.findByParentidAndRefnoAndTxndate([parentid: ledger.objid, refno: params.refno, txndate: txndate]);
+						if (payment) {
+							p.refid = payment.objid;
+							ledger_noncash.update(p);
+						}
+					}
+				}
+			}
+
+			if (bal != null && bal != '') {
+				loan_ledger.update([objid: ledger.objid, balance: lastitem.balance], "balance");
+
+				if (bal == 0) {
+					def xledger = loan_ledger.read(ledger);
+					xledger.state = 'CLOSE';
+					loan_ledger.update(xledger);
+					loanapp.update([objid: xledger.appid, state: 'CLOSED']);
+					def xx = loanapp.read([objid: xledger.appid], 'loanapp_search');
+					if (xx) {
+						loanapp.update([objid: xledger.appid, state: 'CLOSED'], 'loanapp_search');	
+					}
+				}
+			}
+		}
+
+		def la = loanapp.read([objid: ledger.appid], 'loanapp_close');
+		def xledger = loan_ledger.read(ledger);
+		if (la || referencesFact.isFullPayment == true || xledger.balance == 0) {
+			xledger.state = 'CLOSE';
+			loan_ledger.update(xledger);
+			loanapp.update([objid: xledger.appid, state: 'CLOSED']);
+			def xx = loanapp.read([objid: xledger.appid], 'loanapp_search');
+			if (xx) {
+				loanapp.update([objid: xledger.appid, state: 'CLOSED'], 'loanapp_search');	
+			}
+		}
+
+		def currentdate = dateSvc.serverDate;
+		results?.each{ o->
+			def itm = amnestySvc.createLedgerItem(ledger);
+			itm.amnestyid = amnesty.objid;
+
+			itm.amtdue = 0;
+			if (o.payment) {
+				itm.amtdue = new BigDecimal(o.payment).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+			itm.amtpaid = itm.amtdue;
+
+			itm.interestdue = 0;
+			if (o.interest) {
+				itm.interestdue  = new BigDecimal(o.interest).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+			itm.interestpaid = itm.interestdue;
+
+			itm.penaltydue = 0;
+			if (o.penalty) {
+				itm.penaltydue = new BigDecimal(o.penalty).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+			itm.penaltypaid = itm.penaltydue;
+
+			itm.amtbal = 0;
+			
+			itm.interestbal = 0;
+			if (o.interestbal) {
+				itm.interestbal = o.interestbal;
+			}
+
+			itm.penaltybal = 0;
+			if (o.penaltybal) {
+				itm.penaltybal = o.penaltybal;
+			}
+
+			itm.dtpaid = txndate;//it.dtpaid? it.dtpaid : null;
+			itm.refno = params.refno;//it.refno? it.refno : null;
+			itm.day = day;
+			if (o.day) {
+				itm.day = o.day;//dateSvc.getDaysDiff(parseDate(appc?.dtreleased), parseDate(o.scheduledate)) - 1;
+			}
+
+			itm.balance = ledger?.balance; //0;
+			if (o.balance) {
+				itm.balance = new BigDecimal(o.balance).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+
+			//println 'passing 4'
+			itm.partialpayment = 0;
+			if (o.partialpayment) {
+				itm.partialpayment = new BigDecimal(o.partialpayment).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+
+			itm.baseamount = ledger.dailydue;
+			itm.groupbaseamount = ledger.dailydue;
+
+			//itm.paytype = it.paytype;
+			//itm.txndate = dateSvc.serverDate;
+			itm.txndate = currentdate;
+			if (o.remarks) itm.remarks = o.remarks;
+			//println 'item = '+itm;
+			o.item = itm;
+			//if (txndate.toString() == '2006-01-24') println 'current day ' + data.currentDay;
+			loan_ledger.create(itm, 'detail');
+		}
+
+		loan_ledger.update([objid: ledger.objid, dtlastpaid: txndate], 'dtlastpaid');
+		//req.addFact("amnestywaiver", "Payment", paymentFact); 
+		//req.addFact("amnestywaiver", "References", referencesFact);
+		//req.addGlobal("results", results);
+
+		def res = [
+			results		: results,
+			amnestyid	: amnesty?.amnestyid,
+			ledgerid 	: ledger?.objid,
+			txndate 	: txndate,
+			interest 	: (xpayment? xpayment.totalinterest : 0),
+			penalty 	: (xpayment? xpayment.totalpenalty : 0)
+		];
+
+		return res;
+	}
+	
+	private def waiverCountNoOfSchedule( params ) {
+		def item = [:]
+		def countSchedule = [
+			allowCount		: true,
+			amountPaid		: params.amount,
+			interest 		: params.interest,
+			penalty 		: params.penalty,
+			startDate 		: params.startdate,
+			endDate 		: params.enddate,
+			waiveInterest 	: params.waiveinterest,
+			waivePenalty 	: params.waivepenalty,
+			lackingInterest : (params?.lackinginterest? params.lackinginterest : 0),
+			lackingPenalty 	: (params?.lackingpenalty? params.lackingpenalty : 0),
+			isProceed 		: params.isproceed,
+			currentDay 		: params.currentday,
+			term 			: params.term,
+			withinTerm 		: (params.currentday <= params.term? true : false),
+			isExempted 		: params.isexempted
+		];
+
+		def req = new RuleRequest("amnestywaiver");
+
+		req.addFact('amnestywaiver', 'CountSchedule', countSchedule);
+		req.addGlobal('resultMap', item);
+
+		try {
+			ruleSvc.execute( req );	
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		if (!item.noofschedule) item.noofschedule = 0;
+		return item.noofschedule;
+	}
+
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+}

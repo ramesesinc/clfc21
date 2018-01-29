@@ -1,0 +1,35 @@
+import com.rameses.annotations.*;
+
+class IndividualEntityService {
+	
+	@Service('PersistenceService')
+	def persistSvc; 
+
+	@ProxyMethod
+	public def create( o ) {
+		o._schemaname = 'entityindividual';
+		persistSvc.create( o );  
+		return o; 
+	} 
+
+
+	@ProxyMethod 
+	public def open( o ) {
+		o._schemaname = 'entityindividual';
+		return persistSvc.read( o );  
+	}	
+
+	@ProxyMethod 
+	public def update( o ) {
+		o._schemaname = 'entityindividual';
+		return persistSvc.update( o );  
+	}
+
+	@ProxyMethod 
+	public def removeEntity( o ) { 
+		def result = open( o );  
+		o._schemaname = 'entityindividual';		
+		persistSvc.removeEntity( o );  
+		return result; 
+	} 
+}

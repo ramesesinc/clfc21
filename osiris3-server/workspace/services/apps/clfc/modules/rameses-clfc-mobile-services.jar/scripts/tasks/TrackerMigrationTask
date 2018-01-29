@@ -1,0 +1,298 @@
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+
+class TrackerMigrationTask {
+
+	@ActiveDB("mobile_tracker_migrate")
+	def em;
+
+	@ActiveDB("loan_route")
+	def loan_route;
+
+	@ActiveDB("user")
+	def sys_user;
+
+	@ActiveDB("fieldcollection")
+	def fieldcollection;
+
+	@ActiveDB("loanapp")
+	def loanapp;
+
+	@ActiveDB("borrower")
+	def borrower;
+
+	@ActiveDB("var")
+	def var;
+
+	@ActiveDB(em="tracker", value="mobile_tracker")
+	def mobile_tracker;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("BranchService")
+	def branchSvc;
+
+	@Schedule(interval=1, timeUnit='SECONDS')
+	public void migrateTracker( task ) { 
+		def sysvar = var.read([name: "enable_tracker_migration_task"]);
+		if (!sysvar || sysvar.value.toLowerCase() != 'true') return;
+
+		def date = dateSvc.serverDate.toString().split(' ')[0];
+
+		def branch = branchSvc.open([:]);
+
+		def list = em.getForMigrateList([_limit: 1, date: date]);
+		//def list = [];
+		//def tracker = em.read([objid: "TRCKa4377a66-79a7-447e-bf51-618c1ba4cbf8"]);
+
+		//list << tracker;
+		list.each{ o->
+			def m = em.read([objid: o.objid], "tracker-migrated");
+			if (!m) {
+				processTrackerMigrate(o, branch);
+			}
+		}
+
+		//throw new RuntimeException("stopping tracker migration");
+
+	}
+
+	def getUser( userid ) {
+		def user = sys_user.read([objid: userid]);
+		if (!user) return [:];
+		
+		return [
+			objid		: user.objid,
+			name 		: user.username,
+			lastname 	: user.lastname,
+			firstname	: user.firstname,
+			middlename 	: user.middlename
+		];
+	}
+
+	void processTrackerMigrate( tracker, branch ) {
+		def data = mobile_tracker.read([objid: tracker.objid]);
+		if (!data) {
+			data = tracker;
+			data.user = getUser(data.userid);
+			data.branch = branch;
+			if (!data.dtfiled) data.dtfiled = data.dtstart;
+			data.description = "";
+
+			mobile_tracker.create(data);
+
+			def items = em.getFieldcollectionItemsByTrackerid([trackerid: tracker.objid]);
+			if (items) {
+
+				items.each{ o->
+					def i = mobile_tracker.read([objid: o.objid], "item");
+					if (!i) {
+						i = [
+							objid			: o.objid,
+							parentid		: data.objid,
+							branchid		: branch?.objid,
+							billingitemid	: o.objid,
+							item 			: o.item,
+							description 	: ""
+						];
+
+						switch (o.item?.type) {
+							case 'route':
+								def r = loan_route.read([objid: o.item?.objid]);
+								if (r) {
+									i.route = r;
+									i.description = r.area
+								}
+								break;
+							case 'special':
+								i.description = "SPECIAL";
+								break;
+							case 'followup':
+								i.description = "FOLLOW-UP";
+								break;
+						}
+
+						mobile_tracker.create(i, "item");
+					}
+				}
+
+				def r = items.findAll{ it.item.type=='route' }
+				r.each{ o->
+					def route = loan_route.read([code: o.item.objid]);
+					if (route) {
+						if (data.description?.trim().length() > 0) data.description += ", ";
+						data.description += route.description;
+					}
+				}
+				def i = items.find{ it.item.type=='special' }
+				if (i) {
+					if (data.description?.trim().length() > 0) data.description += ", ";
+					data.description += "SPECIAL";
+				}
+
+				i = items.find{ it.item.type=='followup' }
+				if (i) {
+					if (data.description?.trim().length() > 0) data.description += ", ";
+					data.description += "FOLLOW-UP";
+				}
+			} else {
+				items = em.getTrackerRoute([objid: tracker.objid]);
+
+				items.each{ o->
+					def r = loan_route.read([code: o.routecode]);
+					if (r) {
+						if (data.description?.trim().length() > 0) data.description += ", ";
+						data.description += r.description;
+					}
+
+					def objid = o.parentid + "-" + branch?.code + "-" + o.routecode;
+					def i = mobile_tracker.read([objid: objid]);
+					if (!i) {
+						i = [
+							objid			: objid,
+							parentid 		: data.objid,
+							branchid		: branch?.objid,
+							billingitemid	: o.routecode,
+							item 			: [
+								objid	: o.routecode,
+								type	: "route"
+							],
+							description 	: r? r.description : ""
+						];
+
+						mobile_tracker.create(i, "item");
+					}
+
+				}
+			}
+
+			mobile_tracker.update(data);
+
+		}
+
+		def list;
+
+		//list = em.getTrackerRoute([objid: tracker.objid]);
+
+		list = em.getTrackerDetail([objid: tracker.objid]);
+		//list = list.findAll{ it.reftype.toLowerCase()=="remarks" }
+		list.each{ o->
+			//processTrackerDetailMigrate(o, branch);
+
+			switch (o.reftype.toLowerCase()) {
+				case 'track'	: processTrackerTrackDetail(o, branch); break;
+				case 'remarks'	: processTrackerRemarksDetail(o, branch); break;
+				case 'payment'	: processTrackerPaymentDetail(o, branch); break;
+			}
+		}
+
+		def m = em.read([objid: data.objid], "tracker-migrated");
+		if (!m) em.create([objid: data.objid], "tracker-migrated");
+	}
+
+	void processTrackerTrackDetail( detail, branch ) {
+		def data = mobile_tracker.read([objid: detail.objid], "detail");
+		if (!data) {
+			data = detail;
+			data.branch = branch;
+			if (!data.dtfiled) data.dtfiled = data.txndate;
+			if (!data.state) data.state = 1;
+
+			mobile_tracker.create(data, "detail");
+		}
+
+		def m = em.read([objid: data.objid], "tracker-detail-migrated");
+		if (!m) em.create([objid: data.objid], "tracker-detail-migrated");
+	}
+
+	void processTrackerRemarksDetail( detail, branch ) {
+		def data = mobile_tracker.read([objid: detail.objid], "detail");
+		if (!data) {
+			data = detail;
+			data.branch = branch;
+			if (!data.dtfiled) data.dtfiled = data.txndate;
+			if (!data.state) data.state = 1;
+
+			def fcloan = fieldcollection.read([objid: data.refid], "fc-loan");
+			data.info = [remarks: fcloan?.remarks];
+
+			def b = borrower.read([objid: fcloan?.borrower?.objid]);
+			data.borrower = b;
+
+			def app = loanapp.read([objid: fcloan?.loanapp?.objid]);
+			def appc = loanapp.read([objid: app?.objid], "loanapp_capture");
+			data.loanapp = [
+				objid 		: app?.objid,
+				appno		: app?.appno,
+				apptype		: app?.apptype,
+				appmode 	: app?.appmode,
+				amount 		: app?.loanamount,
+				producttype	: app?.producttype,
+				loantype 	: app?.loantype,
+				dtreleased 	: appc?.dtreleased
+			];
+
+
+			def route = loan_route.read([code: fcloan?.routecode]);
+			data.route = [
+				code 		: route?.code,
+				description : route?.description,
+				area		: route?.area
+			];
+
+			mobile_tracker.create(data, "detail");
+		}
+
+		def m = em.read([objid: data.objid], "tracker-detail-migrated");
+		if (!m) em.create([objid: data.objid], "tracker-detail-migrated");
+	}
+
+	void processTrackerPaymentDetail( detail, branch ) {
+		def data = mobile_tracker.read([objid: detail.objid], "detail");
+		if (!data) {
+			data = detail;
+			data.branch = branch;			
+			if (!data.dtfiled) data.dtfiled = data.txndate;
+
+			def fcpayment = fieldcollection.read([objid: data.refid], "fc-payment");
+			if (fcpayment?.dtpaid) data.txndate = fcpayment?.dtpaid;
+			data.payment = fcpayment;
+			if (!data.payment) data.payment = [:];
+
+			def fcloan = fieldcollection.read([objid: fcpayment?.parentid], "fc-loan");
+			data.payment.remarks = fcloan?.remarks;
+
+			def b = borrower.read([objid: fcloan?.borrower?.objid]);
+			data.borrower = b;
+
+			def app = loanapp.read([objid: fcloan?.loanapp?.objid]);
+			def appc = loanapp.read([objid: app?.objid], "loanapp_capture");
+			data.loanapp = [
+				objid 		: app?.objid,
+				appno		: app?.appno,
+				apptype		: app?.apptype,
+				appmode 	: app?.appmode,
+				amount 		: app?.loanamount,
+				producttype	: app?.producttype,
+				loantype 	: app?.loantype,
+				dtreleased 	: appc?.dtreleased
+			];
+
+
+			def route = loan_route.read([code: fcloan?.routecode]);
+			data.route = [
+				code 		: route?.code,
+				description : route?.description,
+				area		: route?.area
+			];
+
+			mobile_tracker.create(data, "detail");
+		}
+
+		def m = em.read([objid: data.objid], "tracker-detail-migrated");
+		if (!m) em.create([objid: data.objid], "tracker-detail-migrated");
+	}
+
+
+}

@@ -1,0 +1,419 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+import java.text.*;
+
+class AmnestyInterceptor
+{
+	@ActiveDB("amnesty")
+	def em;
+
+	@ActiveDB("loan_ledger")
+	def ledger;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('ledgeramnesty_fix')
+	def ledgeramnesty_fix;
+
+	@ActiveDB('ledgeramnesty_waiver')
+	def ledgeramnesty_waiver;
+
+	@ActiveDB('ledgeramnesty_smc')
+	def ledgeramnesty_smc;
+
+	@Service("DateService")
+	def dateSvc;
+
+	private def dateFormat = new SimpleDateFormat('MMM-dd-yyyy');
+
+	/*
+	@Before(pattern='LoanPaymentService.postPayment')
+	public void beforePostPayment( evt ) {
+		def params = evt.args[0];
+		def txndate = (params.entity? params.entity.txndate : params.txndate);
+
+		def l = ledger.findByAppId(params);
+		def am = ledgeramnesty.findActiveByDate([date: txndate]);
+		if (am) {
+			def item = ledger.findAmnestyDetailByParentidAndAmnestyid([parentid: l.objid, amnestyid: am.objid]);
+			if (!item) {
+				def balance = 0;
+				if (am.type == 'FIX') {
+					def i = ledgeramnesty_fix.read([objid: am.refid]);
+					if (i) {
+						balance = i.amount;
+						i.balance = i.amount;
+						ledgeramnesty_fix.update(i);
+					}
+				}
+
+				def description = am.description;
+				if (am.dtstarted) {
+					description += ' \nStart Date: ' + dateFormat.format(parseDate(am.dtstarted));
+				}
+				if (am.dtended) {
+					description += ' \nMaturity Date: ' + dateFormat.format(parseDate(am.dtended));
+				}
+
+				ledgeramnesty.removePostingDetail([objid: am.amnestyid]);
+				def lastitem = ledger.findLastLedgerItemByParentId([parentid: l.objid]);
+				//println 'last item ' + lastitem;
+				item = [
+					objid			: 'AMD' + new UID(),
+					parentid 		: l.objid,
+					state 			: 'AMNESTY',
+					amtdue 			: 0, //(lastitem? lastitem.amtdue : 0),
+					interestdue 	: 0, //(lastitem? lastitem.interestdue : 0),
+					penaltydue 		: 0, //(lastitem? lastitem.penaltydue : 0),
+					amtpaid 		: 0, //(lastitem? lastitem.amtpaid : 0),
+					interestpaid	: 0, //(lastitem? lastitem.interestpaid : 0),
+					penaltypaid		: 0, //balance, //> 0? balance * -1 : 0), //(lastitem? lastitem.penaltypaid : 0),
+					amtbal 			: 0, //(lastitem? lastitem.amtbal : 0),
+					interestbal 	: 0, //(lastitem? lastitem.interestbal : 0),
+					penaltybal 		: 0, //(lastitem? lastitem.penaltybal : 0),
+					dtpaid 			: lastitem?.dtpaid,
+					refno			: lastitem?.refno,
+					day 			: lastitem?.day,
+					balance 		: balance, //(lastitem? lastitem.balance : l.totalprincipal),
+					partialpayment 	: 0,
+					txndate 		: dateSvc.serverDate,
+					amnestyid 		: am.objid,
+					baseamount 		: 0, //(lastitem? lastitem.baseamount : 0),
+					groupbaseamount : 0, //(lastitem? lastitem.groupbaseamount : 0),
+					remarks 		: description
+				]
+				//println 'item ' + item;
+				ledger.create(item, "detail");
+				item.parentid = am.amnestyid;
+				ledgeramnesty.create(item, 'posting-detail');
+			}
+		}
+	}
+	*/
+
+	void postPreviousAmnesty( amnesty, ledger ) {
+		def list = ledgeramnesty.getPreviousActiveAmnestyByLedgeridAndDate([ledgerid: ledger?.objid, date: amnesty?.dtstarted]);
+		def item;
+		list?.each{ am->
+			createAmnestyItem(am, ledger);
+		}
+	}
+
+	void createAmnestyItem( amnesty , l ) {
+		def item = ledger.findDetailByParentidAndAmnestyid([parentid: l.objid, amnestyid: amnesty.refid]);
+		if (!item) {
+			//def xamnesty = em.read(amnesty);
+			//def balance = 0;//l.balance;
+			def balance = l.balance;
+			def remarks; 
+			if (amnesty.type == 'SMC') {
+				remarks = 'SMC ' + amnesty.description;
+				def xam = ledgeramnesty_smc.read([objid: amnesty.refid]);
+
+				balance = xam.balance;
+
+				if (xam.dtstarted) remarks += '\nEffectivity Date: ' + dateFormat.format(parseDate(xam.dtstarted));
+				if (xam.dtended) remarks += '\nMaturity Date: ' + dateFormat.format(parseDate(xam.dtended));
+			} else if (amnesty.type == 'FIX') {
+				remarks = 'Fix ' + amnesty.description;	
+				def xam = ledgeramnesty_fix.read([objid: amnesty.refid]);
+				if (!xam.balance) {
+					xam.balance = xam.amount;
+					ledgeramnesty_fix.update(xam);
+				}
+				xam.ledger.balance = l.balance;
+				ledgeramnesty_fix.update([objid: xam?.objid, ledger: xam?.ledger]);
+				balance = xam.balance;
+
+				if (amnesty.dtstarted) remarks += ' \nEffectivity Date: ' + dateFormat.format(parseDate(amnesty.dtstarted));
+				if (amnesty.dtended) remarks += ' \nMaturity Date: ' + dateFormat.format(parseDate(amnesty.dtended));
+			} else {
+				remarks = amnesty.description;
+
+				if (amnesty.type != 'BAD_DEBT') {
+					if (amnesty.dtstarted) remarks += ' \nEffectivity Date: ' + dateFormat.format(parseDate(amnesty.dtstarted));
+					if (amnesty.dtended) remarks += ' \nMaturity Date: ' + dateFormat.format(parseDate(amnesty.dtended));
+				}
+			}
+
+			def lastitem = ledger.findLastLedgerItemByParentId([parentid: l.objid]);
+			//println 'last item ' + lastitem;
+			item = [
+				objid			: 'AMD' + new UID(),
+				parentid 		: l.objid,
+				state 			: 'AMNESTY',
+				amtdue 			: 0, //(lastitem? lastitem.amtdue : 0),
+				interestdue 	: 0, //(lastitem? lastitem.interestdue : 0),
+				penaltydue 		: 0, //(lastitem? lastitem.penaltydue : 0),
+				amtpaid 		: 0, //(lastitem? lastitem.amtpaid : 0),
+				interestpaid	: 0, //(lastitem? lastitem.interestpaid : 0),
+				penaltypaid		: 0, //balance, //> 0? balance * -1 : 0), //(lastitem? lastitem.penaltypaid : 0),
+				amtbal 			: 0, //(lastitem? lastitem.amtbal : 0),
+				interestbal 	: 0, //(lastitem? lastitem.interestbal : 0),
+				penaltybal 		: 0, //(lastitem? lastitem.penaltybal : 0),
+				dtpaid 			: lastitem?.dtpaid,
+				refno			: lastitem?.refno,
+				day 			: lastitem?.day,
+				balance 		: balance, //(lastitem? lastitem.balance : l.totalprincipal),
+				partialpayment 	: 0,
+				txndate 		: amnesty.dtstarted,//dateSvc.serverDate,
+				amnestyid 		: amnesty.refid,
+				baseamount 		: 0, //(lastitem? lastitem.baseamount : 0),
+				groupbaseamount : 0, //(lastitem? lastitem.groupbaseamount : 0),
+				remarks 		: remarks
+			]
+			//println 'item ' + item;
+			ledger.create(item, "detail");
+
+			item.parentid = amnesty.refid;
+			ledgeramnesty.create(item, 'posting-detail');
+			//em.create(item, "amnesty-detail");
+		}
+	}
+
+
+	@Before(pattern="LoanPaymentService.postPayment")
+	public void beforePostPayment( evt ) {
+		def params = evt.args[0];
+		def txndate = (params.entity? params.entity.txndate : params.txndate);
+
+		def l = ledger.findByAppId(params);
+		def iscurrent = false;
+
+		def amnesty = ledgeramnesty.findActiveByDateAndLedgerid([date: txndate, ledgerid: l.objid]);
+		if (amnesty) {
+			postPreviousAmnesty(amnesty, l);
+			createAmnestyItem(amnesty, l);
+			/*
+			def item = ledger.findDetailByParentidAndAmnestyid([parentid: l.objid, amnestyid: amnesty.refid]);
+			if (!item) {
+				//def xamnesty = em.read(amnesty);
+				//def balance = 0;//l.balance;
+				def balance = l.balance;
+				def remarks; 
+				if (amnesty.type == 'SMC') {
+					remarks = 'SMC ' + amnesty.description;
+					def xam = ledgeramnesty_smc.read([objid: amnesty.refid]);
+
+					balance = xam.balance;
+
+					if (xam.dtstarted) remarks += '\nEffectivity Date: ' + dateFormat.format(parseDate(xam.dtstarted));
+					if (xam.dtended) remarks += '\nMaturity Date: ' + dateFormat.format(parseDate(xam.dtended));
+				} else if (amnesty.type == 'FIX') {
+					remarks = 'Fix ' + amnesty.description;	
+					def xam = ledgeramnesty_fix.read([objid: amnesty.refid]);
+					if (!xam.balance) {
+						xam.balance = xam.amount;
+						ledgeramnesty_fix.update(xam);
+					}
+					balance = xam.balance;
+
+					if (amnesty.dtstarted) remarks += ' \nEffectivity Date: ' + dateFormat.format(parseDate(amnesty.dtstarted));
+					if (amnesty.dtended) remarks += ' \nMaturity Date: ' + dateFormat.format(parseDate(amnesty.dtended));
+				} else {
+					remarks = amnesty.description;
+
+					if (amnesty.type != 'BAD_DEBT') {
+						if (amnesty.dtstarted) remarks += ' \nEffectivity Date: ' + dateFormat.format(parseDate(amnesty.dtstarted));
+						if (amnesty.dtended) remarks += ' \nMaturity Date: ' + dateFormat.format(parseDate(amnesty.dtended));
+					}
+				}
+
+				def lastitem = ledger.findLastLedgerItemByParentId([parentid: l.objid]);
+				//println 'last item ' + lastitem;
+				item = [
+					objid			: 'AMD' + new UID(),
+					parentid 		: l.objid,
+					state 			: 'AMNESTY',
+					amtdue 			: 0, //(lastitem? lastitem.amtdue : 0),
+					interestdue 	: 0, //(lastitem? lastitem.interestdue : 0),
+					penaltydue 		: 0, //(lastitem? lastitem.penaltydue : 0),
+					amtpaid 		: 0, //(lastitem? lastitem.amtpaid : 0),
+					interestpaid	: 0, //(lastitem? lastitem.interestpaid : 0),
+					penaltypaid		: 0, //balance, //> 0? balance * -1 : 0), //(lastitem? lastitem.penaltypaid : 0),
+					amtbal 			: 0, //(lastitem? lastitem.amtbal : 0),
+					interestbal 	: 0, //(lastitem? lastitem.interestbal : 0),
+					penaltybal 		: 0, //(lastitem? lastitem.penaltybal : 0),
+					dtpaid 			: lastitem?.dtpaid,
+					refno			: lastitem?.refno,
+					day 			: lastitem?.day,
+					balance 		: balance, //(lastitem? lastitem.balance : l.totalprincipal),
+					partialpayment 	: 0,
+					txndate 		: dateSvc.serverDate,
+					amnestyid 		: amnesty.refid,
+					baseamount 		: 0, //(lastitem? lastitem.baseamount : 0),
+					groupbaseamount : 0, //(lastitem? lastitem.groupbaseamount : 0),
+					remarks 		: remarks
+				]
+				//println 'item ' + item;
+				ledger.create(item, "detail");
+
+				item.parentid = amnesty.refid;
+				ledgeramnesty.create(item, 'posting-detail');
+				//em.create(item, "amnesty-detail");
+			}
+			*/
+		}
+	}
+	
+
+	//@After(pattern='LoanPaymentService.postPayment', eval='result?.amnestyid != null')
+	//@After(pattern='LoanPaymentAmnestyService.postPayment', eval='result?.amnestyid != null')
+	@After(pattern='LoanPaymentService.postPayment', eval='result?.amnestyid != null')
+	public void afterPostPayment( evt ) {
+		def res = evt.result;
+		//def params = evt.args[0];
+
+		def am = ledgeramnesty.read([objid: res.amnestyid], 'active');
+		if (am) {
+			def item, idx;
+			res?.results?.each{ o->
+				item = o.item;
+				item.parentid = am?.refid;
+				ledgeramnesty.create(item, 'posting-detail');
+			}
+		}
+
+		//Old amnesty
+		/*
+		def am = ledgeramnesty.read([objid: res.amnestyid]);
+		if (am) {
+
+			def item, idx;
+			res?.results?.each{ o->
+				item = o.item;
+				item.parentid = am.objid;
+				ledgeramnesty.create(item, 'posting-detail');
+			}
+		}
+		*/
+
+
+	}
+
+	@After(pattern='LoanPaymentAmnestyService.offSetLastRecord', eval='result?.amnestyid != null')
+	public void afterAmnestyOffsetLastRecord( evt ) {
+		def res = evt.result;
+
+		def am = ledgeramnesty.read([objid: res.amnestyid], 'active');
+
+		if (am) {
+			def item = res.item;
+			if (item) {
+				item.parentid = am.refid;
+				ledgeramnesty.create(item, 'posting-detail');
+			}
+		}
+
+
+		/*
+		def am = ledgeramnesty.read([objid: res.amnestyid]);
+		if (am) {
+			def item = res.item;
+			if (item) {
+				item.parentid = am.objid;
+				ledgeramnesty.create(item, 'posting-detail');
+			}
+		}
+		*/
+	}
+
+	/*
+	@After(pattern="LoanPaymentService.postPayment", eval="result?.amnestyid != null")
+	public void afterPostPayment( evt ) {
+		def result = evt.result;
+		def params = evt.args[0];
+
+		def amnesty = em.read([objid: result.amnestyid]);
+		if (amnesty.amnestyoption == 'FIX') {
+			if (params.isadjustment==true) {
+				amnesty.balance += params.payamount;
+			} else {
+				amnesty.balance -= params.payamount;
+			}
+			em.update(amnesty);
+		}
+		//println 'params ' + params;
+		//println 'amnesty ' + amnesty;
+
+		result.results.each{ o->
+			o.item.parentid = amnesty.objid;
+			em.create(o.item, "amnesty-detail"); 
+		}
+
+		//println 'amnestyid ' + result.amnestyid;
+		//println 'params ' + params;
+	}
+	*/
+
+	@After(pattern="(AmnestyService|AmnestyCaptureService).sendBack|AmnestyCaptureService.closeAmnesty")
+	public void afterSendBackCloseAmnesty( evt ) {
+		def result = evt.result;
+
+		def data = em.read(result);
+		if (!data) throw new Exception("Amnesty record does not exist or has already been deleted.");
+
+		if (!data.dtstarted) data.dtstarted = dateSvc.getServerDateAsString().split(" ")[0];
+
+		def i = em.findPrevLatestAmnestyByLedgerid(data);
+		if (i) {			
+			def prevamnesty = em.read([objid: i.objid]);
+			//println 'previous amnesty ' + prevamnesty;
+
+			def offer = prevamnesty.grantedoffer;
+			if (offer.days == 0 && offer.months == 0) {
+				prevamnesty.dtended = null;
+			}
+			em.update(prevamnesty);
+			def o = em.read(prevamnesty);
+		}
+	}
+
+	@Before(pattern="(AmnestyService|AmnestyCaptureService).approveDocument", eval="args[0].amnestyoption == 'WAIVER'")
+	public void beforeApprove( evt ) {
+		def result = evt.args[0];
+		checkActive(result);	
+	}
+
+	@Before(pattern="(AmnestyService|AmnestyCaptureService).avail", eval="args[0].amnestyoption == 'FIX'")
+	public void beforeAvail( evt ) {
+		def result = evt.args[0];
+		checkActive(result);
+	}
+
+	void checkActive( params ) {
+		def data = em.read(params);
+		if (!data) throw new Exception("Amnesty record does not exist or has already been deleted.");
+
+		//def active = em.read(data, "amnesty-active");
+		//if (active) setDateEndedForPreviousAmnesty(data);
+		setDateEndedForPreviousAmnesty(data);
+	}
+
+
+	void setDateEndedForPreviousAmnesty( data ) {
+		if (!data.dtstarted) data.dtstarted = dateSvc.getServerDateAsString().split(" ")[0];
+		def i = em.findPrevLatestAmnestyByLedgerid(data);
+		if (i) {			
+			def prevamnesty = em.read([objid: i.objid]);
+			//println 'previous amnesty ' + prevamnesty;
+			if (prevamnesty && !prevamnesty.dtended) {
+				prevamnesty.dtended = dateSvc.add(parseDate(data.dtstarted), "-1");
+				em.update(prevamnesty);
+			}
+			//println 'previous amnesty date ended ' + prevamnesty.dtended;
+		}
+	}
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+}

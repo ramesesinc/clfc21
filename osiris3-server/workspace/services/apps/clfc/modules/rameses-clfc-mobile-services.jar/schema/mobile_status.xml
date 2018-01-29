@@ -1,0 +1,14 @@
+<schema>
+
+	<element tablename="mobile_status">
+		<field name="objid" primary="true" />
+		<field name="trackerid" required="true" />
+		<field name="wifi" required="true" />
+		<field name="mobiledata" required="true" />
+		<field name="gps" required="true" />
+		<field name="network" required="true" />
+		<field name="prevlng" required="true" />
+		<field name="prevlat" required="true" />
+	</element>
+
+</schema>

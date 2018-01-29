@@ -1,0 +1,32 @@
+import com.rameses.annotations.*;
+
+class AmnestySMCInterceptor
+{
+	@ActiveDB('ledgeramnesty')
+	def em;
+
+	@ActiveDB('ledgeramnesty_smc')
+	def ledgeramnesty_smc;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@After(pattern='LedgerAmnestySMCService.courtDecided', eval='result?.objid != null')
+	public void afterCourtDecided( evt ) {
+		println 'add account receivable';
+	}
+
+	@Before(pattern='LoanLedgerPaymentService.rebuild')
+	public void beforePaymentRebuild( evt ) {
+		def params = evt.args[0];
+
+		def ledger = loan_ledger.read([objid: params.objid]);
+		if (!ledger) return;
+
+
+		def list = em.getActiveAmnestiesByLedgeridAndType([ledgerid: ledger?.objid, type: 'SMC']);
+		list?.each{ o->
+			ledgeramnesty_smc.removePostingDetail([objid: o.amnestyid]);
+		}
+	}
+}

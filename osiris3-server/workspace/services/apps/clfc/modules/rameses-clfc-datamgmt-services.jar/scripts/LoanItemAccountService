@@ -1,0 +1,94 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class LoanItemAccountService extends ActiveCrudListService {
+
+	@Env
+	def env;
+
+	@ActiveDB("loan_itemaccount")
+	def em;
+
+	@ActiveDB("datatxnlog")
+	def txnlog;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption:'Status'];
+
+		cols << [name: 'code', caption: 'Acct. Code'];
+		cols << [name: 'title', caption: 'Acct. Title'];
+		cols << [name: 'type', caption: 'Item Type'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '';
+
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	void beforeCreate( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = [objid: env.USERID, name: env.NAME];
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: "All"],
+			[caption: "DRAFT", state: "DRAFT"],
+			[caption: "ACTIVATED", state: "ACTIVATED"],
+			[caption: "DEACTIVATED", state: "DEACTIVATED"]
+		];
+	}
+
+	@ProxyMethod
+	public def getTypeList() {
+		return ["REVENUE"];
+	}
+
+	@ProxyMethod
+	public def activateDocument( params ) {
+		return changeState("ACTIVATED", params);
+	}
+
+	@ProxyMethod
+	public def deactivateDocument( params ) {
+		return changeState("DEACTIVATED", params);
+	}
+
+	private changeState( state, params ) {
+		def data  = em.read(params);
+		if (!data) throw new RuntimeException("Item Account record does not exist or has already been deleted.");
+
+		if (data.txnstate == state) {
+			throw new RuntimeException("Item Account record has already been " + state + ".");
+		}
+
+		data.txnstate = state;
+		em.update(data);
+
+		def loginfo = [
+			objid 	: 'TLOG' + new UID(), 
+			txnid   : data.objid, 
+			txndate : dateSvc.serverDate, 			
+			user    : [objid: env.USERID, username: env.USER], 
+			action	: 'Change state', 
+			remarks : 'Changed state to '+ state 
+		]; 
+		txnlog.create( loginfo ); 
+
+		return data;
+	}
+
+}

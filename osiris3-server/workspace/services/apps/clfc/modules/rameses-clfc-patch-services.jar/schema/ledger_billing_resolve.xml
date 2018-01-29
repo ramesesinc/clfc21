@@ -1,0 +1,8 @@
+<schema>
+
+	<element tablename='ledger_billing_resolve'>
+		<field name='objid' primary='required' />
+		<field name='state' required='true' />
+	</element>
+
+</schema>

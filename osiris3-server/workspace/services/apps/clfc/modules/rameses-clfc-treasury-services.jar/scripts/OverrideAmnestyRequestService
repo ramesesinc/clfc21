@@ -1,0 +1,248 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class OverrideAmnestyRequestService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('override_amnesty_request')
+	def em;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('datatxnlog')
+	def txnlog; 
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('SequenceService')
+	def seqSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'dtcreated', caption: 'Date Requested'];
+		cols << [name: 'author.name', caption: 'Requested By'];
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'description', caption: 'Description'];
+
+		if (params.state == 'APPROVED') {
+			cols << [name: 'dtposted', caption: 'Date Approved'];
+			cols << [name: 'poster.name', caption: 'Approved By'];
+		} else if (params.state == 'DISAPPROVED') {
+			cols << [name: 'dtposted', caption: 'Date Disapproved'];
+			cols << [name: 'poster.name', caption: 'Disapproved By'];
+		}
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+
+		/*
+		if (params.ledgerid) {
+			params._listMethod = 'getListByLedgerid';
+		}
+		*/
+		if (params.followupid) {
+			params._listMethod = 'getListFollowupid';
+		}
+	}
+
+	void afterList( params, list ) {
+		list?.each{ o->
+			def info = o.remove('info');
+			info = em.serializer.read(info);
+			o.putAll(info);
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'APPROVED', state: 'APPROVED'],
+			[caption: 'DISAPPROVED', state: 'DISAPPROVED']
+		];
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	@ProxyMethod
+	public def getPluginColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'txnstate', caption: 'Status'];
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'description', caption: 'Description'];
+
+		return cols;
+	}
+
+	void beforeCreate( data ) {
+		def date = dateSvc.parseCurrentDate();
+		data.dtcreated = date.date;
+		data.author = [objid: env.USERID, name: env.NAME];
+		if (!data.txnstate) data.txnstate = 'DRAFT';
+
+		if (!data.txndate) data.txndate = data.dtcreated;
+
+		def year = date.year + "";
+		def seqname = 'override-amnesty-request' + year;
+		def prefix = 'OAR' + year[2] + year[3];
+		data.refno = prefix + seqSvc.getNextFormattedSeriesA(seqname, 6);
+	}
+
+
+	@ProxyMethod
+	public def getAmnestyInfo( params ) {
+		def data = ledgeramnesty.read(params);
+		if (!data) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		return data;
+		/*
+		def item = [
+			refno	: data.refno,
+			borrower: data.borrower,
+			loanapp	: data.loanapp,
+			ledger 	: data.ledger
+		];
+
+		return item;
+		*/
+	}
+
+	@ProxyMethod
+	public def submitForApproval( params ) {
+		def data = changeState(params, 'FOR_APPROVAL');
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: data.objid, 
+			filetype 	: 'override:amnesty:request', //'ledgeramnesty:' + data.txnmode?.toLowerCase() + ':smc', 
+			message 	: 'Submit for approval override amnesty request with Ref. No. ' + data.refno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'APPROVER'
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return open(data);
+	}
+
+	def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Override amnesty request record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Override amnesty request record is already ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.update(data);
+
+		def action, remarks;
+		switch (state) {
+			case 'FOR_APPROVAL'	: action = 'For Approval';
+								  remarks = 'Document submitted for approval with Ref. No. ' + data.refno;
+								  break;
+			case 'APPROVED' 	: action = 'Approved';
+								  remarks = 'Document approved with Ref. No. ' + data.refno;
+								  break;
+			case 'DISAPPROVED'	: action = 'Disapproved';
+								  remarks = 'Document disapproved with Ref. No. ' + data.refno;
+								  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		/*
+		def data = changeState(params, 'APPROVED');
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = getUser();
+		em.update(data, 'post');
+		*/
+		def data = approveImpl(params, 'APPROVED');
+
+		def am = ledgeramnesty.read([objid: data?.amnesty?.objid]);
+		if (am) {
+			def dtl = [
+				objid		: data.objid,
+				parentid	: am?.objid,
+				txnstate	: 'APPROVED',
+				description : data?.description,
+				amount 		: data?.amount,
+				month		: data?.month,
+				day 		: data?.day,
+				date 		: data?.date,
+				usedate 	: data?.usedate,
+				allowremove : false,
+				allowedit	: false,
+				dtposted 	: dateSvc.serverDate,
+				poster 		: getUser()
+			];
+			ledgeramnesty.create(dtl, 'detail');
+		}
+		
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		def data = approveImpl(params, 'DISAPPROVED');
+
+		return data;
+	}
+
+	def approveImpl( params, state ) {
+		def data = changeState(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = getUser();
+		em.update(data, 'post');
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+
+		return open(data);
+
+	}
+
+
+}

@@ -1,0 +1,882 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.server.common.*;
+import com.rameses.rules.common.*;
+import java.rmi.server.UID;
+import org.joda.time.*;
+import java.text.*;
+import smc.actions.*;
+import smc.facts.*;
+
+class LoanPaymentAmnestySMCService
+{
+	@ActiveDB('ledgeramnesty_smc')
+	def em;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('loan_ledger_payment')
+	def ledger_payment;
+
+	@ActiveDB('calendar_event')
+	def calendar_event;
+
+	@Resource('RuleService')
+	def ruleSvc;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('LoanPaymentAmnestyService')
+	def amnestySvc;
+
+	@Service('LedgerAmnestySMCService')
+	def smcSvc;
+
+	@Service('NumberService')
+	def numSvc;
+
+	@Service
+	def selfSvc;
+
+	private def DATE_FORMAT = new SimpleDateFormat('yyyy-MM-dd');
+
+	@ProxyMethod(local=true)
+	public def post( params, amnesty ) {
+		def data = smcSvc.open([objid: amnesty?.objid]);
+
+		if (params.entity) {
+			params.txndate = params.entity.txndate;
+		}
+
+		/*
+		def courtconditions = data?.courtinfo?.conditions;
+		if (!courtconditions) courtconditions = [];
+
+		def list = courtconditions?.findAll{ it.term != null }
+
+		println 'list';
+		list?.each{ println it }
+
+		throw new RuntimeException('stopping');
+		*/
+		def xmap = [interest: 8.35, interestpaid: 0];
+
+		def postingconditions = data?.postinginfo?.conditions;
+		if (!postingconditions) postingconditions = [];
+
+		def courtconditions = data?.courtinfo?.conditions;
+		if (!courtconditions) courtconditions = [];
+
+		def pi = data?.postinginfo;
+
+		/*
+		def postingheaders = data?.postinginfo?.headers;
+		if (!postingheaders) postingheaders = [];
+		*/
+
+		/*
+		println 'posting conditions';
+		postingconditions?.each{ println it }
+		throw new RuntimeException('stopping');
+		*/
+
+		def referenceFact = [
+			allowPosting		: true, 
+			onSupplyValue		: true, 
+			allowOffset 		: false,
+			postingTerm 		: pi?.term,
+			hasPostFieldPerItem : true
+		];
+		def xdata = [:]
+
+		//def facts = buildFacts( params, amnesty );
+		//facts << buildPaymentFact(params);
+		
+
+		def ledger = loan_ledger.findByAppId([appid: params.appid]);
+		def app = loanapp.read([objid: ledger.appid]);
+
+		def cal = Calendar.getInstance();
+		cal.setTime(parseDate(data?.dtstarted));
+		if (pi?.dtstarted) {
+			cal.setTime(parseDate(pi?.dtstarted));
+
+			switch (pi?.term) {
+				case 'ANNUAL' 		: cal.add(Calendar.YEAR, 1); break;
+				case 'SEMI-ANNUAL' 	: cal.add(Calendar.MONTH, 6); break;
+				case 'MONTHLY'		: cal.add(Calendar.MONTH, 1); break;
+				case 'SEMI-MONTHLY' : cal = getSemiMonthlyValue(cal); break;
+				case 'WEEKLY' 		: cal.add(Calendar.DATE, 7); break;
+				default 			: cal.add(Calendar.DATE, 1); break
+			}
+		}
+
+		def lastpayment;
+		def lastitem = em.findLastDetailItemNotAdjustment([objid: data?.objid]);
+		if (lastitem) {
+			def info = lastitem.remove('info');
+			info = em.serializer.read(info);
+			lastitem.putAll(info);
+
+			lastpayment = loan_ledger.read([objid: lastitem?.paymentid], 'payment');
+			if (lastpayment?.lastdtschedule) {
+				cal.setTime(parseDate(lastpayment?.lastdtschedule));
+				//cal.add(Calendar.DATE, 1);
+			}
+
+			switch (pi?.term) {
+				case 'ANNUAL' 		: cal.add(Calendar.YEAR, 1); break;
+				case 'SEMI-ANNUAL' 	: cal.add(Calendar.MONTH, 6); break;
+				case 'MONTHLY'		: cal.add(Calendar.MONTH, 1); break;
+				case 'SEMI-MONTHLY' : cal = getSemiMonthlyValue(cal); break;
+				case 'WEEKLY' 		: cal.add(Calendar.DATE, 7); break;
+				default 			: cal.add(Calendar.DATE, 1); break
+			}
+
+		}
+
+		def dtcurrentschedule = DATE_FORMAT.format(cal.getTime());
+		dtcurrentschedule = parseDate(dtcurrentschedule);
+
+		def pyt = loan_ledger.read([objid: params.ledgerpaymentid], 'payment');
+
+		def smcFact = [:];
+		smcFact.index = 0;
+		smcFact.postingItems = [];
+		smcFact.postingSequence = [];
+		if (postingconditions) {
+			postingconditions?.each{ o->
+				if (o.postingexpr) o.expr = o.postingexpr;
+			}
+			def xi = postingconditions.find{ it.postperitem == true }
+			if (!xi) referenceFact.hasPostFieldPerItem = false;
+			smcFact.postingSequence.addAll(postingconditions);
+			smcFact.postingSequence?.sort{ it.sequence }
+		}
+
+		//println 'posting sequence';
+		//smcFact.postingSequence?.each{ println it }
+
+		smcFact.values = [:];
+		smcFact.postingItem = [:];
+		smcFact.bindings = [
+			CURRENT_SCHEDULE	: dtcurrentschedule,
+			AMOUNT 				: pyt?.amount,
+			AMOUNTPAID 			: pyt?.amount,
+			BALANCE 			: data?.balance,
+			REFNO 				: pyt?.refno,
+			//DATE_PAID 			: java.sql.Date.valueOf('2005-12-07'),//pyt?.txndate,
+			DATE_PAID 			: pyt?.txndate,
+			REMARKS 			: ''
+		];
+
+		//println 'bindings';
+		//smcFact.bindings?.each{ println it }
+
+		def conds = courtconditions?.findAll{ it.expr != null && !it.conditionid?.matches("(AMOUNT|BALANCE)") }
+		def fn;
+		conds?.each{ o->
+			fn = o.conditionid?.toUpperCase();
+			smcFact.bindings[fn] = new BigDecimal(o.value).setScale(2);
+
+			if (lastitem) {
+				fn = "lacking" + o.conditionid?.toLowerCase();
+				if (lastitem[fn] != null) {
+					smcFact.bindings[fn.toUpperCase()] = lastitem[fn.toLowerCase()];
+				}
+
+				fn = o.conditionid?.toLowerCase() + "paid";
+				if (lastitem[fn] != null) {
+					smcFact.bindings[fn.toUpperCase()] = lastitem[fn.toLowerCase()];
+				}
+			}
+		}
+
+		//println 'current schedule1 ' + smcFact?.bindings?.CURRENT_SCHEDULE;
+
+		def txndate = parseDate(params.txndate);
+		if (dtcurrentschedule.compareTo(txndate) > 0) {
+			cal.setTime(dtcurrentschedule);
+
+			switch (pi?.term) {
+				case 'ANNUAL' 		: cal.add(Calendar.YEAR, -1); break;
+				case 'SEMI-ANNUAL' 	: cal.add(Calendar.MONTH, 6); break;
+				case 'MONTHLY'		: cal.add(Calendar.MONTH, -1); break;
+				case 'SEMI-MONTHLY'	: cal = getSemiMonthlyValue(cal); break;
+				case 'WEEKLY' 		: cal.add(Calendar.DATE, 7); break;
+				default				: cal.add(Calendar.DATE, -1); break;
+			}
+
+			dtcurrentschedule = DATE_FORMAT.format(cal.getTime());
+			dtcurrentschedule = parseDate(dtcurrentschedule);
+
+			smcFact?.bindings?.CURRENT_SCHEDULE = dtcurrentschedule;
+			smcFact?.bindings?.INTEREST = 0;
+		}
+
+		//println 'bindings';
+		//smcFact?.bindings?.each{ println it }
+		//println '';
+
+		/*
+		println 'posting sequence';
+		smcFact?.postingSequence?.each{ println it }
+		throw new RuntimeException('stopping');
+		*/
+
+		def paymentFact = [
+			amountPaid 		: pyt?.amount,
+			totalInterest 	: 0,
+			totalPenalty 	: 0
+		];
+
+
+		def req = new RuleRequest("smc");
+		req.addFact("smc", "Reference", referenceFact); 
+		req.addFact('smc', 'SMC', smcFact);
+		req.addFact('smc', 'Payment', paymentFact);
+
+
+		def actions = new RuleAction(); 
+		actions.addCommand('postItem', new PostItem(NS: numSvc));
+		actions.addCommand('supplyFieldValue', new SupplyFieldValue(NS: numSvc));
+		actions.addCommand('offsetFieldValue', new OffsetFieldValue(NS: numSvc));
+		actions.addCommand('buildConstraintExpression', new BuildConstraintExpression(SERVICE: selfSvc));
+		actions.addCommand('validateConstraintExpression', new ValidateConstraintExpression());
+		req.addGlobal('action', actions);
+
+		//params.txndate = parseDate(params.txndate);
+		def lastpaymentdate;
+		if (ledger?.dtlastpaid) lastpaymentdate = parseDate(ledger?.dtlastpaid);
+
+		//if (lastpayment) lastpaymentdate = parseDate(lastpayment.txndate);
+
+
+		//println 'current schedule ' + smcFact?.bindings?.CURRENT_SCHEDULE;
+		//println 'lastpaymentdate ' + lastpaymentdate + ' ' + txndate.compareTo(lastpaymentdate);
+		def totalpayment = 0;
+		if (lastpaymentdate && txndate.compareTo(lastpaymentdate) == 0) {
+			referenceFact.allowOffset = true;
+			referenceFact.remove('onSupplyValue');
+			if (!lastitem) lastitem = [:];
+			smcFact.lastPostingItem = lastitem;
+
+			if (lastpayment?.totalinterest > 0) {
+				paymentFact.totalInterest = lastpayment.totalinterest;
+			}
+
+			if (lastpayment?.totalpenalty > 0) {
+				paymentFact.totalPenalty = lastpayment.totalpenalty;
+			}
+
+			cal.setTime(dtcurrentschedule);
+
+			switch (pi?.term) {
+				case 'ANNUAL' 		: cal.add(Calendar.YEAR, -1); break;
+				case 'SEMI-ANNUAL' 	: cal.add(Calendar.MONTH, 6); break;
+				case 'MONTHLY'		: cal.add(Calendar.MONTH, -1); break;
+				case 'SEMI-MONTHLY'	: cal = getSemiMonthlyValue(cal); break;
+				case 'WEEKLY' 		: cal.add(Calendar.DATE, 7); break;
+				default		 		: cal.add(Calendar.DATE, -1); break
+			}
+
+			dtcurrentschedule = DATE_FORMAT.format(cal.getTime());
+			dtcurrentschedule = parseDate(dtcurrentschedule);
+
+			smcFact?.bindings?.CURRENT_SCHEDULE = dtcurrentschedule;
+
+			def pytlist = getPreviousPayments(ledger?.objid, params.txndate, pyt);
+
+			if (pytlist) {
+				def fp = pytlist[0];
+				fp = loan_ledger.read([objid: fp?.objid], 'payment');
+				smcFact?.bindings?.LACKINGINTEREST = 0;
+
+				if (fp?.lastitem?.lackinginterest) {
+					def li = fp?.lastitem?.lackinginterest;
+					if (!li) li = 0;
+					smcFact?.bindings?.LACKINGINTEREST = li;
+
+					def ip = fp.lastitem.interestpaid;
+					if (!ip) ip = 0;
+					smcFact?.bindings?.INTERESTPAID = ip;
+				}
+				smcFact?.bindings?.LACKINGPENALTY = 0;
+				if (fp?.lastitem?.LACKINGPENALTY) {
+					smcFact?.bindings?.LACKINGPENALTY = fp?.lastitem?.lackingpenalty;
+				}
+			}
+
+			totalpayment = pytlist?.amount.sum();
+			if (!totalpayment) totalpayment = 0;
+
+			totalpayment += (pyt?.amount? pyt.amount : 0);
+
+			//smcFact.bindings?.AMOUNTPAID += amt;
+
+
+			//throw new RuntimeException('stopping');
+		}
+		//println 'current schedule ' + smcFact?.bindings?.CURRENT_SCHEDULE;
+
+		def bindings = [:];
+		/*
+		xmap?.each{ k, v->
+			bindings[k.toUpperCase()] = v;
+		}
+		*/
+		req.addGlobal('bindings', bindings);
+
+
+		//def globalparams = [facts: facts];
+		//req.addGlobal('globalParams', globalparams);
+
+		//def expr = "if (INTERESTPAID == INTEREST) {return true;}; else { return false;};";
+		//def expr = 'INTERESTPAID == INTEREST'
+		//req.addGlobal('expr', expr);
+
+		//println 'txndate ' + txndate;
+		//println 'smc fact';
+		//smcFact?.postingSequence?.each{ println it }
+		//smcFact?.each{ println it }
+
+		//throw new RuntimeException('stopping smc');
+		//println '*payment fact';
+		//paymentFact?.each{ println it }
+		//throw new RuntimeException('stopping');
+
+		try {
+			ruleSvc.execute(req);
+			//println '';
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		def items = smcFact?.postingItems;
+		if (!items) items = [];
+
+		if (items) {
+			def li = items[items.size() - 1];
+			if (li.balance >= 0) {
+				ledger.balance = li.balance;
+				loan_ledger.update([objid: ledger?.objid, balance: ledger?.balance], 'balance');
+
+				data.balance = li.balance;
+				em.update([objid: data?.objid, balance: data?.balance]);
+			}
+
+			if (ledger?.balance <= 0) {
+				ledger.state = 'CLOSE';
+				loan_ledger.update([objid: ledger?.objid, state: ledger?.state]);
+				app.state = 'CLOSED';
+				loanapp.update([objid: app?.objid, state: app?.state]);
+				def apps = loanapp.read([objid: app?.objid], 'loanapp_search');
+				if (apps) {
+					apps.state = 'CLOSED';
+					loanapp.update([objid: apps?.objid, state: apps?.state], 'loanapp_search');	
+				}
+			}
+
+			if (referenceFact?.allowOffset == true) {
+				if (!li.remarks) li.remarks = '';
+				li.remarks += totalpayment + ' Total Payment \n';
+			}
+		}
+
+		def lc = loanapp.read([objid: ledger.appid], 'loanapp_close');
+		if (lc) {
+			ledger.state = 'CLOSE';
+			loan_ledger.update([objid: ledger?.objid, state: ledger?.state]);
+			app.state = 'CLOSED';
+			loanapp.update([objid: app?.objid, state: app?.state]);
+			def apps = loanapp.read([objid: app?.objid], 'loanapp_search');
+			if (apps) {
+				apps.state = 'CLOSED';
+				loanapp.update([objid: apps?.objid, state: apps?.state], 'loanapp_search');	
+			}
+		}
+		//println '\nsmc fact';
+		//smcFact?.bindings?.each{ println it }
+
+		def sequenceno = pyt?.txndate.toString() + pyt?.refno;
+
+		if (pyt?.lastdtschedule) {
+			pyt.remove('lastdtschedule');
+		}
+
+		if (pyt?.lastitem) {
+			pyt.remove('lastitem');
+		}
+
+		def totalinterest = 0, totalpenalty = 0;
+		items?.each{ o->
+			if (!o.objid) o.objid = 'SMCDTL' + new UID();
+			if (!o.parentid) o.parentid = data?.objid;
+			if (!o.sequenceno) o.sequenceno = sequenceno;
+			o.paymentid = pyt?.objid;
+
+			if (o.dtschedule) pyt.lastdtschedule = o.dtschedule;
+			
+			if (o.totalinterest > 0) totalinterest = o.totalinterest;
+			if (o.totalpenalty > 0) totalpenalty = o.totalpenalty;
+			//if (o.interest > 0) totalinterest += o.interest;
+			//if (o.penalty > 0) totalpenalty += o.penalty;
+
+			if (!o.remarks) o.remarks = '';
+			if (o.lackinginterest > 0) o.remarks += 'lacking interest: ' + o.lackinginterest + '\n';
+			if (o.lackingpenalty > 0) o.remarks += 'lacking penalty: ' + o.lackingpenalty;
+
+			o.remarks += addSundayRemarks(o.dtschedule);
+			o.remarks += addHolidayRemarks(o.dtschedule);
+
+			em.create(o, 'posting-detail');
+		};
+
+
+		def xpyt = [
+			objid 			: pyt?.objid,
+			totalinterest 	: totalinterest,
+			totalpenalty 	: totalpenalty
+		];
+
+		if (lastitem) {
+			xpyt.lastitem = [
+				lackinginterest : lastitem?.lackinginterest,
+				lackingpenalty	: lastitem?.lackingpenalty
+			]
+		}
+
+		//println 'smc current schedule ' + smcFact?.bindings?.CURRENT_SCHEDULE;
+		//println 'lastdtschedule ' + pyt?.lastdtschedule;
+		if (!pyt?.lastdtschedule) {
+			def cs = smcFact.bindings.CURRENT_SCHEDULE;
+			cal.setTime(parseDate(cs));
+			//println 'cs ' + cal.getTime();
+			switch (pi?.term) {
+				case 'ANNUAL' 	: cal.add(Calendar.YEAR, -1); break;
+				case 'MONTHLY'  : cal.add(Calendar.MONTH, -1); break;
+				default 		: cal.add(Calendar.DATE, -1); break;
+			}
+			//println 'cs2 ' + cal.getTime(); 
+
+			pyt?.lastdtschedule = DATE_FORMAT.format(cal.getTime());
+			pyt?.lastdtschedule = parseDate(pyt?.lastdtschedule);
+		}
+		//println 'last dtschedule ' + pyt?.lastdtschedule;
+		//println '';
+
+		//if (pyt?.lastdtschedule) {
+		xpyt.lastdtschedule = pyt?.lastdtschedule;
+		//}
+
+		loan_ledger.update(xpyt, 'payment');
+
+		/*
+		def xfacts = req.getFacts();
+		def xsmc = xfacts?.find{ it.name == 'SMC'; }
+		if (xsmc) {
+			def items = xsmc.value?.postingItems;
+			if (!items) items = [];
+			items?.sort{ it.idx }
+		}
+		*/
+		//throw new RuntimeException('stopping');
+
+		loan_ledger.update([objid: ledger?.objid, dtlastpaid: params.txndate], "dtlastpaid");
+
+		def res = [
+			txndate 	: pyt?.txndate,
+			ledgerid 	: ledger?.objid,
+			interest 	: totalinterest,
+			penalty 	: totalpenalty
+		]
+		return res;
+		//return [txndate: pyt?.txndate, totalinterest: totalinterest,];
+	}
+	@ProxyMethod
+	public def buildConstraintExpression( params ) {
+		def bindings = [:];
+		def cons = params.constraints;
+
+		def list = cons?.findAll{ it.varname != null && !it.operator }
+		list?.each{ o->
+			bindings[o.varname] = params.bindings[o.field.name.toUpperCase()];
+			//bindings[o.varname] = params.item[o.field.name];
+			//println 'val1 ' + params.item[o.field.name] + ' val2 ' + params.bindings[o.field.name.toUpperCase()];
+			/*
+			if (o.field?.name?.matches('interest|penalty')) {
+				def fn = 'LACKING' + o.varname;
+				bindings[fn] = params.item['lacking' + o.field.name];
+				if (!bindings[fn]) bindings[fn] = 0;
+
+				fn = o.varname + 'PAID';
+				bindings[fn] = params.item[o.field.name + 'paid'];
+				if (!bindings[fn]) bindings[fn] = 0;
+			}
+			*/
+		}
+
+		params.bindings2 = bindings;
+
+		//println 'constraints ' + cons;
+		def expr = ''
+		list = cons?.findAll{ it.operator != null }
+		//println 'constraints2 ' + list;
+		if (list) {
+			expr = 'if (';
+			list?.eachWithIndex{ o, idx->
+				switch (o.field.datatype) {
+					case 'decimal':
+						if (idx > 0) expr += ' && ';
+						def val = params.bindings[o.field.name.toUpperCase()];
+						if (!val) val = 0;
+
+						def val2 = params.item[o.field.name];
+						if (!val2) val2 = 0;
+
+						//println 'fn ' + o.field.name + ' val1 ' + val + ' val2 ' + val2;
+
+						val += val2;
+
+						expr += '(' + val + ' ' + o.operator.symbol + ' ';
+						if (o.usevar == 0) {
+							expr += o.intvalue;
+						} else if (o.usevar == 1) {
+							expr += o.var.name;
+						}
+						expr += ')';
+				}
+			}
+			expr += ') { return true; };\n'
+			expr += 'else { return false; };';
+		} else {
+			//expr = 'return false;';
+		}
+		//println 'expr ' + expr;
+
+		params.constraintexpr = expr;
+		//println 'constraint expr ' + expr;
+
+		/*
+		println 'bindings';
+		params.bindings?.each{ println it }
+		//println '\nbindings2';
+		//bindings?.each{ println it }
+		println '\nexpr ' + expr;
+		*/
+	}
+
+	def addSundayRemarks( date ) {
+		def rem = '';
+
+		if (date) {
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(date));
+
+			if (cal.get(Calendar.DAY_OF_WEEK) == 1) {
+				rem = 'Sunday\n';
+			}
+		}
+
+		return rem;
+	}
+
+	def addHolidayRemarks( date ) {
+		def rem = '';
+
+		def evt = calendar_event.findByDate([date: date]);
+		if (evt) rem = evt.name + '\n';
+
+		return rem;
+	}
+
+	def getPreviousPayments( ledgerid, date, payment ) {
+		def list = [];		
+		def pytlist = ledger_payment.getPaymentsByParentidAndTxndate([parentid: ledgerid, txndate: date]);
+		pytlist?.sort{ it.refno }
+
+		def itr = pytlist.iterator();
+		def itm;
+		while (itr.hasNext()) {
+			itm = itr.next();
+			if (itm?.objid == payment?.objid) {
+				break;
+			}
+
+			list << itm;
+		}
+
+		return list;
+	}
+
+	def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+	def getSemiMonthlyValue(def cal) {
+		def d = cal.get(Calendar.DATE);
+		if (d <= 15) {
+			cal.set(Calendar.DATE, 15);
+		} else if (d > 15) {
+			cal.set(Calendar.DATE, cal.getActualMaximum(Calendar.DATE));
+		}
+		return cal;
+	}
+
+	/*
+	@ProxyMethod(local=true)
+	public def post( params, amnesty ) {
+		def txndate;
+		if (params.entity) {
+			txndate = params.entity.txndate;
+		} else {
+			txndate = params.txndate;
+		}
+
+		def am = ledgeramnesty_smc.read([objid: amnesty?.refid]);
+		if (!am) throw new Exception('SMC record does not exist or has already been deleted.');
+
+		def ledger = loan_ledger.read([objid: am.ledger.objid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def lastpaymentdate;
+		if (ledger.dtlastpaid) {
+			lastpaymentdate = parseDate(ledger.dtlastpaid);
+		}
+
+		def xdate = parseDate(txndate);
+
+		def day = 1;
+		def lastledgeritem = loan_ledger.findLastLedgerItemByParentId([parentid: ledger.objid]);
+		if (lastledgeritem) {
+			day = lastledgeritem.day;
+		}
+
+		def interestincome = 0;
+		if (am?.balance > am?.ledger?.balance) {
+			interestincome = am.balance - am.ledger.balance;
+		}
+
+		def xpayment = loan_ledger.read([objid: params.ledgerpaymentid], 'payment');
+		if (xpayment) {
+			xpayment.balance = ledger.balance;
+			xpayment.amnestybalance = am.balance;
+			xpayment.interestincome = interestincome;
+			loan_ledger.update(xpayment, 'payment');
+			xpayment = loan_ledger.read(xpayment, 'payment');
+		}
+
+		def results = [];
+
+		def paymentFact = [amountPaid: params.payamount];
+
+
+		def referencesFact = [
+			amountPaid 		: params.payamount,
+			balance 		: am?.balance,
+			interestIncome 	: interestincome
+		];
+
+
+		if (lastpaymentdate && (xdate.compareTo(lastpaymentdate) == 0)) {
+			amnestySvc.offSetLastRecord(lastledgeritem);
+
+			def xpayments = ledger_payment.getPaymentsByParentidAndTxndate([parentid: ledger.objid, txndate: txndate]);
+			xpayments.sort{ it.refno }
+
+			def idx = 0, xitm;
+			def xlist = [];
+			while (idx < xpayments.size()) {
+				xitm = xpayments[idx];
+				xlist.add(xitm);
+				if (xitm.objid == params.ledgerpaymentid) {
+					break;
+				}
+				idx++;
+			}
+			xpayments.clear();
+			xpayments.addAll(xlist);
+
+			def cp = xpayments.find{ it.objid == params.ledgerpaymentid }
+			if (cp) xpayments.remove(cp);
+
+			def totalprevious = xpayments?.amount.sum();
+			if (!totalprevious) totalprevious = 0;
+
+			paymentFact.amountPaid = totalprevious + params.payamount;
+
+			xpayments.sort{ it.refno }
+
+			def fp = xpayments[0];
+			if (fp) {
+				fp = loan_ledger.read([objid: fp.objid], 'payment');
+				if (fp.amnestybalance) {
+					referencesFact.balance = fp.amnestybalance;
+				}
+				if (fp.interestincome) {
+					referencesFact.interestIncome = fp.interestincome;
+				}
+
+			}
+		}
+
+		def req = new RuleRequest("amnestysmc");
+
+		req.addFact("amnestysmc", "Payment", paymentFact); 
+		req.addFact("amnestysmc", "References", referencesFact);
+		//req.addFact("loan", "Compromise", compromiseFact);
+		req.addGlobal("results", results);
+
+		try {
+			ruleSvc.execute( req );	
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+
+		def lastitem;
+		if (results) {
+			lastitem = results[results.size()-1];
+			def bal = lastitem.balance;
+
+			def tp = lastitem.totalpenalty;
+			if (!tp) tp = 0;
+			xpayment.totalpenalty = tp;
+
+			def ti = lastitem.totalinterest;
+			if (!ti) ti = 0;
+			xpayment.totalinterest = ti;
+
+			if (bal != null && bal != '') {
+
+				loan_ledger.update([objid: ledger.objid, balance: lastitem.balance], "balance");
+				ledgeramnesty_smc.update([objid: am.objid, balance: lastitem.balance], 'balance');
+
+				if (bal == 0) {
+					def xledger = loan_ledger.read(ledger);
+					xledger.state = 'CLOSE';
+					loan_ledger.update(xledger);
+					loanapp.update([objid: xledger.appid, state: 'CLOSED']);
+					def xx = loanapp.read([objid: xledger.appid], 'loanapp_search');
+					if (xx) {
+						loanapp.update([objid: xledger.appid, state: 'CLOSED'], 'loanapp_search');	
+					}
+				}
+			}
+		}
+
+		def la = loanapp.read([objid: ledger.appid], 'loanapp_close');
+		def xledger = loan_ledger.read(ledger);
+		if (la || referencesFact.isFullPayment == true || xledger.balance == 0) {
+			xledger.state = 'CLOSE';
+			loan_ledger.update(xledger);
+			loanapp.update([objid: xledger.appid, state: 'CLOSED']);
+			def xx = loanapp.read([objid: xledger.appid], 'loanapp_search');
+			if (xx) {
+				loanapp.update([objid: xledger.appid, state: 'CLOSED'], 'loanapp_search');	
+			}
+		}
+
+		def currentdate = dateSvc.serverDate;
+		results?.each{ o->
+			def itm = amnestySvc.createLedgerItem(ledger);
+			itm.amnestyid = amnesty.objid;
+
+			itm.amtdue = 0;
+			if (o.payment) {
+				itm.amtdue = new BigDecimal(o.payment).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+			itm.amtpaid = itm.amtdue;
+
+			itm.interestdue = 0;
+			if (o.interestPaid) {
+				itm.interestdue  = new BigDecimal(o.interestPaid).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+			itm.interestpaid = itm.interestdue;
+
+			itm.penaltydue = 0;
+			if (o.penalty) {
+				itm.penaltydue = new BigDecimal(o.penalty).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+			itm.penaltypaid = itm.penaltydue;
+
+			itm.amtbal = 0;
+			
+			itm.interestbal = 0;
+			if (o.interestbal) {
+				itm.interestbal = o.interestbal;
+			}
+
+			itm.penaltybal = 0;
+			if (o.penaltybal) {
+				itm.penaltybal = o.penaltybal;
+			}
+
+			itm.dtpaid = txndate;//it.dtpaid? it.dtpaid : null;
+			itm.refno = params.refno;//it.refno? it.refno : null;
+			itm.day = day;
+			if (o.day) {
+				itm.day = o.day;//dateSvc.getDaysDiff(parseDate(appc?.dtreleased), parseDate(o.scheduledate)) - 1;
+			}
+
+			itm.balance = 0;
+			if (o.balance) {
+				itm.balance = new BigDecimal(o.balance).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+
+			//println 'passing 4'
+			itm.partialpayment = 0;
+			if (o.partialpayment) {
+				itm.partialpayment = new BigDecimal(o.partialpayment).setScale(2, BigDecimal.ROUND_HALF_UP);
+			}
+
+			itm.baseamount = ledger.dailydue;
+			itm.groupbaseamount = ledger.dailydue;
+
+			//itm.paytype = it.paytype;
+			//itm.txndate = dateSvc.serverDate;
+			itm.txndate = currentdate;
+			//println 'item = '+itm;
+			o.item = itm;
+			//if (txndate.toString() == '2006-01-24') println 'current day ' + data.currentDay;
+			loan_ledger.create(itm, 'detail');
+		}
+
+		loan_ledger.update([objid: ledger.objid, dtlastpaid: txndate], 'dtlastpaid');
+
+		def res = [
+			results		: results,
+			amnestyid	: amnesty?.amnestyid,
+			ledgerid 	: ledger?.objid,
+			txndate 	: txndate,
+			interest 	: (xpayment? xpayment.totalinterest : 0),
+			penalty 	: (xpayment? xpayment.totalpenalty : 0)
+		];
+
+		return res;
+	}
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+	*/
+
+}

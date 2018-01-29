@@ -1,0 +1,34 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class LoanLedgerFollowupAmnestyLookupService extends ActiveListService
+{
+	@ActiveDB('followup_result')
+	def em;
+
+	String listMethod = 'getLookupAmnestyForAvailment';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'amnestydate', caption: 'Amnesty Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'refno', caption: 'Ref. No.'];
+		cols << [name: 'description', caption: 'Description'];
+
+		return cols;
+	}
+
+
+	void beforeList( params ) {
+		if (!params.loanappid) throw new Exception('Please specify borrower.');
+		if (!params.date) throw new Exception('Please specify follow-up date.');
+
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.date && params.loanappid) {
+			params._listMethod = 'getLookupAmnestyForAvailmentByDate';
+		}
+	}
+
+}

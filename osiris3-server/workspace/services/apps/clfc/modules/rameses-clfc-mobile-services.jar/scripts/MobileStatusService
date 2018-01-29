@@ -1,0 +1,102 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+
+class MobileStatusService {
+
+	@ActiveDB(em="tracker", value="mobile_tracker")
+	def em;
+
+	@ActiveDB(em="tracker", value="mobile_status")
+	def mobile_status;
+
+	@Service("MobileTrackerService")
+	def trackerSvc;
+
+	private def decode( params ) {
+		if (!params.encrypted) throw new Exception("Please specify encrypted data.");
+
+		return new Base64Cipher().decode(params.encrypted);
+	}
+
+	@ProxyMethod
+	public def postMobileStatusEncrypt( params ) {
+		return postMobileStatus(decode(params));
+	}
+
+	@ProxyMethod
+	public def postMobileStatus( params ) {
+		//println 'params';
+		//params.each{ println it }
+		//println ''
+
+		def response = "fail";
+		if (params.trackerid) {
+			def xitem = em.read([objid: params.trackerid]);
+			if (xitem) {
+				def statuschanged = false;
+				def data = mobile_status.read([objid: params.trackerid]);
+				def prevlng = params.prevlng? params.prevlng : 0;
+				def prevlat = params.prevlat? params.prevlat : 0;
+				if (!data) {
+					data = [
+						objid 		: params.trackerid,
+						trackerid 	: params.trackerid,
+						wifi		: params.wifi,
+						mobiledata	: params.mobiledata,
+						gps 		: params.gps,
+						network 	: params.network,
+						prevlng 	: prevlng,
+						prevlat 	: prevlat
+					];
+
+					mobile_status.create(data);
+
+					statuschanged = true;
+				} else {
+					if (data.wifi != params.wifi) {
+						statuschanged = true;
+					} else if (data.mobiledata != params.mobiledata) {
+						statuschanged = true;
+					} else if (data.gps != params.gps) {
+						statuschanged = true;
+					} else if (data.network != params.network) {
+						statuschanged = true;
+					}
+				}
+
+
+				if (statuschanged == true) {
+					data.wifi = params.wifi;
+					data.mobiledata = params.mobiledata;
+					data.gps = params.gps;
+					data.network = params.network;
+					data.prevlng = prevlng;
+					data.prevlat = prevlat;
+					mobile_status.update(data);
+
+					def log = [
+						objid	 	: params.objid,
+						trackerid	: params.trackerid,
+						txndate 	: params.txndate,
+						txntype		: 'STATUS',
+						refid		: params.objid,
+						reftype		: 'STATUS',
+						lng 		: params.lng,
+						lat 		: params.lat,
+						state 		: 1,
+						wifi 		: data.wifi,
+						mobiledata	: data.mobiledata,
+						gps 		: data.gps,
+						network 	: data.network,
+						prevlng 	: data.prevlng,
+						prevlat 	: data.prevlat
+					];
+
+					trackerSvc.log(log);
+				}
+				response = "success";
+			}
+		}
+		return [ response: response ];
+	}
+}

@@ -1,0 +1,54 @@
+package amnestysmc;
+import java.util.*;
+import java.text.*;
+
+global List results;
+global Map lastPayment;
+global Map floating;
+global Map resultMap;
+
+declare Payment
+	amountPaid 		: double
+	totalInterest 	: double
+	totalPenalty 	: double
+	currentDay 		: int
+end
+
+declare References
+	amountPaid 		: double
+	balance			: double
+	interestIncome	: double
+end
+
+rule "post smc"
+	when
+		p: Payment(amountPaid > 0)
+		r: References()
+	then
+		Map item = new HashMap();
+
+		double amtpaid = p.getAmountPaid();
+		double balance = r.getBalance();
+		double interestincome = r.getInterestIncome();
+
+		double ti = 0;
+		if (amtpaid >= interestincome) {
+			ti = interestincome;
+		} else if (amtpaid < interestincome) {
+			ti = amtpaid;
+		}
+		item.put("totalinterest", ti);
+
+		if (balance >= amtpaid) {
+			balance -= amtpaid;
+		} else if (balance < amtpaid) {
+			balance = 0;
+		}
+
+		item.put("day", p.getCurrentDay());
+		item.put("payment", r.getAmountPaid());
+		item.put("partialpayment", amtpaid);
+		item.put("balance", balance);
+
+		results.add(item);
+end

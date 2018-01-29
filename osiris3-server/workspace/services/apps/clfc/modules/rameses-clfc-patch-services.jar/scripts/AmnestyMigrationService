@@ -1,0 +1,660 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import java.text.*;
+
+class AmnestyMigrationService
+{
+	@ActiveDB('amnesty_migration')
+	def em;
+
+	@ActiveDB('amnesty')
+	def amnesty;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('ledgeramnesty_fix')
+	def ledgeramnesty_fix;
+
+	@ActiveDB('ledgeramnesty_waiver')
+	def ledgeramnesty_waiver;
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	private int SIZE = 10;
+	private int LIMIT = SIZE + 1;
+	private def decFormat = new DecimalFormat('#,##0.00');
+	private def dateFormat = new SimpleDateFormat('MMM dd, yyyy');
+
+	@ProxyMethod
+	public def runMigration() {
+		//def i = 0;
+		//def max = 10000;
+		//while (true) {
+			/*
+			if (i >= max) {
+				break;
+			}
+			i++;
+			*/
+
+			//def list = em.getActiveListByType([type: 'WAIVER', _limit: LIMIT]);
+			def list = em.getActiveList([_limit: 300]);
+			if (!list) throw new Exception('No amnesty to migrate.');
+
+			//def size = (list.size() >= SIZE? SIZE : list.size());
+
+			for (def i=0; i<list.size(); i++) {
+				def item = list[i];
+				createAmnesty(item);
+
+				def xi = em.read(item);
+				if (!xi) {
+					em.create(item);
+				}
+			}
+
+			//if (list.size() <= SIZE) {
+			//	break;
+			//}
+		//}
+
+	}
+
+	@ProxyMethod
+	public def runMigrationForApproved() {
+		//def i = 0;
+		//def max = 10000;
+		while (true) {
+			/*
+			if (i >= max) {
+				break;
+			}
+			i++;
+			*/
+
+			//def list = em.getActiveListByType([type: 'WAIVER', _limit: LIMIT]);
+			def list = em.getAmnestyListByState([_limit: LIMIT, state: 'APPROVED']);
+			if (!list) throw new Exception('No amnesty to migrate.');
+
+			def size = (list.size() >= SIZE? SIZE : list.size());
+
+			for (def i=0; i<size; i++) {
+				def item = list[i];
+				createAmnesty(item);
+
+				def xi = em.read(item);
+				if (!xi) {
+					em.create(item);
+				}
+			}
+
+			if (list.size() <= SIZE) {
+				break;
+			}
+		}
+	}
+
+	private void createAmnesty( data ) {
+		def item = amnesty.read(data);
+
+		def option = item?.amnestyoption;
+		switch (option) {
+			case 'FIX'		: createFix(item); break;
+			case 'WAIVER' 	: createWaiver(item); break;
+		}
+	}
+
+	private void createFix( data ) {
+		//println 'create fix';
+
+		//def ledger = loan_ledger.findByAppId([appid: data?.loanapp?.objid]);
+		def ledger = loan_ledger.read([objid: data.ledgerid]);
+		ledger = loan_ledger.read(ledger);
+
+		if (!data?.ledger) {
+			//println 'ledger ' + ledger;
+			data.ledger = [
+				objid		: ledger.objid,
+				interest 	: ledger.interestamount,
+				balance		: ledger.balance,
+				dailydue	: ledger.dailydue,
+				dtmatured 	: ledger.dtmatured
+			];
+		}
+
+		def go = data?.grantedoffer;
+		if (!go?.objid) {
+			//println 'recom size ' + data?.recommendation?.size();
+			if (data?.recommendation) {
+				if (data?.recommendation?.size() == 1) {
+					//println '\nrecommendation ' + data?.recommendation[0];
+					go.objid = data?.recommendation[0].objid;
+				} else {
+					def xitm = data?.recommendation?.find{ go }
+					//println 'xitm1 ' + xitm;
+					go.objid = xitm?.objid;
+				}
+			} else {
+				def offers = amnesty.getOffers([objid: data?.objid]);
+				//println 'offer size ' + offers?.size();
+				if (offers?.size() == 1) {
+					go.objid = offers[0].objid;
+				} else {
+					def xitm = offers?.find{ go }
+					//println 'xitm ' + xitm;
+					go.objid = xitm?.objid;
+				}
+			}
+			//println 'go objid ' + go.objid;
+		}
+
+		def am = ledgeramnesty.read(data);
+		if (!am) {
+			//println '\nledger ' + data.ledger;
+			//data.ledger.objid = data.ledgerid;
+			if (!data.ledger.objid) data.ledger.objid = data.ledgerid;
+			am = [:];
+			am.putAll(data);
+			if (data.txnstate == 'VERIFIED') {
+				am.txnstate = 'AVAILED';
+			} else {
+				am.txnstate = data.txnstate;
+			}
+			ledgeramnesty.create(am);
+		} else if (am) {
+			if (data.txnstate == 'VERIFIED' && am.txnstate != 'AVAILED') {
+				am.txnstate = 'AVAILED';
+			} else {
+				am.txnstate = data.txnstate;
+			}
+			ledgeramnesty.update(am);
+		}
+
+		def offers = amnesty.getOffers(am);
+		if (offers) {
+			def xitm;
+			offers.each{ itm->
+				xitm = ledgeramnesty.read(itm, 'detail');
+				if (!xitm) {
+
+					xitm = [
+						objid 		: itm.objid,
+						parentid 	: itm.parentid,
+						txnstate 	: 'APPROVED',
+						description : createFixDescription(itm),
+						amount 		: itm.amount,
+						month 		: itm.months,
+						day 		: itm.days,
+						date 		: itm.date,
+						dtposted 	: am.dtcreated,
+						poster 		: am.author
+					];
+					ledgeramnesty.create(xitm, 'detail');
+				}
+			}
+		}
+
+		def amf;
+		if (data.txnstate == 'VERIFIED') {
+			amf = ledgeramnesty_fix.read(data);
+			if (!amf) {
+				amf = [:];
+				amf.putAll(data);
+				//println '\noffer';
+				//data?.grantedoffer?.each{ println it };
+				//println 'offerid ' + data?.grantedoffer?.objid;
+				def dtl = ledgeramnesty.read([objid: data?.grantedoffer?.objid], 'detail');
+				if (dtl) {
+					amf.refid = dtl.objid;
+					amf.description = dtl.description;
+					amf.amount = dtl.amount;
+				}
+				ledgeramnesty_fix.create(amf);
+			}
+		}
+
+		def amc = ledgeramnesty_collection.read(data);
+		if (!amc) {
+			/*
+			amc = [
+				objid		: amf.objid,
+				dtcreated 	: amf.dtcreated,
+				author 		: amf.author,
+				//txnstate 	: 'ACTIVE',
+				txnmode 	: amf.txnmode,
+				refid 		: amf.objid,
+				reftype 	: 'FIX',
+				borrower 	: amf.borrower,
+				loanapp 	: amf.loanapp,
+				description : amf.description,
+				dtstarted 	: amf.dtstarted,
+				dtended 	: amf.dtended
+			];*/
+			amc = [
+				objid 		: am?.objid,
+				dtcreated 	: am?.dtcreated,
+				author 		: am?.author,
+				txnmode 	: am?.txnmode,
+				refid 		: am?.objid,
+				borrower 	: am?.borrower,
+				loanapp 	: am?.loanapp
+			];
+
+			if (data.txnstate == 'VERIFIED') {
+				amc.reftype = 'FIX';
+				amc.txnstate = 'ACTIVE';
+				amc.description = amf?.description;
+				amc.dtstarted = amf?.dtstarted;
+				amc.dtended = amf?.dtended;
+			} else if (data.txnstate == 'APPROVED') {
+				amc.reftype = 'REQUEST';
+				amc.txnstate = 'RETURNED';
+				amc.description = 'Amnesty Request';
+			}
+			ledgeramnesty_collection.create(amc);
+		}
+
+		if (data.txnstate == 'VERIFIED') {
+			def ac = ledgeramnesty.read(amf, 'active');
+			//println 'active ' + ac;
+			if (!ac) {
+				ac = [
+					objid 		: amf.objid,
+					dtfiled		: amf.dtcreated,
+					author  	: amf.author,
+					amnestyid 	: amf.objid,
+					refid 		: amf.objid,
+					ledgerid 	: amf.ledger?.objid,
+					type 		: 'FIX',
+					description : amf.description,
+					dtstarted 	: amf.dtstarted,
+					dtended 	: amf.dtended
+				];
+				ledgeramnesty.create(ac, 'active');
+			}
+		}
+
+		//throw new Exception('stopping create fix');
+	}
+
+	private def createFixDescription( item ) {
+		def str = '';
+
+		if (item.amount) {
+			str += decFormat.format(item.amount) + ' ';
+
+			if (item.date) {
+				str += 'until ' + dateFormat.format(parseDate(item.date)) + ' ';
+			} else {
+				if (item.months == 0 && item.days == 0) {
+					str += 'No Maturity ';
+				} else {
+					if (item.months > 0) str += item.months + ' Month(s) ';
+					if (item.days > 0) str += item.days + ' Day(s) ';
+				}
+			}
+		}
+
+		return str;
+	}
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+	private void createWaiver( data ) {
+		//println 'create waiver';
+
+		def ledger = loan_ledger.findByAppId([appid: data?.loanapp?.objid]);
+		ledger = loan_ledger.read(ledger);
+
+		//println 'ledgerid ' + ledger?.objid;
+
+		if (!data?.ledger) {
+			data.ledger = [
+				objid		: ledger.objid,
+				interest 	: ledger.interestamount,
+				balance		: ledger.balance,
+				dailydue	: ledger.dailydue,
+				dtmatured 	: ledger.dtmatured
+			];
+		}
+
+		def amw = ledgeramnesty_waiver.read(data);
+		if (!amw) {
+			//println 'ledger objid1 ' + data?.ledger?.objid;
+			if (!data?.ledger?.objid) data.ledger.objid = ledger?.objid;//data.ledgerid;
+			data.waiveinterest = data.iswaiveinterest;
+			data.waivepenalty = data.iswaivepenalty;
+			data.interest = 0;
+			if (data.waiveinterest == 0) {
+				data.overrideinterest = 1;
+				data.interest = ledger.interestamount;
+			}
+			data.penalty = 0;
+			if (data.waivepenalty == 0) {
+				data.overridepenalty = 0;
+				data.penalty = ledger.overduepenalty;
+			}
+			data.description = createWaiverDescription(data);
+			amw = data;
+			ledgeramnesty_waiver.create(amw);
+			/*
+			amf = data;
+			def dtl = ledgeramnesty.read([objid: data?.grantedoffer?.objid], 'detail');
+			if (dtl) {
+				amf.refid = dtl.objid;
+				amf.description = dtl.description;
+				amf.amount = dtl.amount;
+			}
+			ledgeramnesty_fix.create(amf);
+			*/
+		}
+
+		def amc = ledgeramnesty_collection.read(amw);
+		if (!amc) {
+			amc = [
+				objid		: amw.objid,
+				dtcreated 	: amw.dtcreated,
+				author 		: amw.author,
+				txnstate 	: 'ACTIVE',
+				txnmode 	: amw.txnmode,
+				refid 		: amw.objid,
+				reftype 	: 'WAIVER',
+				borrower 	: amw.borrower,
+				loanapp 	: amw.loanapp,
+				description : amw.description,
+				dtstarted 	: amw.dtstarted,
+				dtended 	: amw.dtended
+			];
+			ledgeramnesty_collection.create(amc);
+		}
+
+
+		def ac = ledgeramnesty.read(amw, 'active');
+		if (!ac) {
+			ac = [
+				objid 		: amw.objid,
+				dtfiled		: amw.dtcreated,
+				author  	: amw.author,
+				amnestyid 	: amw.objid,
+				refid 		: amw.objid,
+				ledgerid 	: amw.ledger?.objid,
+				type 		: 'WAIVER',
+				description : amw.description,
+				dtstarted 	: amw.dtstarted,
+				dtended 	: amw.dtended
+			];
+			ledgeramnesty.create(ac, 'active');
+		}
+	}
+
+	private def createWaiverDescription( data ) {
+		def str = '';
+
+		if (data.waiveinterest == 1) {
+			str = 'Waive Interest ';
+		} else if (data.overrideinterest == 1) {
+			str = 'Override Interest with amount of ' + decFormat.format(data.interest) + ' ';
+		}
+
+		if (data.waivepenalty == 1 || data.overridepenalty == 1) {
+			if (str) str += 'and ';
+			if (data.waivepenalty == 1) {
+				str += 'Waive Penalty ';
+			} else if (data.overridepenalty == 1) {
+				str += 'Override Penalty with amount of ' + decFormat.format(data.penalty) + ' ';
+			}
+		}
+
+		return str;
+	}
+
+	@ProxyMethod
+	public def resolveAmnestyWithNoMaturity() {
+		def itm = em.findUnmigratedAmnesty();
+		if (itm) throw new Exception('Cannot resolve term. There are still unmigrated amnesty.');
+
+		def list, item, size, xitm;
+		while (true) {
+			list = em.getBorrowersForTermResolveWithNoMaturity([_limit: LIMIT]);
+			if (!list) throw new Exception('No amnesty to resolve term.');
+
+			size = (list.size() > SIZE? SIZE : list.size());
+
+			//println 'size ' + size;
+			for (def i=0; i<size; i++) {
+				item = list[i];
+				processTermResolve(item);
+
+				xitm = em.read([objid: item.ledgerid], 'resolve-term');
+				if (!xitm) {
+					em.create([objid: item.ledgerid], 'resolve-term');
+				}
+			}
+
+			if (list.size <= SIZE) {
+				break;
+			}			
+		}
+	}
+
+	private void processTermResolve( item ) {
+		def ledger = loan_ledger.read([objid: item.ledgerid]);
+		if (!ledger) throw new Exception('Loan ledger does not exist or has already been deleted.');
+
+		//println 'ledgerid ' + ledger.objid;
+		def list = em.getActiveAmnestyByLedgerid([ledgerid: ledger.objid]);
+		//println 'size ' + list?.size();
+		if (!list || list.size() <= 1) {
+			return;
+		}
+
+		//list?.each{ println it; }
+		//println '';
+
+		def xlist = [];
+		xlist.addAll(list);
+		xlist.unique{ it.dtstarted }
+		xlist.sort{ it.dtstarted }
+
+		if (xlist) {
+			xlist[xlist.size() - 1].islast = true;
+		}
+
+		def df = new SimpleDateFormat('yyyy-MM-dd');
+		def cal = Calendar.getInstance();
+		xlist?.eachWithIndex{ itm, idx->
+			def xlist2 = list.findAll{ it.dtstarted == itm.dtstarted }.sort{ it.dtfiled }.reverse();
+
+			if (xlist2 && !itm.islast) {
+				def xi = xlist[0];
+				if (!xi.dtended) {
+					def dateitem =  xlist[idx + 1];
+					def xlist3 = list.findAll{ it.dtstarted == dateitem.dtstarted }.sort{ it.dtfiled }.reverse();
+					if (xlist3) {
+						def xi2 = xlist3[0];
+
+						cal.setTime(parseDate(xi2.dtstarted))
+						cal.add(Calendar.DATE, -1);
+						xi.dtended = parseDate(df.format(cal.getTime()));
+		                ledgeramnesty.update(xi, 'active');
+					}
+				}
+			}
+		}
+
+	}
+
+	@ProxyMethod
+	public def resolveDateReturned() {
+		while (true) {
+			def list = em.getAmnestyListForDateReturnedResolve([_limit: LIMIT, state: 'APPROVED']);
+			if (!list) throw new Exception('No amnesty to resolve date returned.');
+
+			def size = (list.size() >= SIZE? SIZE : list.size());
+
+			for (def i=0; i<size; i++) {
+				def item = list[i];
+				resolveDateReturned(item);
+			}
+
+			if (list.size() <= SIZE) {
+				break;
+			}
+		}
+	}
+
+	void resolveDateReturned( item ) {
+		def data = ledgeramnesty.read(item);
+		if (!data) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		def am = amnesty.read(item);
+		if (!am) throw new Exception('Amnesty record does not exist or has already been deleted.');
+
+		if (am.dtposted) {
+			data.dtreturned = am.dtposted;
+			data.returnedby = am.poster;
+			ledgeramnesty.update(data);
+		}
+
+	}
+
+	@ProxyMethod
+	public def resolveRejectedAmnesty() {
+		while (true) {
+		
+			def list = em.getRejectedAmnestyForResolve([_limit: LIMIT]);
+			if (!list) throw new Exception('No rejected amnesty to resolve.');
+
+			def size = (list.size() >= SIZE? SIZE : list.size());
+
+			for (def i=0; i<size; i++) {
+				def item = list[i];
+				item.txnstate = 'REJECTED';
+				ledgeramnesty.update(item);
+			}
+
+			if (list.size() <= SIZE) {
+				break;;
+			}
+		}
+	}
+
+	@ProxyMethod
+	public def resolveAvailedAmnesty() {
+		while (true) {
+			def list = em.getAvailedAmnestyForResolve([_limit: LIMIT]);
+			if (!list) throw new Exception('No availed amnesty to resolve.');
+
+			def size = (list.size() >= SIZE? SIZE : list.size());
+
+			for (def i=0; i<size; i++) {
+				def item = list[i];
+
+				resolveAvailedAmnestyImpl(item);
+
+				item.txnstate = 'AVAILED';
+				ledgeramnesty.update(item);
+			}
+
+			if (list.size() <= SIZE) {
+				break;;
+			}
+		}
+	}
+
+
+	void resolveAvailedAmnestyImpl( item ) {
+		def data = amnesty.read(item);
+		data?.ledger?.objid = data?.ledgerid;
+
+		def go = data?.grantedoffer;
+		if (!go?.objid) {
+			//println 'recom size ' + data?.recommendation?.size();
+			if (data?.recommendation) {
+				if (data?.recommendation?.size() == 1) {
+					//println '\nrecommendation ' + data?.recommendation[0];
+					go.objid = data?.recommendation[0].objid;
+				} else {
+					def xitm = data?.recommendation?.find{ go }
+					//println 'xitm1 ' + xitm;
+					go.objid = xitm?.objid;
+				}
+			} else {
+				def offers = amnesty.getOffers([objid: data?.objid]);
+				//println 'offer size ' + offers?.size();
+				if (offers?.size() == 1) {
+					go.objid = offers[0].objid;
+				} else {
+					def xitm = offers?.find{ go }
+					//println 'xitm ' + xitm;
+					go.objid = xitm?.objid;
+				}
+			}
+		}
+
+		def offer = ledgeramnesty.read([objid: go?.objid], 'detail');
+		def af = ledgeramnesty_fix.read([objid: data?.objid]);
+		if (!af) {
+			af = [
+				objid 		: data?.objid,
+				dtcreated 	: data?.dtcreated,
+				author 		: data?.author,
+				txndate 	: data?.txndate,
+				txnstate 	: 'AVAILED',
+				txnmode 	: data?.txnmode,
+				refid 		: go?.objid,
+				refno 		: data?.refno,
+				borrower 	: data?.borrower,
+				loanapp 	: data?.loanapp,
+				ledger 		: data?.ledger,
+				description : offer?.description,
+				amount 		: offer?.amount,
+				balance 	: offer?.amount,
+				dtstarted 	: data?.dtstarted,
+				dtended 	: data?.dtended
+			];
+			ledgeramnesty_fix.create(af);
+		}
+
+
+		def ac = ledgeramnesty_collection.read([objid: data?.objid]);
+		if (!ac) {
+			ac = [
+				objid 		: af.objid,
+				dtcreated 	: af.dtcreated,
+				author 		: af.author,
+				txnstate 	: 'AVAILED',
+				refid 		: af.objid,
+				borrower 	: af.borrower,
+				loanapp 	: af.loanapp,
+				description : af.description,
+				dtstarted 	: af.dtstarted,
+				dtended 	: af.dtended
+			];
+			ledgeramnesty_collection.create(ac);
+		} else if (ac) {
+			ac.txnstate = 'AVAILED';
+			ac.reftype = 'FIX';
+			ac.refid = af.objid;
+			ac.borrower = af.borrower;
+			ac.loanapp = af.loanapp;
+			ac.description = af.description;
+			ac.dtstarted = af.dtstarted;
+			ac.dtended = af.dtended;
+			ledgeramnesty_collection.update(ac);
+		}
+	}
+}

@@ -1,0 +1,563 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+import java.text.*;
+import loan.branch.actions.*;
+import com.rameses.rules.common.*;
+
+class ReconstructBranchLoanService
+{
+	@Env
+	def env;
+
+	@ActiveDB('loanapp_branchloan')
+	def em;
+
+	@ActiveDB('reconstruct_branchloan')
+	def reconstruct;
+
+	@ActiveDB('loan_route')
+	def loan_route;
+
+	@ActiveDB('loan_product_type')
+	def loan_product_type;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loan_ledger_payment')
+	def ledger_payment;
+
+	@ActiveDB('loan_ledger_segregation')
+	def loan_ledger_segregation;
+
+	@ActiveDB('ledger_branchloan_posting')
+	def ledger_branchloan_posting;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('BranchService')
+	def branchSvc;
+
+	@Service('NumberService')
+	def numSvc;
+
+	@Resource('RuleService')
+	def ruleSvc;
+
+	def dateFormat = new SimpleDateFormat('yyyy-MM-dd');
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	/*
+	void beforeCreate( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = getUser();
+	}
+
+	void afterCreate( data ) {
+		addInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		addInfo(data);
+	}
+
+	void addInfo( data ) {
+		data?._removed?.each{ o->
+			em.delete(o, 'detail');
+		}
+
+		data?._added?.each{ o->
+			if (!o.parentid) o.parentid = data.objid;
+			em.create(o, 'detail');
+		}
+
+	}
+	*/
+
+	@ProxyMethod
+	public def getBranchLoanInfo( params ) {
+		def data = [:];
+		if (params.branchloanid) {
+			data = em.read([objid: params.branchloanid]);
+		} else {
+			data.objid = 'LB' + new UID();
+			data.borrower = params.borrower;
+			data.appno = params.appno;
+		}
+
+		def list = [], item;
+
+		def xlist = reconstruct.getDetails(data);
+		xlist?.each{ o->
+			o = em.read(o, 'detail');
+			list << o;
+		}
+		
+		xlist = reconstruct.getLoanAppByAppnoAndBorrowerid([appno: data?.appno, searchtext: (data?.appno + '-%'), borrowerid: data?.borrower?.objid]);
+		xlist?.each{ o->
+			item = list?.find{ it.refid == o.objid }
+			if (!item) {
+				item = [
+					objid	: 'LBD' + new UID(),
+					refid 	: o.objid,
+					amount 	: o.loanamount,
+					unpaid	: [interest: 0]
+				]
+				def r = loan_route.read([code: o.route?.code]);
+				if (r) {
+					item.route = r;
+				}
+				def pt = loan_product_type.read([name: o.producttype?.name]);
+				if (pt) {
+					item.producttype = pt;
+				}
+
+				def ac = loanapp.read([objid: o.objid], 'loanapp_capture');
+				if (ac) {
+					item.dtreleased = ac.dtreleased;
+				}
+
+				list << item;
+			}
+		}
+
+		list.sort{ String.valueOf(it.dtreleased) }
+		data?.items = list;
+
+		return data;
+	}
+
+	@Async
+	@ProxyMethod
+	public def reconstructLoan( params ) {
+		def currdate = dateSvc.serverDate;
+		def user = getUser();
+
+		def data = em.read(params);
+		if (!data) {
+			data = [
+				objid		: params.objid,
+				dtcreated 	: currdate,
+				author 		: user,
+				appno 		: params.appno,
+				borrower 	: params.borrower,
+				appcount 	: 0
+			];
+			em.create(data);
+		}
+
+		def list = params.items;
+		def removelist = list?.findAll{ it._removeledger == true }
+		removelist?.each{ o->
+			validateRemoveDetailItem(o);
+
+			def app = loanapp.read([objid: o.refid]);
+			def ledger = loan_ledger.findByAppId([appid: app?.objid]);
+
+
+			ledger_branchloan_posting.removePostingDetails([objid: ledger?.objid]);
+			ledger_branchloan_posting.removePostingHeaderByRefid([refid: ledger?.objid]);
+
+
+			loan_ledger_segregation.removeSegregationByRefid([refid: ledger?.objid]);
+			loan_ledger.delete(ledger, 'ledger-info');
+			loan_ledger.delete(ledger);
+			loanapp.removeBorrowerIndices([appid: data.objid]);
+
+			def i = loanapp.read([objid: app?.objid], 'loanapp_search');
+			if (i) loanapp.delete(i, 'loanapp_search');
+
+			i = loanapp.read([objid: app?.objid], 'loanapp_close');
+			if (i) loanapp.delete(i, 'loanapp_close');
+
+			i = loanapp.read([objid: app?.objid], 'loanapp_capture');
+			if (i) loanapp.delete(i, 'loanapp_capture');
+
+			em.delete(o, 'detail');
+			loanapp.delete(app);
+
+			list.remove(o);
+		}
+
+		removelist = list?.findAll{ it._remove == true }
+		removelist?.each{ o->
+			em.delete(o, 'detail');
+			list.remove(o);
+		}
+
+		if (list) {
+			def app, ledger;
+			list.sort{ String.valueOf(it.dtreleased) }
+			list[list.size() - 1].isopen = true;
+			data.appcount = 0;
+
+			def item;
+			list?.each{ o->
+				if (!o.parentid) o.parentid = data.objid;
+				if (!o.refid) o.refid = 'LOAN' + new UID();
+				//if (!o.appno) {
+				data.appcount++;
+				o.appno = data?.appno + '-' + data.appcount;
+				em.update([objid: data.objid, appcount: data.appcount]);
+				//}
+				if (!o.dtcreated) o.dtcreated = currdate;
+				if (!o.author) o.author = user;
+
+				item = o;
+				//item = em.read(o, 'detail');
+				item.isopen = o.isopen;
+				item.borrower = data.borrower;
+				app = createLoan(item);
+				//println 'application';
+				//app?.each{ println it }
+				ledger = createLedger(app);
+
+				em.save(o, 'detail');
+				//println '\nledger';
+				//ledger?.each{ println it }
+			}
+		}
+
+
+		data.items = [];
+		list = reconstruct.getDetails(data);
+		list?.each{ o->
+			o = em.read(o,	'detail');
+			data.items << o;
+		}
+
+		data.items?.sort{ String.valueOf(it.dtreleased) }
+
+		return data;
+		/*
+		def removelist = list?.findAll{ it._remove == true }
+		println 'remove list';
+		removelist?.each{ println it }
+		*/
+		/*
+		def removelist = params._removed;
+		removelist?.each{ o->
+			validateRemoveDetailItem(o);
+		}
+
+		def addlist = params._added;
+		addlist?.each{ o->
+
+		}
+
+		def list = em.getDetails(data);
+		list?.each{ o->
+
+		}
+		*/
+	}
+
+	void validateRemoveDetailItem( item ) {
+		def app = loanapp.read([objid: item?.refid]);
+		def ledger = loan_ledger.findByAppId([appid: app?.objid]);
+
+		def pyt = ledger_payment.findByParentid([parentid: ledger?.objid]);
+		if (pyt) throw new RuntimeException('Cannot remove Ledger with App. No. ' + app?.appno + ' because the ledger has payments.');
+	}
+
+	@Async
+	@ProxyMethod
+	public def xreconstructLoan( params ) {
+		def currdate = dateSvc.serverDate;
+		def user = getUser();
+
+		def data = em.read(params);
+		if (!data) {
+			data = [
+				objid		: params.objid,
+				dtcreated 	: currdate,
+				author 		: user,
+				appno 		: params.appno,
+				borrower 	: params.borrower,
+				appcount 	: 0
+			];
+			em.create(data);
+		}
+
+		def item;
+		/*
+		params?._removed?.each{ o->
+			item = em.read(o, 'detail');
+			if (item) em.delete(item);
+		}
+
+		params?._added?.each{ o->
+			if (!o.parentid) o.parentid = data.objid;
+			if (!o.refid) o.refid = 'LOAN' + new UID();
+			if (!o.appno) {
+				data.appcount++;
+				o.appno = data?.appno + '-' + data.appcount;
+				em.update([objid: data.objid, appcount: data.appcount]);
+			}
+			o.dtcreated = currdate;
+			o.author = user;
+			em.create(o, 'detail');
+		}
+
+		def list = params?.items?.findAll{ it._edited==true }
+		list?.each{ o->
+			em.update(o, 'detail');
+		}
+		*/
+		//params?.items
+
+		// list = reconstruct.getDetails(data);
+		def list = params.items;
+		if (list) {
+			def app, ledger;
+			list.sort{ String.valueOf(it.dtreleased) }
+			list[list.size() - 1].isopen = true;
+			list?.each{ o->
+				if (!o.parentid) o.parentid = data.objid;
+				if (!o.refid) o.refid = 'LOAN' + new UID();
+				if (!o.appno) {
+					data.appcount++;
+					o.appno = data?.appno + '-' + data.appcount;
+					em.update([objid: data.objid, appcount: data.appcount]);
+				}
+				if (!o.dtcreated) o.dtcreated = currdate;
+				if (!o.author) o.author = user;
+
+				item = o;
+				//item = em.read(o, 'detail');
+				item.isopen = o.isopen;
+				item.borrower = data.borrower;
+				app = createLoan(item);
+				//println 'application';
+				//app?.each{ println it }
+				ledger = createLedger(app);
+
+				em.save(o, 'detail');
+				//println '\nledger';
+				//ledger?.each{ println it }
+			}
+		}
+
+		data.items = [];
+		list = reconstruct.getDetails(data);
+		list?.each{ o->
+			o = em.read(o,	'detail');
+			data.items << o;
+		}
+
+		data.items?.sort{ String.valueOf(it.dtreleased) }
+
+
+
+		return data;
+	}
+
+	private def createLoan( params ) {
+		def currdate = dateSvc.serverDate;
+		def user = getUser();
+
+		def data = loanapp.read([objid: params.refid]);
+		if (!data) {
+
+			def branch = branchSvc.open([:]);
+
+			data =[
+				objid 		: params.refid,
+				state 		: 'CLOSED',
+				appno 		: params.appno,
+				apptype 	: 'NEW',
+				appmode 	: 'CAPTURE',
+				dtcreated 	: currdate,
+				createdby 	: user.name,
+				loanamount 	: params.amount,
+				branch 		: branch,
+				borrower 	: params.borrower,
+				producttype : params.producttype,
+				route 		: params.route,
+				loantype 	: 'BRANCH',
+				purpose 	: 'ADDITIONAL CAPITAL',
+				approval 	: [amount: params.amount],
+				loanno 		: params.appno,
+				version 	: 1,
+				clienttype	: 'WALK-IN',
+				dtreleased 	: params.dtreleased,
+				dtfiled 	: currdate
+			];
+
+			if (params.isopen == true) {
+				data.state = 'RELEASED';
+			}
+
+			loanapp.create(data);
+			loanapp.create(data, 'loanapp_capture');
+		} else {
+			data.state = 'CLOSED';
+			data.appno = params.appno;
+			data.loanamount = params.amount;
+			data.producttype = params.producttype;
+			data.route = params.route;
+			data.loanno = params.appno;
+			data.dtreleased = params.dtreleased;
+
+			if (params.isopen == true) {
+				data.state = 'RELEASED';
+			}
+
+			loanapp.update(data);
+			loanapp.update(data, 'loanapp_capture');
+		}
+
+		def lc = loanapp.read(data, 'loanapp_close');
+		if (data.state == 'CLOSED') {
+			if (!lc) {
+				lc = [
+					objid	: data.objid,
+					dtclosed: currdate,
+					closedby: user,
+					remarks : 'Change Interest'
+				];
+				loanapp.create(lc, 'loanapp_close');
+			}
+		} else if (data.state != 'CLOSED') {
+			if (lc) loanapp.delete(lc, 'loanapp_close');
+		}
+
+		loanapp.removeBorrowerIndices([appid: data.objid]);
+		if (data.state == 'RELEASED') {
+			buildSearchIndex(data);
+		}
+
+		return data;
+	}
+
+	private void buildSearchIndex( data ) {
+		data.fullborrowername = data.borrower.name;
+		data.dtposted = data.dtcreated;  
+		data.postedby = data.createdby; 
+		data.branchcode = data.branch.code; 
+		data.branchname = data.branch.name; 
+		data.routecode  = data.route?.code;
+		//println 'ls state ' + data.state;
+		loanapp.save(data, 'loanapp_search');
+
+		//loanapp.removeBorrowerIndices([appid: data.objid]);
+
+		def searchvalues = [data.appno, data.borrower.name]; 
+		for (sval in searchvalues) {
+			def o = [
+				objid: 'IDX' + new UID(), 
+				appid: data.objid, 
+				searchtext: sval 
+			];
+			loanapp.create(o, 'loanapp_search_index');
+		} 
+	}
+
+	private def createLedger( app ) {
+		def ac = loanapp.read(app, 'loanapp_capture');
+		def pt = loan_product_type.read([name: app.producttype.name]);
+
+		def ledger = loan_ledger.findByAppId([appid: app.objid]);
+		if (!ledger) {
+			ledger = [
+				objid 				: 'LEDGER' + new UID(),
+				state 				: 'CLOSE',
+				acctid 				: app.borrower?.objid,
+				acctname 			: app.borrower?.name,
+				appid 				: app.objid,
+				producttypeid 		: app.producttype.name,
+				loancount 			: ac.version,
+				term 				: app.producttype.term,
+				paymentmethod 		: 'schedule',
+				balance 			: app.loanamount,
+				dailydue 			: 0,
+				interestamount 		: 0,
+				overpaymentamount 	: 0,
+				overduepenalty 		: 0,
+				absentpenalty 		: 0,
+				totalprincipal 		: app.loanamount,
+				totaldue 			: 0,
+				updatetype 			: 0
+			];
+
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(ac.dtreleased));
+			switch (pt?.paymentschedule) {
+				case 'DAILY':
+					cal.add(Calendar.DATE, 1);
+					break;
+				case 'MONTH':
+					cal.add(Calendar.MONTH, 1);
+					break;
+			}
+
+			ledger.dtstarted = parseDate(dateFormat.format(cal.getTime()));
+			ledger.dtcurrentschedule = ledger.dtstarted;
+
+			loan_ledger.create(ledger);
+		} else {
+			ledger.producttypeid = app.producttype.name;
+			loan_ledger.update(ledger);
+		}
+
+		//println 'state ' + app.state;
+		switch (app.state) {
+			case 'RELEASED' : ledger.state = 'OPEN'; break;
+			default 		: ledger.state = 'CLOSE'; break;
+		}
+
+		ledger.interestamount = computeInterest(app, pt);
+		loan_ledger.update(ledger);
+
+		return ledger;
+	}
+
+	def computeInterest( app, pt ) {
+		def referenceFact = [allowCompute: true];
+		def req = new RuleRequest('loanbranch');
+		req.addFact('loanbranch', 'References', referenceFact); 
+
+		def data = [:];
+		def actions = new RuleAction(); 
+		actions.addCommand('calcAmount', new CalcAmount(NS: numSvc, data: data));
+		req.addGlobal('action', actions);
+
+		def bindings = [:];
+		req.addGlobal('bindings', bindings);
+
+		String expr = app?.loanamount + ' * ' + pt.interestrate;
+		req.addGlobal('expr', expr);
+
+		try {
+			ruleSvc.execute(req);
+			//println '';
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		def amt = data?.amount;
+		if (!amt) amt = 0;
+
+		return amt;
+	}
+
+	def parseDate( date )  {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+}

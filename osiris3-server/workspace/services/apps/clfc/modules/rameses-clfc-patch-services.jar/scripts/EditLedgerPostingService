@@ -1,0 +1,249 @@
+import com.rameses.annotations.*;
+import java.text.*;
+import org.joda.time.*;
+
+class EditLedgerPostingService
+{
+	@ActiveDB('edit_ledger_posting')
+	def em;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('loan_ledger_payment')
+	def ledger_payment;
+
+	@ActiveDB('ledgeramnesty_smc')
+	def ledgeramnesty_smc;
+
+	@Service('DateService')
+	def dateSvc;
+
+	private def decFormat = new DecimalFormat('#,##0.00');
+	private def dateFormat = new SimpleDateFormat('MMM-dd-yyyy');
+	private def dateFormat2 = new SimpleDateFormat('yyyy-MM-dd');
+
+	@ProxyMethod
+	public def getLedgerPosting( params ) {
+		def list = [];
+
+		def ledger = loan_ledger.read([objid: params?.ledgerid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def app = loanapp.read([objid: ledger?.appid]);
+		if (!app) throw new Exception('Loan app. record does not exist or has already been deleted.');
+
+		list << [caption: 'Ledger', type: app?.loantype?.toLowerCase(), refid: ledger?.objid];
+
+		def xlist = ledgeramnesty.getActiveAmnestiesByLedgerid([ledgerid: ledger?.objid]);
+		xlist?.each{ o->
+			list << [caption: o.type + ': ' + o.description, type: o.type?.toLowerCase(), refid: o.refid];
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def openLedger( params ) {
+		def ledger = loan_ledger.read(params);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def app = loanapp.read([objid: ledger?.appid]);
+		if (!app) throw new Exception('Loan app. record does not exist or has already been deleted.');
+
+		def appc = loanapp.read(app, 'loanapp_capture');
+
+		def data = [
+			objid	: ledger?.objid,
+			borrower: app?.borrower,
+			loanapp : [appno: app?.appno, amount: app?.loanamount],
+			ledger 	: [objid: ledger?.objid, dtreleased: appc?.dtreleased, dtmatured: ledger?.dtmatured],
+			payments: getLedgerPayments([ledger: ledger])
+		];
+		return data;
+	}
+
+	@ProxyMethod
+	public def getLedgerInfo( params ) {
+		def ledger = loan_ledger.read([objid: params?.ledger?.objid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def pyts = getLedgerPayments([ledger: ledger]);
+
+		def data = [ledgerid: ledger?.objid, payments: pyts];
+		return data;
+	}
+
+
+	@ProxyMethod
+	public def getLedgerPayments( params ) {
+		def ledger = loan_ledger.read([objid: params?.ledger?.objid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def pyts  = [];
+		def xlist = ledger_payment.getList([objid: ledger?.objid]);
+		xlist?.each{ o->
+			def item = [
+				objid	: o.objid,
+				caption	: 'Date: ' + dateFormat.format(o.txndate) + ' Ref. No.: ' + o.refno + ' Amount: ' + decFormat.format(o.amount), 
+				refno	: o.refno,
+				amount 	: o.amount,
+				txndate : o.txndate
+			]
+			pyts << item;
+		}
+
+		return pyts;
+	}
+
+	@ProxyMethod
+	public def getBusinessLedgerColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'dtschedule', caption: 'Schedule of Payment', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'partialpayment', caption: 'Partial Payment', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'balance', caption: 'Balance', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'interestpaid', caption: 'Interest Paid', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'penaltypaid', caption: 'Penalty Charge', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'amtpaid', caption: 'Total Payment', type: 'decimal', format: '#,##0.00;(#,##0.00)'];
+		cols << [name: 'refno', caption: 'OR No.'];
+		cols << [name: 'dtpaid', caption: 'Date Paid', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getBusinessLedgerDetail( params ) {
+		//println 'params ' + params;
+		//params.parentid = params.ledgerid;
+		def ledger = loan_ledger.read([objid: params.refid]);
+		def app = loanapp.read([objid: ledger?.appid]);
+		def appc = loanapp.read([objid: app?.objid], 'loanapp_capture');
+
+		def list = loan_ledger.getLedgerDetailsByLedgeridWithoutAmnesty([parentid: ledger?.objid]);
+		list = getBusinessLedgerDetailImpl(list, [dtreleased: appc?.dtreleased]);
+		
+		def xlist = list?.findAll{ it.refno == params?.payment?.refno }
+		xlist?.each{ it.selected = true }
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getBusinessLedgerDetailByRefno( params ) {
+		def pyt = loan_ledger.read([objid: params?.paymentid], 'payment');
+		if (!pyt) throw new Exception('Ledger payment record does not exist or has already been deleted.');
+
+		def ledger = loan_ledger.read([objid: pyt?.parentid]);
+		def app = loanapp.read([objid: ledger?.appid]);
+		def appc = loanapp.read([objid: app?.objid], 'loanapp_capture');
+
+		def list = em.getLedgerDetailsByLedgeridAndRefnoWithoutAmnesty([ledgerid: ledger?.objid, refno: pyt?.refno]);
+		list = getBusinessLedgerDetailImpl(list, [dtreleased: appc?.dtreleased]);
+
+		return list;
+	}
+
+	def getBusinessLedgerDetailImpl( list, data ) {
+		def cal = Calendar.getInstance();
+		def sched;
+		def xlist = list?.findAll{ it.day != null }
+		xlist?.each{ o->
+			cal.setTime(data?.dtreleased);
+			cal.add(Calendar.DATE, o.day);
+			sched = dateFormat2.format(cal.getTime());
+			sched = parseDate(sched);
+			o.dtschedule = sched;
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getPaymentInfo( params ) {
+		def pyt = loan_ledger.read([objid: params?.objid], 'payment');
+		if (!pyt) throw new Exception('Ledger payment record does not exist or has already been deleted.');
+
+		/*
+		def ledger = loan_ledger.read([objid: pyt?.parentid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+		*/
+
+		def data = pyt;
+		return data;
+	}
+
+	def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+	@ProxyMethod
+	public def removeBusinessLedgerDetail( params ) {
+		def item = loan_ledger.read([objid: params?.objid], 'detail');
+		if (item) {
+			loan_ledger.delete(item, 'detail');
+		}
+	}
+
+	def checkIfNull( data, newdata ) {
+		if (!data) return newdata;
+		return data;
+	}
+
+	@ProxyMethod
+	public def saveBusinessLedgerDetail( params ) {
+		if (!params.ledgerid) throw new Exception('Please specify ledgerid.');
+
+		def ledger = loan_ledger.read([objid: params?.ledgerid]);
+		def app = loanapp.read([objid: ledger?.appid]);
+		def appc = loanapp.read([objid: app?.objid], 'loanapp_capture');
+
+
+		def sd = new LocalDate(parseDate(appc?.dtreleased));
+		def ed = new LocalDate(parseDate(params.dtschedule));
+		def day = Days.daysBetween(sd, ed).getDays();
+
+		def item = loan_ledger.read([objid: params?.objid], 'detail');
+		if (!item) {
+			item = [
+				objid			: params?.objid,
+				parentid 		: params?.ledgerid,
+				state 			: 'RECEIVED',
+				amtdue 			: checkIfNull(params?.amtpaid, 0),
+				interestdue 	: checkIfNull(params?.interestpaid, 0),
+				penaltydue 		: checkIfNull(params?.penaltypaid, 0),
+				amtpaid 		: checkIfNull(params?.amtpaid, 0),
+				interestpaid 	: checkIfNull(params?.interestpaid, 0),
+				penaltypaid 	: checkIfNull(params?.penaltypaid, 0),
+				amtbal 			: checkIfNull(params?.amtbal, 0),
+				interestbal 	: checkIfNull(params?.interestbal, 0),
+				penaltybal 		: checkIfNull(params?.penaltybal, 0),
+				dtpaid 			: params?.dtpaid,
+				refno 			: params?.refno,
+				day 			: day,
+				balance 		: checkIfNull(params?.balance, 0),
+				partialpayment 	: checkIfNull(params?.partialpayment, 0),
+				txndate 		: dateSvc.serverDate,
+				baseamount 		: checkIfNull(params?.baseamount, 0),
+				groupbaseamount : checkIfNull(params?.groupbaseamount, 0)
+			];
+			loan_ledger.create(item, 'detail');
+		} else {
+			item.putAll(params);
+			item.day = day;
+			loan_ledger.update(item, 'detail');
+		}
+	}
+}

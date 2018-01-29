@@ -1,0 +1,396 @@
+import com.rameses.annotations.*;
+import com.rameses.http.*;
+import com.rameses.osiris3.server.*;
+import com.rameses.util.*;
+import java.rmi.server.UID;
+
+class MobileTrackerService  
+{
+	@XConnection("mobile_tracker_poll")
+	def tracker_poll;
+
+	@ActiveDB(em="tracker", value="mobile_tracker")
+	def em; 
+
+	@ActiveDB("user")
+	def sys_user;
+
+	@ActiveDB("loan_route")
+	def loan_route;
+
+	@ActiveDB("ledger_billing")
+	def ledger_billing;
+
+	@Service('DateService')
+    def dateSvc;
+
+    @Service("BranchService")
+    def branchSvc;
+
+	@Service
+    def selfSvc;
+	
+	def FORMATTER = new java.text.SimpleDateFormat('yyyy-MMM-dd'); 
+	
+    @ProxyMethod
+    public Map create(Map params) {
+    	def branch = branchSvc.open([:]);
+		def entity = [
+			objid 		: (params.trackerid? params.trackerid : 'TRKR' + new UID()), 
+			state		: 'OPEN', 
+			terminalid	: params.terminalid,
+			dtfiled 	: dateSvc.serverDate,
+			branch 		: branch,
+			userid 		: params.userid, 
+			dtstart 	: dateSvc.serverDate,
+			startlng	: params.lng, 
+			startlat	: params.lat ,
+			user 		: getUser(params.userid)
+		];
+		em.create(entity); 
+		return entity;
+    }
+
+    @ProxyMethod
+    public void removeTracker(Map params) {
+    	em.delete([objid: params.trackerid]);
+    }
+
+    @ProxyMethod
+    public void addItem( params ) {
+    	def e = em.read([objid: params.parentid]);
+    	if (!e) throw new RuntimeException("'" + params.parentid + "' trackerid not found");
+    	if (e.state == 'CLOSED') throw new RuntimeException("This session has already been closed");
+
+    	def objid = e.objid + "-" + params.itemid;
+
+    	def item = em.read([objid: objid], "item");
+    	if (!item) {
+    		def billing = ledger_billing.read([objid: params.itemid], "billing-item");
+    		def branch = branchSvc.open([:]);
+    		item = [
+    			objid	 		: objid,
+    			parentid 		: params.parentid,
+    			billingitemid 	: params.itemid,
+    			item 			: billing?.item,
+    			branchid 		: branch.objid,
+    			description 	: ""
+    		];
+
+    		switch (item.item?.type?.toLowerCase()) {
+    			case 'followup'	: item.description = "FOLLOW-UP"; break;
+    			case 'special'	: item.description = "SPECIAL"; break;
+    			case 'route':
+    				def r = loan_route.read([code: item.item?.objid]);
+    				if (r) item.description = r.description;
+    				break;
+    		}
+
+    		em.create(item, "item");
+    	}
+
+    	//throw new RuntimeException("stopping");
+    }
+
+    @ProxyMethod
+    public void xaddRoute(Map params) {
+		//def entity = em.findByPrimary([objid: params.parentid]); 
+		def entity = em.read([objid: params.parentid]);
+		if (!entity) throw new Exception("'"+params.parentid+"' trackerid not found"); 
+		if (entity.state == 'CLOSED') throw new Exception('This session has already been closed'); 
+
+		//entity.user = getUser(entity.userid);
+		def route = em.findRouteByParentidAndCode(params);
+		if (!route) {
+			em.create(params, "route");
+		}
+    }
+
+    def getUser( userid ) {
+    println 'userid-> ' + userid;
+    	def user = sys_user.read([objid: userid]);
+    	if (!user) return null;
+
+    	return [
+    		objid		: user.objid,
+    		name		: user.username,
+    		lastname	: user.lastname,
+    		firstname	: user.firstname,
+    		middlename	: user.middlename
+    	];
+    }
+
+	@ProxyMethod
+	public Map start(Map params) {
+		//def mparas = [ objid: params.trackerid ];
+		//def entity = em.findByPrimary([objid: params.trackerid]); 
+		def entity = em.read([objid: params.trackerid]);
+		if (!entity) {
+			entity = create(params);
+		}//throw new Exception("'"+params.trackerid+"' trackerid not found"); 
+		entity.user = getUser(entity?.userid);
+
+
+		def prm = [
+			objid 	: entity.objid,
+			date 	: entity.dtstart
+		]
+		def isStarted = em.findBeginDetailByPrimary(prm);
+		if (!isStarted) {
+			def branch = branchSvc.open([:]);
+			def item = [
+				objid 		: "TRKRI" + new UID(), 
+				parentid 	: entity.objid, 
+				dtfiled 	: dateSvc.serverDate,
+				branch 		: branch,
+				txndate 	: entity.dtstart, 
+				txntype 	: 'NORMAL', 
+				refid 		: 'RID' + new UID(), 
+				reftype		: 'TRACK', 
+				lng 		: entity.startlng,  
+				lat 		: entity.startlat,
+				remarks 	: 'BEGIN MOBILE TRACKING',   
+				state 		: 1
+			]; 
+			em.create(item, 'detail'); 
+		}
+		return entity; 
+	}
+
+	@ProxyMethod
+	public Map stop(Map params) {
+		//def entity = em.findByPrimary([objid: params.trackerid]); 
+		def entity = em.read([objid: params.trackerid]);
+		if (!entity) throw new Exception("'"+params.trackerid+"' trackerid not found"); 
+		if (entity.state == 'CLOSED') throw new Exception('This session has already been closed'); 
+
+		entity.user = getUser(entity.userid);
+
+		entity.dtclosed 	= dateSvc.serverDate;
+		entity.closedby 	= params.username;
+		entity.closedremarks = 'SESSION CLOSED';
+		entity.closedlng	= params.lng;
+		entity.closedlat 	= params.lat;
+		entity.state 		= 'CLOSED';
+		em.update(entity, 'close-tracker'); 
+
+		def branch = branchSvc.open([:]);
+
+		def item = [
+			objid 		: "TRKRI" + new UID(), 
+			parentid 	: entity.objid, 
+			dtfiled 	: entity.dtclosed,
+			txndate 	: entity.dtclosed, 
+			txntype 	: 'NORMAL', 
+			refid 		: 'RID' + new UID(), 
+			reftype		: 'TRACK', 
+			lng 		: entity.closedlng,  
+			lat 		: entity.closedlat, 
+			remarks 	: 'END MOBILE TRACKING', 
+			branch 		: branch,
+			state 		: 1
+		]; 
+		em.create(item, 'detail'); 
+		return entity; 
+	} 
+
+	@ProxyMethod
+	public Map log(Map entity) {
+		//def info = em.findByPrimary([objid: entity.trackerid]); 
+		def info = em.read([objid: entity.trackerid]);
+		if (!info) throw new Exception("'"+entity.trackerid+"' trackerid not found"); 
+		//if (info.state == 'CLOSED') throw new Exception('This session has already been closed'); 
+
+		if (!entity.objid) entity.objid = "TRKRI" + new UID();
+		//def detail = em.findDetailByParentidAndRefid([parentid: info.objid, refid: entity.refid]);
+		def detail = em.read([objid: entity.objid], "detail");
+		if (!detail) {
+			def serverdate = dateSvc.serverDate;
+
+			if (!entity.branch) {
+				def branch = branchSvc.open([:]);
+				entity.branch = branch;
+			}
+
+			entity.parentid = info.objid; 
+			if (!entity.txndate) entity.txndate = serverdate;
+			if (!entity.dtfiled) entity.dtfiled = serverdate;
+			em.create(entity, 'detail'); 
+			selfSvc.publish(entity);
+		} 
+		return entity; 
+	} 
+
+	@ProxyMethod
+	public Map open(Map params) { 
+		//return em.findByPrimary([objid: params.objid]); 
+		def data = em.read([objid: params.objid]);
+		if (data) {
+			data.user = getUser(data?.userid);
+		}
+		return data;
+	} 
+
+	@ProxyMethod
+	public Map openLog(Map params) { 
+		//return em.findLog([objid: params.objid]); 
+		def log = em.read([objid: params.objid], "detail");
+		return log;
+	} 
+	
+	@ProxyMethod 	
+	public List getLogs(Map params) {
+		//def info = em.findByPrimary([objid: params.trackerid]); 
+		def info = em.read([objid: params.trackerid]);
+		if (!info) return []; 
+
+		//d.user = getUser(info.userid);
+		//params.parentid = info.objid;
+		def list = [];
+		params.objid = info.objid;
+		def xlist = em.getLogs(params);
+		xlist.each{ o->
+			def i = em.read([objid: o.objid], "detail");
+			if (i) list << i;
+		}
+		return list;
+	}
+
+	@ProxyMethod 	
+	public List getDetails(Map params) {
+		params.parentid = params.objid; 
+ 		return em.getDetails( params ); 
+	} 
+
+	@ProxyMethod
+	public List getDetailsWithBorrower(Map params) {
+		params.parentid = params.objid;
+		return em.getDetailsWithBorrower(params);
+	}
+
+	@ProxyMethod 	
+	public void refresh(Map params) {
+		//def info = em.findByPrimary([objid: params.trackerid]); 
+		def info = em.read([objid: params.trackerid]);
+		if (!info) return; 
+		info.user = getUser(info.userid);
+
+		def logs = em.getLogs([parentid: info.objid]); 
+		while (!logs.isEmpty()) {
+			selfSvc.publish(logs.remove(0)); 
+		}
+	}
+
+	public def showTrackerDetail( params ) {
+		def detail = em.read([objid: params.detailid], "detail");
+		return detail;
+	}
+
+	@ProxyMethod
+	@Async
+	public void publish(def data) { 
+		if (data != null) {
+			if (data.txndate) {
+				def s = data.txndate.toString().replaceAll('[-:. ]',''); 
+				data.indexno = Long.parseLong(s); 
+			} 
+			tracker_poll.send(data); 
+		} 
+	} 
+	
+	@ProxyMethod
+	public String getRoutesString( params ) {
+		//def routes = em.getRoutes([parentid: params.objid]).collect{ it.route.description }
+		//return routes.join(", ");
+		def m = em.read([objid: params.objid]);
+		if (m) {
+			return m.description;
+		}
+		return "";
+	}
+
+
+	@ProxyMethod 
+	public List getList( params ) {
+		if (!params._ordermode) params._ordermode='';
+
+		def list = [];
+		def xl;
+		if (params.itemid) {
+			xl = em.getListByItemid(params);
+		} else {
+			xl = em.getList(params); 
+		}
+		xl.each{ o-> 
+			def item = em.read([objid: o.objid]);
+			if (item) {
+				def user = sys_user.read([objid: o.userid]);
+				if (user) {
+					item.user = [
+						name		: user.username,
+						lastname	: user.lastname,
+						firstname	: user.firstname,
+						middlename	: user.middlename
+					];
+				}
+
+				def items = em.getItems([objid: o.objid]);
+				def desc = "";
+
+				items.each{ i->
+					def d = em.read([objid: i.objid], "item");
+					if (d && d.description) {
+						if (desc.trim().length() > 0) desc += ", ";
+						desc += d.description;
+					}
+				}
+
+				if (desc) item.description = desc;
+				//def routes = em.getRoutes([parentid: o.objid]).collect{ it.route.description }; 
+				//o.routes = routes.join(", ");
+				item.txndate = FORMATTER.format(item.dtstart);
+				list << item;
+			}
+		}
+		return list; 
+	} 
+
+	@ProxyMethod
+	public void synchronizeByBranch() {
+		def branch = branchSvc.open([:]);
+		def tb = em.read([objid: branch?.objid], "branch");
+		if (!tb) {
+			tb = branch;
+			em.create(tb, "branch");
+		}
+
+		def routes = loan_route.getList();
+		routes.each{ o->
+			def objid = branch.objid + "-" + o.code;
+			def r = em.read([objid: objid], "branch-route");
+			if (!r) {
+				r = [
+					objid	: objid,
+					parentid: tb.objid,
+					branchid: tb.objid,
+					route 	: o
+				];
+				em.create(r, "branch-route");
+			}
+		}
+	}
+
+	@ProxyMethod
+	public def getRoutesByBranch( params ) {
+		def list = [];
+		def xl = em.getRoutesByBranchid(params);
+		xl.each{ o->
+			def i = em.read([objid: o.objid], "branch-route");
+			if (i) {
+				i.description = i.route.description;
+				list << i;
+			}
+		}
+		return list;
+	}
+}

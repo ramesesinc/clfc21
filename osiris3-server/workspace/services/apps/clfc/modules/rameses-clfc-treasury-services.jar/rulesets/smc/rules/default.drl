@@ -1,0 +1,690 @@
+package smc;
+
+import java.util.*;
+import java.lang.*;
+import com.rameses.rules.common.*;
+
+global Map bindings;
+global String expr;
+global RuleAction action;
+global Map globalParams;
+
+declare Reference
+	isComputeAmount 	: Boolean
+	allowPosting		: Boolean
+	allowOffset 		: Boolean
+	onSupplyValue 		: Boolean
+	onPostPerItem		: Boolean
+	onPostLastItem 		: Boolean
+	onPostingComplete 	: Boolean
+	postingTerm 		: String
+	hasPostFieldPerItem : Boolean		
+end
+
+declare SMC
+	index				: int
+	postingSequence		: List
+	postingItems		: List
+	postingItem 		: Map
+	values 				: Map
+	bindings 			: Map
+	lastPostingItem 	: Map	
+end
+
+declare Payment
+	amountPaid 		: double
+	totalInterest 	: double
+	totalPenalty 	: double
+end
+
+function Date parseDateUtil( String date ) {
+	if (date == null) return null;
+
+	return java.sql.Date.valueOf(date);
+}
+
+function Map copyMap( Map src ) {
+	Map data = new HashMap();
+	data.putAll(src);
+	return data;
+}
+
+function void println( String text ) {
+	System.out.println(text);
+}
+
+rule "Compute Amount"
+when
+	Reference( isComputeAmount == true )
+then
+	if (bindings == null) bindings = new HashMap();
+
+	Map params = new HashMap();
+	params.put("amount", (new ActionExpression(expr, bindings)) );
+
+	action.execute("calcAmount", params, drools);
+end
+
+rule "initialization"
+salience 15000
+when
+	Reference( allowPosting == true, os: onSupplyValue, ao: allowOffset )
+	s: SMC()
+	eval((os != null && os == true) || (ao != null && ao == true))
+then
+	Map bindings2 = s.getBindings();
+	if (bindings2 == null) bindings2 = new HashMap();
+
+	Map data = copyMap(bindings2);
+	if (data != null && !data.isEmpty()) {
+		if (bindings == null) bindings = new HashMap();
+		bindings.putAll(data);
+	}
+end
+
+rule "Offset Field Value"
+salience 13000
+when
+	Reference( allowPosting == true, allowOffset == true )
+	s: SMC( idx: index, headers: postingSequence, item: postingItem, lastitem: lastPostingItem, bindings2: bindings )
+	p: Payment()
+	eval(idx < headers.size())
+then
+	Map seqitem = (Map) headers.get(idx);
+	if (seqitem == null) seqitem = new HashMap();
+	
+
+	Boolean flag = false;
+	if (seqitem.containsKey("allowoffset")) {
+		flag = Boolean.valueOf(seqitem.get("allowoffset").toString());
+	}
+
+	String expression = "return " + flag + ";";
+
+	Map params = new HashMap();
+
+	params.put("PAYMENT", p);
+	params.put("seqitem", seqitem);
+	params.put("bindings", bindings2);
+	params.put("lastitem", lastitem);
+	params.put("item", item);
+	params.put("action", (new ActionExpression(expression, bindings2)));
+
+	action.execute("offsetFieldValue", params, drools);
+
+	s.setIndex(idx + 1);
+	update(s);
+end
+
+rule "Proceed to Supply Field Value"
+salience 13000
+when
+	r: Reference( allowPosting == true, allowOffset == true )
+	s: SMC( idx: index, headers: postingSequence, items: postingItems, item: postingItem )
+	eval(idx >= headers.size())
+then
+	r.setAllowOffset(false);
+	r.setOnSupplyValue(true);
+	update(r);
+
+	if (item != null) {
+		item.put("idx", items.size());
+		item.put("isoffset", true);
+		items.add(item);
+		s.setPostingItems(items);
+	}
+
+	s.setValues(new HashMap());
+	s.setPostingItem(new HashMap());
+	s.setIndex(0);
+	update(s);
+end
+
+rule "Supply Field Value"
+salience 10000
+when
+	Reference( allowPosting == true, os: onSupplyValue == true )
+	s: SMC( idx: index, headers: postingSequence, items: postingItems, values: values, bindings2: bindings )
+	p: Payment()
+	eval(idx < headers.size())
+then
+	Map sequenceItem = (Map) headers.get(idx);
+	if (sequenceItem == null) sequenceItem = new HashMap();
+
+	String expression = "";
+	if (sequenceItem.containsKey("expr")) {
+		expression = sequenceItem.get("expr").toString();
+	}
+
+	/*
+	String datatype = "string";
+	if (sequenceItem.containsKey("datatype")) {
+		datatype = sequenceItem.get("datatype").toString();
+	}
+	*/
+	
+	Boolean updateValues = false;
+	if (values == null) {
+		values = new HashMap();
+		updateValues = true;
+	}
+
+	String fn = "";
+	if (sequenceItem.containsKey("name")) {
+		fn = sequenceItem.get("name").toString();
+	}
+
+	//println("field name " + fn + " expression " + expression);
+	//println("bindings " + bindings2 + "\n");
+
+	Map params = new HashMap();
+	params.put("seqitem", sequenceItem);
+	params.put("values", values);
+	params.put("bindings", bindings2);
+	params.put("items", items);
+	params.put("action", (new ActionExpression(expression, bindings2)));
+
+	action.execute("supplyFieldValue", params, drools);
+	//params.put("value", "value");
+
+	if (updateValues == true) {
+		s.setValues(values);
+	}
+	/*
+	if (params.containsKey("updateValues")) {
+		String val = params.get("updateValues").toString();
+		if (Boolean.valueOf(val)) {
+			s.setValues(values);
+		}
+	}
+	*/
+
+	/*
+	if (params.containsKey("value")) {
+		if (values == null) values = new HashMap();
+
+		values.put("idx", items.size());
+
+		String key = "value";
+		if (sequenceItem.containsKey("name")) {
+			key = sequenceItem.get("name").toString();
+		}
+		values.put(key, params.get("value"));
+
+		s.setValues(values);
+	}
+
+	if (params.containsKey("updateBindings")) {
+		String val = params.get("updateBindings").toString();
+		if (Boolean.valueOf(val)) {
+			bindings2 = (Map) params.get("bindings");
+			s.setBindings(bindings2);
+		}
+	}
+	*/
+
+	s.setIndex(idx + 1);
+	update(s);
+end
+
+rule "Proceed to Post Field Item: per item"
+salience 10000
+when
+	r: Reference( allowPosting == true, onSupplyValue == true )
+	s: SMC( idx: index, headers: postingSequence ) 
+	eval(idx >= headers.size())
+then
+	r.setOnSupplyValue(false);
+	r.setOnPostPerItem(true);
+	update(r);
+
+	s.setIndex(0);
+	update(s);
+end
+
+/*
+rule "Post Field Item"
+salience 8000
+when
+	Reference( allowPosting == true, onPostItem == true )
+	SMC( idx: index, headers: postingSequence )
+	eval(idx < headers.size())
+then
+	
+end
+*/
+
+rule "Post Field Item: per item"
+salience 8000
+when
+	Reference( allowPosting == true, onPostPerItem == true, postingterm: postingTerm )
+	s: SMC( idx: index, headers: postingSequence, values: values, item: postingItem )
+	p: Payment()
+	eval(idx < headers.size())
+then
+	Map seqItem = (Map) headers.get(idx);
+	if (seqItem==null) seqItem = new HashMap();
+
+	Map bindings2 = s.getBindings();
+	Map params = new HashMap();
+
+	String fieldname = "";
+	if (seqItem.containsKey("name")) {
+		fieldname = seqItem.get("name").toString();
+	}
+
+	Boolean flag = false;
+
+	if (seqItem.containsKey("postperitem")) {
+		String val = seqItem.get("postperitem").toString();
+		if (val != null) {
+			flag = Boolean.valueOf(val);
+		}
+	}
+
+	Boolean allowPost = flag;
+	Boolean constraintFlag = false;
+	if (seqItem.containsKey("constraints")) {
+		List list = (List) seqItem.get("constraints");
+		if (list != null && !list.isEmpty()) {
+			params.put("constraints", list);
+			params.put("item", item);
+			params.put("bindings", bindings2);
+
+			action.execute("buildConstraintExpression", params, drools);
+
+			String constraintExpr = params.get("constraintexpr").toString();
+			Map xbindings = (Map) params.get("bindings2");
+
+			params = new HashMap();
+
+			//println("constraint expr " + constraintExpr);
+			//println("bindings " + xbindings);
+			params.put("action", (new ActionExpression(constraintExpr, xbindings)));
+			action.execute("validateConstraintExpression", params, drools);
+
+			if (params.containsKey("value")) {
+				String val = params.get("value").toString();
+				if (val != null) {
+					allowPost = Boolean.valueOf(val);
+				}
+			}
+			//println("params " + params);
+		}
+	}
+	
+	String expression = "return " + allowPost + ";";
+
+	//println("fn->" + fieldname + " expression->" + expression);
+
+	params.put("postingterm", postingterm);
+	params.put("headers", headers);
+	params.put("PAYMENT", p);
+	params.put("seqitem", seqItem);
+	params.put("item", item);
+	params.put("values", values);
+	params.put("fieldname", fieldname);
+	params.put("bindings", bindings2);
+	params.put("action", (new ActionExpression(expression, bindings2)));
+	action.execute("postItem", params, drools);
+
+	if (params.containsKey("isPosted")) {
+		String val = params.get("isPosted").toString();
+		if (Boolean.valueOf(val)) {
+			item = (Map) params.get("item");
+			s.setPostingItem(item);
+		}
+	}
+
+	//println("fn-> " + fieldname + " params->" + params);
+
+	//println("payment " + p);
+
+	s.setIndex(idx + 1);
+	update(s);
+end
+
+
+rule "Check if proceed to Post Field Item: on last item"
+salience 8000
+when
+	r: Reference( allowPosting == true, onPostPerItem == true )
+	s: SMC( idx: index, headers: postingSequence, item: postingItem, bindings2: bindings )
+	Payment( amtpaid: amountPaid )
+	//eval(idx >= headers.size() || amtpaid <= 0)
+	eval(idx >= headers.size())
+then
+	r.setOnPostPerItem(false);
+	r.setOnPostLastItem(false);
+	r.setOnPostingComplete(false);
+
+	Calendar cal = Calendar.getInstance();
+
+	Date paymentDate = cal.getTime();
+	if (bindings2.containsKey("DATE_PAID")) {
+		String val = bindings2.get("DATE_PAID").toString();
+		paymentDate = parseDateUtil(val);
+	}
+
+	Date schedule = paymentDate;
+	/*
+	if (bindings.containsKey("CURRENT_SCHEDULE")) {
+		String val = bindings.get("CURRENT_SCHEDULE").toString();
+		schedule = parseDateUtil(val);
+	}
+	*/
+	if (bindings2.containsKey("CURRENT_SCHEDULE")) {
+		String val = bindings2.get("CURRENT_SCHEDULE").toString();
+		schedule = parseDateUtil(val);
+	}
+
+	//println("schedule " + schedule + " payment date " + paymentDate);
+	//println("amount paid " + amtpaid);
+	Boolean hasPostFieldPerItem = r.getHasPostFieldPerItem();
+
+	Boolean flag = false;
+	if (amtpaid <= 0) {
+		flag = true;
+	} else if (schedule.compareTo(paymentDate) >= 0) {
+		flag = true;
+	} else if (hasPostFieldPerItem != null && hasPostFieldPerItem == false) { 
+		flag = true;
+	}
+
+	if (flag == true) { 
+		r.setOnPostLastItem(true);
+
+		s.setIndex(0);
+		update(s);
+	}
+	/*
+	Date schedule = parseDate(bindings2.get("CURRENT_SCHEDULE").toString());
+	Date paymentDate = parseDate(bindings2.get("DATE_PAID").toString());
+
+	println("proceed false");
+	if (amtpaid <= 0) || schedule.compareTo(paymentDate) >= 0) {
+		println("proceed true");
+		r.setOnPostLastItem(true);
+
+		s.setIndex(0);
+		update(s);
+	}
+	*/
+	update(r);
+end
+
+rule "Post Field Item: on last item"
+salience 6000
+when
+	Reference( allowPosting == true, onPostLastItem == true, postingterm: postingTerm )
+	s: SMC( idx: index, headers: postingSequence, values: values, item: postingItem )
+	p: Payment()
+	eval(idx < headers.size()) //check current schedule with payment date
+then
+	Map seqItem = (Map) headers.get(idx);
+	Map bindings2 = s.getBindings();
+
+	String fieldname = "";
+	if (seqItem.containsKey("name")) {
+		fieldname = seqItem.get("name").toString();
+	}
+
+	Boolean flag = false;
+
+	if (seqItem.containsKey("postonlastitem")) {
+		String val = seqItem.get("postonlastitem").toString();
+		if (val != null) {
+			flag = Boolean.valueOf(val);
+		}
+	}
+
+	String expression = "return " + flag + ";";
+
+
+	Map params = new HashMap();
+
+	params.put("postingterm", postingterm);
+	params.put("headers", headers);
+	params.put("PAYMENT", p);
+	params.put("seqitem", seqItem);
+	params.put("item", item);
+	params.put("values", values);
+	params.put("fieldname", fieldname);
+	params.put("bindings", bindings2);
+	params.put("action", (new ActionExpression(expression, bindings2)));
+	action.execute("postItem", params, drools);
+
+	if (params.containsKey("isPosted")) {
+		String val = params.get("isPosted").toString();
+		if (Boolean.valueOf(val)) {
+			item = (Map) params.get("item");
+			s.setPostingItem(item);
+		}
+	}
+
+	s.setIndex(idx + 1);
+	update(s);
+
+end
+
+rule "Proceed to Add posting item to list"
+salience 6000
+when
+	r: Reference( allowPosting == true, onPostLastItem == true )
+	s: SMC( idx: index, headers: postingSequence, item: postingItem )
+	p: Payment()
+	eval(idx >= headers.size())
+then
+	r.setOnPostLastItem(false);
+	r.setOnPostingComplete(true);
+	update(r);
+
+	item.put("totalinterest", p.getTotalInterest());
+	item.put("totalpenalty", p.getTotalPenalty());
+	s.setPostingItem(item);
+	update(s);
+end
+
+rule "Add posting item to list"
+salience 4000
+when
+	r: Reference( allowPosting == true, onPostPerItem == false, onPostLastItem == false )
+	s: SMC( item: postingItem, items: postingItems )
+then
+	if (item != null) {
+		item.put("idx", items.size());
+		items.add(item);
+		s.setPostingItems(items);
+	}
+
+	Boolean postingcomplete = r.getOnPostingComplete();
+	if (postingcomplete == null || postingcomplete == false) {
+		s.setIndex(0);
+		s.setPostingItem(new HashMap());
+		s.setValues(new HashMap());
+		update(s);
+
+		r.setOnSupplyValue(true);
+		update(r);
+	}
+end
+
+/*
+rule "Add to list"
+salience 5000
+when
+	r: Reference( allowPosting == true, onPostItem == true )
+	s: SMC( items: postingItems, item: postingItem )
+
+then
+
+end
+*/
+
+/*
+rule "Post Field Item: on last item"
+salience 8000
+when
+	Reference( allowPosting == true, onPostItem == true )
+	s: SMC( idx: index, headers: postingSequence, item: postingItem )
+	p: Payment( amountPaid <= 0 )
+	eval(idx < headers.size())
+then 
+
+end
+*/
+
+/*
+rule "Proceed to add posting items"
+salience 8000
+when
+	r: Reference( allowPosting == true, onPostItem == true )
+	SMC( item: postingItem, items: postingItems )
+then
+
+end
+*/
+
+/*
+rule "Proceed to add posting items"
+salience 8000
+when 
+	r: Reference( allowPosting == true )
+	SMC( idx: index, headers: postingSequence )
+	eval(idx >= headers.size())
+then
+	r.setOnPostItem(false);
+	update(r);
+end
+
+rule "Add posting items with amount paid remaining"
+salience 5000
+when
+	r: Reference( allowPosting == true, onSupplyValue == false, onPostItem == false )
+	s: SMC( item: postingItem, items: postingItems )
+	Payment( amountPaid > 0)
+then
+	if (item != null && !item.isEmpty()) {
+		items.add(item);
+		s.setPostingItems(items);
+	}
+
+	s.setIndex(0);
+	s.setPostingItem(new HashMap());
+	update(s);
+
+	r.setOnSupplyValue(true);
+	update(r);
+end
+
+rule "Add posting items with no amount paid remaining"
+salience 5000
+when
+	r: Reference( allowPosting == true, onSupplyValue == false, onPostItem == false )
+	s: SMC( item: postingItem, items: postingItems )
+	Payment( amountPaid <= 0 )
+then
+	if (item != null && !item.isEmpty()) {
+		items.add(item);
+		s.setPostingItems(items);
+		update(s);
+	}
+
+	r.setAllowPosting(false);
+	update(r);
+end
+*/
+
+/*
+rule "Post Field Item"
+salience 5000
+when
+	Reference( allowPosting == true, onPostItem == true )
+	s: SMC( items: postingItems, item: postingItem )
+	p: Payment( amtpaid: amountPaid >= 0 )
+then
+	println("post field item");
+	if (item != null && !item.isEmpty()) {
+		items.add(item);
+		s.setPostingItems(items);
+	}
+
+	int i = 0;
+	for (; i<items.size(); i++) {
+		Map d = (Map) items.get(i);
+		println("idx " +  i + " " + d);
+	}
+	println("");
+
+	if (items.size() < 2) {
+		s.setIndex(0);
+		s.setPostingItem(new HashMap());
+	} else {
+		p.setAmountPaid(-1);
+		update(p);
+	}
+	update(s);
+end
+*/
+
+/*
+rule "Posting Test"
+when
+	Reference()
+then
+*/
+	/*
+	Map params = new HashMap();
+
+	Map item = new HashMap();
+
+	if (globalParams != null) params.putAll(globalParams);
+
+	params.put("action", (new ActionExpression(expr, bindings)));
+	params.put("item", item);
+
+	action.execute("postFieldItem", params, drools);
+	action.execute("addItem", params, drools);
+
+	if (params.containsKey("allowUpdate")) {
+		String val = params.get("allowUpdate").toString();
+		if (Boolean.valueOf(val)) {
+			update(r);
+		}
+	}
+	*/
+	/*
+	System.out.println("allow posting");
+
+	Boolean allowUpdate = false;
+	Map params = new HashMap();
+	System.out.println("params1 " + params);
+	if (action != null) action.execute("postItem", params, drools);
+	System.out.println("params2 " + params);
+
+	if (params.containsKey("allowUpdate")) {
+		String val = params.get("allowUpdate").toString();
+		System.out.println("val " + val);
+		if (val != null) {not
+			allowUpdate = Boolean.valueOf(val);
+		}
+	}
+
+	System.out.println("allow update " + allowUpdate);
+
+	if (allowUpdate == true) {
+		update(r);
+	}
+	*/
+
+	/*
+	if (params.containsKey("allowUpdate")) {
+		String val = params.get("allowUpdate");
+		//allowUpdate = Boolean.valueOf(params.get("allowUpdate").toString());
+	}
+
+	if (allowUpdate == true) {
+		update(r);
+	}
+	*/
+//end	

@@ -1,0 +1,1478 @@
+package amnestywaiver;
+import java.util.*;
+import java.text.*;
+
+global List results;
+global Map lastPayment;
+global Map floating;
+global Map resultMap;
+
+declare Payment
+	amountPaid 		: double
+	currentDay		: int
+	scheduleCounter : int
+	totalInterest	: double
+	totalPenalty	: double
+end
+
+declare References
+	amountPaid 					: double
+	balance						: double
+	noOfSchedule 				: int
+	interest 					: double
+	penalty 					: double
+	schedOfPayment 				: double
+	isProceed					: Boolean
+	isOffset					: Boolean
+	waiveInterest 				: Boolean
+	waivePenalty 				: Boolean
+	lessThanInterest 			: Boolean
+	lessThanInterestAndPenalty 	: Boolean
+	releaseDate					: Date
+	isExempted 					: Boolean
+	hasLacking 					: Boolean
+end
+
+declare CountSchedule
+	allowCount				: Boolean
+	isProceed				: Boolean
+	withinTerm 				: Boolean
+	isExempted 				: Boolean
+	noOfSchedule 			: int
+	term 					: int
+	currentDay 				: int
+	amountPaid 				: double
+	interest 				: double
+	penalty 				: double
+	lackingInterest 		: double
+	lackingPenalty 			: double
+	totalInterest 			: double
+	totalPenalty 			: double
+	startDate				: Date
+	endDate					: Date
+	waiveInterest 			: Boolean
+	waivePenalty 			: Boolean
+end
+
+rule "count no. of schedule: isproceed is false"
+	salience 100
+	when
+		c: CountSchedule(allowCount == true, isProceed == false)
+	then
+		int noofschedule = c.getNoOfSchedule();
+
+		boolean waiveinterest = c.getWaiveInterest();
+		boolean waivepenalty = c.getWaivePenalty();
+
+		if (waiveinterest == true && waivepenalty == true) {
+			noofschedule = 1;
+		} else {
+			double ti = c.getTotalInterest();
+			double tp = c.getTotalPenalty();
+
+			double amtpaid = c.getAmountPaid();
+
+			amtpaid -= (ti + tp);
+
+			Date startdate = c.getStartDate();
+
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(startdate);
+			cal.add(Calendar.DATE, noofschedule);
+
+			Date enddate = c.getEndDate();
+
+			double lackinginterest = c.getLackingInterest();
+			if (amtpaid > 0 && startdate.compareTo(enddate) <= 0) {
+
+				if (lackinginterest > 0) {
+					if (amtpaid > 0 && amtpaid >= lackinginterest) {
+						ti += lackinginterest;
+						lackinginterest = 0;
+						noofschedule++;
+					} else {
+						ti += amtpaid;
+						lackinginterest -= amtpaid;
+						amtpaid = 0;
+					}	
+				}
+
+				double lackingpenalty = c.getLackingPenalty();
+				if (lackingpenalty > 0) {
+					if (amtpaid > 0 && amtpaid >= lackingpenalty) {
+						tp += lackingpenalty;
+						lackingpenalty = 0;
+					} else {
+						tp += amtpaid;
+						lackingpenalty -= amtpaid;
+						amtpaid = 0;
+					}	
+				}
+
+				double interest = c.getInterest();
+				if (waiveinterest == false && interest > 0) {
+					if (amtpaid > 0 && amtpaid >= interest) {
+						ti += interest;
+						noofschedule++;
+					} else {
+						ti += amtpaid;
+						lackinginterest = interest - amtpaid;
+						amtpaid = 0;
+					}
+				}
+
+				double penalty = c.getPenalty();
+				if (waivepenalty == false && penalty > 0) {
+					if (amtpaid > 0 && amtpaid >= penalty) {
+						tp += penalty;
+					} else {
+						tp += amtpaid;
+						lackingpenalty = penalty - amtpaid;
+						amtpaid = 0;
+					}
+				}
+
+				c.setLackingInterest(lackinginterest);
+				c.setLackingPenalty(lackingpenalty);
+				c.setTotalInterest(ti);
+				c.setTotalPenalty(tp);
+				c.setNoOfSchedule(noofschedule);
+				update(c);
+			} else if (lackinginterest > 0 && startdate.compareTo(enddate) <= 0) {
+				noofschedule++;
+			}
+		}
+
+		resultMap.put("noofschedule", noofschedule);
+end
+
+rule "count no. of schedule: isproceed is true"
+	salience 100
+	when
+		c: CountSchedule(allowCount == true, isProceed == true)
+	then
+		int noofschedule = c.getNoOfSchedule();
+
+		boolean waiveinterest = c.getWaiveInterest();
+		boolean waivepenalty = c.getWaivePenalty();
+		boolean isexempted = c.getIsExempted();
+		boolean withinterm = c.getWithinTerm();
+
+		//if ((waiveinterest == true && waivepenalty == true) || withinterm == false) {
+		if (waiveinterest == true && waivepenalty == true) {
+			noofschedule = 1;
+		} else {
+			int term = c.getTerm();
+			int currentday = c.getCurrentDay();
+
+			if(currentday <= term && withinterm == true) {
+				currentday++;
+				double ti = c.getTotalInterest();
+				double tp = c.getTotalPenalty();
+
+				double amtpaid = c.getAmountPaid();
+
+				amtpaid -= (ti + tp);
+
+				double lackinginterest = c.getLackingInterest();
+				if (amtpaid > 0) {
+
+					if (amtpaid > 0 && lackinginterest > 0) {
+						if (amtpaid >= lackinginterest) {
+							amtpaid -= lackinginterest;
+							ti += lackinginterest;
+							noofschedule++;
+							lackinginterest = 0;
+						} else if (amtpaid < lackinginterest) {
+							lackinginterest -= amtpaid;
+							ti += amtpaid;
+							amtpaid = 0;
+						}
+					}
+
+					double lackingpenalty = c.getLackingPenalty();
+					if (amtpaid > 0 && lackingpenalty > 0) {
+						if (amtpaid >= lackingpenalty) {
+							amtpaid -= lackingpenalty;
+							tp += lackingpenalty;
+							lackingpenalty = 0;
+						} else if (amtpaid < lackingpenalty) {
+							lackingpenalty -= amtpaid;
+							tp += amtpaid;
+							amtpaid = 0;
+						}
+					}
+
+					double interest = c.getInterest();
+					if (amtpaid > 0 && waiveinterest == false && interest > 0) {
+						if (amtpaid >= interest) {
+							amtpaid -= interest;
+							ti += interest;
+							noofschedule++;
+						} else if (amtpaid < interest) {
+							interest -= amtpaid;
+							ti += amtpaid;
+							lackinginterest += interest;
+							amtpaid = 0;
+						}
+					}
+
+					double penalty = c.getPenalty();
+					if (amtpaid > 0 && waivepenalty == false && isexempted == false && penalty > 0) {
+						if (amtpaid >= penalty) {
+							amtpaid -= penalty;
+							tp += penalty;
+						} else if (amtpaid < penalty) {
+							penalty -= amtpaid;
+							tp += amtpaid;
+							lackingpenalty += penalty;
+							amtpaid = 0;
+						}
+					}
+
+					c.setTotalInterest(ti);
+					c.setTotalPenalty(tp);
+					c.setLackingInterest(lackinginterest);
+					c.setLackingPenalty(lackingpenalty);
+					c.setCurrentDay(currentday);
+					c.setNoOfSchedule(noofschedule);
+					update(c);
+				} else if (lackinginterest > 0) {
+					noofschedule++; 
+				}
+			} else {
+				//do nothing
+			}
+		}
+
+		resultMap.put("noofschedule", noofschedule);
+end
+
+
+
+
+/*
+rule "count no. of schedule"
+	salience 100
+	when
+		c: CountSchedule(allowCount == true)
+	then
+		boolean allowUpdate = false;
+
+		int noofschedule = c.getNoOfSchedule();
+
+		boolean waiveinterest = c.getWaiveInterest();
+		boolean waivepenalty = c.getWaivePenalty();
+
+		if (waiveinterest == true && waivepenalty == true) {
+			noofschedule = 1;
+		} else {
+			Date startdate = c.getStartDate();
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(startdate);
+
+			noofschedule++;
+			cal.add(Calendar.DATE, noofschedule);
+
+			Date enddate = c.getEndDate();
+
+			double interest = c.getInterest();
+			double penalty = c.getPenalty();
+
+			double amtpaid = c.getAmountPaid();
+
+			//double amt = noofschedule * (interest + penalty);
+			double amt = 0.00;
+			if (waiveinterest == false) {
+				amt += (noofschedule * interest);
+			}
+			if (waivepenalty == false) {
+				amt += (noofschedule * penalty);
+			}
+
+			double lackinginterest = c.getLackingInterest();
+			double lackingpenalty = c.getLackingPenalty();
+
+			//amt += lackinginterest;
+			//amt += lackingpenalty;
+
+			//amtpaid += lackinginterest;
+			//amtpaid += lackingpenalty;
+
+			//System.out.println("amount " + amt);
+			//System.out.println("amount paid " + amtpaid);
+
+			if ((amtpaid > amt) && (startdate.compareTo(enddate) <= 0)) {
+				allowUpdate = true;
+			} else {
+
+			}
+
+		}
+
+		if (allowUpdate == true) {
+			c.setNoOfSchedule(noofschedule);
+			update(c);
+		} else if (allowUpdate == false) {
+			resultMap.put("noofschedule", noofschedule);
+		}
+end
+*/
+
+rule "post waiver"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(isOffset == false, lessThanInterest == false, lessThanInterestAndPenalty == false, hasLacking == false, isProceed == false)
+	then
+		Map item = new HashMap();
+
+
+		boolean allowUpdate = false;
+
+
+		int currentday = p.getCurrentDay();
+		int schedCounter = p.getScheduleCounter();
+		int noofschedule = r.getNoOfSchedule();
+
+		Date dtreleased = r.getReleaseDate();
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		double amtpaid = p.getAmountPaid();
+		amtpaid -= (ti + tp);
+
+		boolean waiveinterest = r.getWaiveInterest();
+		boolean waivepenalty = r.getWaivePenalty();
+		boolean isexempted = r.getIsExempted();
+
+		if (schedCounter < noofschedule) {
+			if (waiveinterest == false) {
+				if (amtpaid >= interest) {
+					item.put("interest", interest);
+					amtpaid -= interest;
+					ti += interest;
+				} else {
+					if (amtpaid > 0 && amtpaid < interest) {
+						item.put("interest", amtpaid);
+						interest -= amtpaid;
+						item.put("lackinginterest", interest);
+						ti += amtpaid;
+					} else {
+						item.put("lackinginterest", interest);
+					}
+				}
+			}
+			if (waivepenalty == false && isexempted == false) {
+				if (amtpaid >= penalty) {
+					item.put("penalty", penalty);
+					amtpaid -= penalty;
+					tp += penalty;
+				} else {
+					if (amtpaid > 0 && amtpaid < penalty) {
+						item.put("penalty", amtpaid);
+						penalty -= amtpaid;
+						item.put("lackingpenalty", penalty);
+						tp += amtpaid;
+					} else {
+						item.put("lackingpenalty", penalty);
+					}
+				}
+			}
+			item.put("day", currentday);
+			results.add(item);
+			allowUpdate = true;
+			schedCounter++;
+			currentday++;
+		}
+
+		if (allowUpdate == true) {
+			p.setCurrentDay(currentday);
+			p.setScheduleCounter(schedCounter);
+			p.setTotalInterest(ti);
+			p.setTotalPenalty(tp);
+			update(p);
+		} else if (allowUpdate == false && results.size() > 0) {
+			Map lastitem = (Map) results.get(results.size() - 1);
+
+			double amt = r.getAmountPaid();//noofschedule * r.getSchedOfPayment();
+			amt -= (ti + tp);
+
+			double balance = r.getBalance();
+			if (amt > balance) {
+				balance = 0;
+			} else {
+				balance -= amt;
+			}
+
+			lastitem.put("partialpayment", amt);
+			lastitem.put("payment", r.getAmountPaid());
+			lastitem.put("balance", balance);
+			lastitem.put("totalinterest", ti);
+			lastitem.put("totalpenalty", tp);
+		}
+end
+
+rule "post waiver offset"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(isOffset == true, lessThanInterest == false, lessThanInterestAndPenalty == false, hasLacking == false, isProceed == false)
+	then
+		Map item = new HashMap();
+
+		boolean allowUpdate = false;
+
+		int currentday = p.getCurrentDay();
+		int schedCounter = p.getScheduleCounter();
+		int noofschedule = r.getNoOfSchedule();
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		boolean waiveinterest = r.getWaiveInterest();
+		boolean waivepenalty = r.getWaivePenalty();
+
+		boolean isexempted = r.getIsExempted();
+
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		double amtpaid = p.getAmountPaid();
+
+		amtpaid -= (ti + tp);
+
+		if (schedCounter < noofschedule) {
+			if (waiveinterest == false) {
+				if (amtpaid >= interest) {
+					item.put("interest", interest);
+					amtpaid -= interest;
+					ti += interest;
+				} else {
+					if (amtpaid > 0 && amtpaid < interest) {
+						item.put("interest", amtpaid);
+						interest -= amtpaid;
+						item.put("lackinginterest", interest);
+						ti += amtpaid;
+					} else {
+						item.put("lackinginterest", interest);
+					}
+				}
+			}
+			if (waivepenalty == false && isexempted == false) {
+				if (amtpaid > penalty) {
+					item.put("penalty", penalty);
+					amtpaid -= penalty;
+					tp += penalty;
+				} else {
+					if (amtpaid > 0 && amtpaid < penalty) {
+						item.put("penalty", amtpaid);
+						penalty -= amtpaid;
+						item.put("lackingpenalty", penalty);
+						tp += amtpaid;
+					} else {
+						item.put("lackingpenalty", penalty);
+					}
+				}
+			}
+
+			item.put("day", currentday);
+			currentday++;
+			schedCounter++;
+			results.add(item);
+			allowUpdate = true;
+		}
+
+		if (allowUpdate == true) {
+			p.setScheduleCounter(schedCounter);
+			p.setCurrentDay(currentday);
+			p.setTotalInterest(ti);
+			p.setTotalPenalty(tp);
+			update(p);
+		} else if (allowUpdate == false && results.size() > 0) {
+			Map lastitem = (Map) results.get(results.size() - 1);
+
+			double amt = p.getAmountPaid();
+			amt -= (ti + tp);
+
+			double balance = r.getBalance();
+			if (amt > balance) {
+				balance = 0;
+			} else {
+				balance -= amt;
+			}
+
+			lastitem.put("partialpayment", amt);
+			lastitem.put("payment", r.getAmountPaid());
+			lastitem.put("balance", balance);
+			lastitem.put("totalinterest", ti);
+			lastitem.put("totalpenalty", tp);
+		}
+end
+
+rule "post waiver: has lacking is true"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(isOffset == false, lessThanInterest == false, lessThanInterestAndPenalty == false, hasLacking == true, isProceed == false)
+	then
+		Map item = new HashMap();
+
+		boolean allowUpdate = false;
+
+		int currentday = p.getCurrentDay();
+		int schedCounter = p.getScheduleCounter();
+		int noofschedule = r.getNoOfSchedule();
+
+		double lackinginterest = 0.00;
+		if (lastPayment.containsKey("lackinginterest")) {
+			lackinginterest = Double.parseDouble(lastPayment.get("lackinginterest").toString());
+		}
+
+		double lackingpenalty = 0.00;
+		if (lastPayment.containsKey("lackingpenalty")) {
+			lackingpenalty = Double.parseDouble(lastPayment.get("lackingpenalty").toString());
+		}
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		double amtpaid = p.getAmountPaid();
+
+		amtpaid -= ti;
+		amtpaid -= tp;
+
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		boolean waiveinterest = r.getWaiveInterest();
+		boolean waivepenalty = r.getWaivePenalty();
+		boolean isexempted = r.getIsExempted();
+
+		if (schedCounter < noofschedule) {
+			if (waiveinterest == false) {
+				if (amtpaid > 0 && lackinginterest > 0) {
+					if (amtpaid >= lackinginterest) {
+						item.put("interest", lackinginterest);
+						amtpaid -= lackinginterest;
+						ti += lackinginterest;
+						lastPayment.put("lackinginterest", 0);
+					} else {
+						if (amtpaid > 0 && amtpaid < lackinginterest) {
+							item.put("interest", amtpaid);
+							lackinginterest -= amtpaid;
+							item.put("lackinginterest", lackinginterest);
+							lastPayment.put("lackinginterest", lackinginterest);
+							ti += amtpaid;
+						} else {
+							item.put("lackinginterest", lackinginterest);
+						}
+					}
+				} else if (amtpaid > 0) {
+					if (amtpaid >= interest) {
+						item.put("interest", interest);
+						amtpaid -= interest;
+						ti += interest;
+					} else {
+						if (amtpaid > 0 && amtpaid < interest) {
+							item.put("interest", amtpaid);
+							interest -= amtpaid;
+							item.put("lackinginterest", interest);
+							ti += amtpaid;
+						} else {
+							item.put("lackinginterest", interest);
+						}
+					}
+				}
+			}
+
+			if (waivepenalty == false && isexempted == false) {
+				if (amtpaid > 0 && lackingpenalty > 0) {
+					if (amtpaid >= lackingpenalty) {
+						item.put("penalty", lackingpenalty);
+						amtpaid -= lackingpenalty;
+						tp += lackingpenalty;
+						lastPayment.put("lackingpenalty", 0);
+					} else {
+						if (amtpaid > 0 && amtpaid < lackingpenalty) {
+							item.put("penalty", amtpaid);
+							lackingpenalty -= amtpaid;
+							item.put("lackingpenalty", lackingpenalty);
+							lastPayment.put("lackingpenalty", lackingpenalty);
+							tp += amtpaid;
+						} else {
+							item.put("lackingpenalty", lackingpenalty);
+						}
+					}
+				} else if (amtpaid > 0) {
+					if (amtpaid >= penalty) {
+						item.put("penalty", penalty);
+						amtpaid -= penalty;
+						tp += penalty;
+					} else {
+						if (amtpaid > 0 && amtpaid < penalty) {
+							item.put("penalty", amtpaid);
+							penalty -= amtpaid;
+							item.put("lackingpenalty", penalty);
+							tp += amtpaid;
+						} else {
+							item.put("lackingpenalty", penalty);
+						}
+					}
+				}
+			}
+
+			item.put("day", currentday);
+			results.add(item);
+			schedCounter++;
+			currentday++;
+			allowUpdate = true;
+		}
+
+		if (allowUpdate == true) {
+			p.setTotalInterest(ti);
+			p.setTotalPenalty(tp);
+			p.setScheduleCounter(schedCounter);
+			p.setCurrentDay(currentday);
+			update(p);
+		} else if (allowUpdate == false && results.size() > 0) {
+			Map lastitem = (Map) results.get(results.size() - 1);
+
+			double amt = r.getAmountPaid();
+			amt -= (ti + tp);
+
+			double balance = r.getBalance();
+			if (amt > balance) {
+				balance = 0;
+			} else {
+				balance -= amt;
+			}
+
+			lastitem.put("partialpayment", amt);
+			lastitem.put("payment", r.getAmountPaid());
+			lastitem.put("balance", balance);
+			lastitem.put("totalinterest", ti);
+			lastitem.put("totalpenalty", tp);
+		}
+end
+
+rule "post waiver offset: has lacking is true"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(isOffset == true, lessThanInterest == false, lessThanInterestAndPenalty == false, hasLacking == true, isProceed == false)
+	then
+		Map item = new HashMap();
+
+		//System.out.println("has lacking offset");
+
+		boolean allowUpdate = false;
+
+		double lackinginterest = 0.00;
+		if (lastPayment.containsKey("lackinginterest")) {
+			lackinginterest = Double.parseDouble(lastPayment.get("lackinginterest").toString());
+		}
+
+		double lackingpenalty = 0.00;
+		if (lastPayment.containsKey("lackingpenalty")) {
+			lackingpenalty = Double.parseDouble(lastPayment.get("lackingpenalty").toString());
+		}
+
+		int schedCounter = p.getScheduleCounter();
+		int currentday = p.getCurrentDay();
+		int noofschedule = r.getNoOfSchedule();
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		double amtpaid = p.getAmountPaid();
+
+		//System.out.println("amount paid-> " + amtpaid);
+		//System.out.println("total interest-> " + ti);
+		//System.out.println("total penalty-> " + tp);
+
+		amtpaid -= (ti + tp);
+
+		//System.out.println("amount paid2-> " + amtpaid);
+
+		boolean waiveinterest = r.getWaiveInterest();
+		boolean waivepenalty = r.getWaivePenalty();
+		boolean isexempted = r.getIsExempted();
+
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		/*
+		System.out.println("schedule counter " + schedCounter);
+		System.out.println("no of schedule " + noofschedule);
+		System.out.println("total interest " + ti);
+		System.out.println("total penalty " + tp);
+		System.out.println("lacking interest " + lackinginterest);
+		System.out.println("lacking penalty " + lackingpenalty);
+		*/
+
+		if (schedCounter < noofschedule) {
+			if (waiveinterest == false) {
+				if (amtpaid > 0 && lackinginterest > 0) {
+					if (amtpaid >= lackinginterest) {
+						item.put("interest", lackinginterest);
+						amtpaid -= lackinginterest;
+						ti += lackinginterest;
+						lastPayment.put("lackinginterest", 0);
+					} else {
+						if (amtpaid > 0 && amtpaid < lackinginterest) {
+							item.put("interest", amtpaid);
+							lackinginterest -= amtpaid;
+							item.put("lackinginterest", lackinginterest);
+							lastPayment.put("lackinginterest", lackinginterest);
+							ti += amtpaid;
+						} else {
+							item.put("lackinginterest", lackinginterest);
+						}
+					}
+				} else if (amtpaid > 0) {
+					//System.out.println("total interest-> " + ti + " total penalty-> " + tp);
+					//System.out.println("amtpaid-> " + amtpaid + " interest-> " + interest + "\n");
+					if (amtpaid >= interest) {
+						item.put("interest", interest);
+						amtpaid -= interest;
+						ti += interest;
+					} else {
+						if (amtpaid > 0 && amtpaid < interest) {
+							item.put("interest", amtpaid);
+							interest -= amtpaid;
+							item.put("lackinginterest", interest);
+							ti += amtpaid;
+						} else {
+							item.put("lackinginterest", interest);
+						}
+					}
+				}
+			}
+
+			if (waivepenalty == false && isexempted == false) {
+				if (amtpaid > 0 && lackingpenalty > 0) {
+					if (amtpaid >= lackingpenalty) {
+						item.put("penalty", lackingpenalty);
+						amtpaid -= lackingpenalty;
+						tp += lackingpenalty;
+						lastPayment.put("lackingpenalty", 0);
+					} else {
+						if (amtpaid > 0 && amtpaid < lackingpenalty) {
+							item.put("penalty", amtpaid);
+							lackingpenalty -= amtpaid;
+							item.put("lackingpenalty", lackingpenalty);
+							lastPayment.put("lackingpenalty", lackingpenalty);
+							tp += amtpaid;
+						} else {
+							item.put("lackingpenalty", lackingpenalty);
+						}
+					}
+				} else if (amtpaid > 0) {
+					if (amtpaid >= penalty) {
+						item.put("penalty", penalty);
+						amtpaid -= penalty;
+						tp += penalty;
+					} else {
+						if (amtpaid > 0 && amtpaid < penalty) {
+							item.put("penalty", amtpaid);
+							penalty -= amtpaid;
+							item.put("lackingpenalty", penalty);
+							tp += amtpaid;
+						} else {
+							item.put("lackingpenalty", penalty);
+						}
+					}
+				}
+			}
+
+			item.put("day", currentday);
+			results.add(item);
+			schedCounter++;
+			currentday++;
+			allowUpdate = true;
+		}
+
+		if (allowUpdate == true) {
+			p.setTotalInterest(ti);
+			p.setTotalPenalty(tp);
+			p.setScheduleCounter(schedCounter);
+			p.setCurrentDay(currentday);
+			update(p);
+		} else if (allowUpdate == false && results.size() > 0) {
+			Map lastitem = (Map) results.get(results.size() - 1);
+
+			double amt = p.getAmountPaid();
+			amt -= (ti + tp);
+
+			double balance = r.getBalance();
+
+			if (balance > amt) {
+				balance -= amt;
+			} else {
+				balance = 0;
+			}
+
+			lastitem.put("partialpayment", amt);
+			lastitem.put("payment", r.getAmountPaid());
+			lastitem.put("balance", balance);
+			lastitem.put("totalinterest", ti);
+			lastitem.put("totalpenalty", tp);
+		}
+end
+
+rule "amount paid less than or equal to interest"
+	when
+		p: Payment(amountPaid > 0)
+		//r: References(lessThanInterest == true, isOffset == false)
+		r: References(lessThanInterest == true, hasLacking == false, isProceed == false)
+	then
+		Map item = new HashMap();
+
+		double interest = r.getInterest();
+		double amt = p.getAmountPaid();
+
+		double li = 0;
+		//double li = interest - amt;
+		//if (li < 0) li = 0;
+
+		if (amt >= interest) {
+			amt -= interest;
+			item.put("interest", interest);
+			item.put("totalinterest", interest);
+		} else if (amt < interest) {
+			li = interest - amt;
+			item.put("interest", amt);
+			item.put("totalinterest", amt);
+		}
+
+		if (li < 0) li = 0;
+
+		double lp = 0;
+		boolean waivepenalty = r.getWaivePenalty();
+		if (waivepenalty == false) {
+			lp = r.getPenalty();
+		}
+
+		item.put("day", p.getCurrentDay());
+		item.put("payment", r.getAmountPaid());
+		item.put("balance", r.getBalance());
+		//item.put("interest", amt);
+		//item.put("totalinterest", amt);
+		item.put("lackingpenalty", lp);
+		item.put("lackinginterest", li);
+
+		results.add(item);
+end
+
+rule "amount paid less than or equal to interest: has lacking true"
+	when
+		p: Payment(amountPaid > 0)
+		//r: References(lessThanInterest == true, isOffset == false)
+		r: References(lessThanInterest == true, hasLacking == true, isProceed == false)
+	then
+		Map item = new HashMap();
+
+		double lackinginterest = 0.00;
+		if (lastPayment.containsKey("lackinginterest")) {
+			lackinginterest = Double.parseDouble(lastPayment.get("lackinginterest").toString());
+		}
+
+		double lackingpenalty = 0.00;
+		if (lastPayment.containsKey("lackingpenalty")) {
+			lackingpenalty = Double.parseDouble(lastPayment.get("lackingpenalty").toString());
+		}
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		double amtpaid = p.getAmountPaid();
+
+		int currentday = p.getCurrentDay();
+
+		boolean waiveinterest = r.getWaiveInterest();
+		boolean waivepenalty = r.getWaivePenalty();
+		boolean isexempted = r.getIsExempted();
+
+		boolean allowAdd = false;
+
+		item.put("day", currentday);
+		if (amtpaid > 0 && lackinginterest > 0) {
+			if (amtpaid >= lackinginterest) {
+				amtpaid -= lackinginterest;
+				item.put("interest", lackinginterest);
+				ti += lackinginterest;
+				currentday++;
+				lackinginterest = 0;
+				allowAdd = true;
+			} else if (amtpaid < lackinginterest) {
+				lackinginterest -= amtpaid;
+				item.put("interest", amtpaid);
+				ti += amtpaid;
+				//item.put("lackinginterest", lackinginterest);
+				amtpaid = 0;
+				allowAdd = true;
+			}
+			if (!item.isEmpty() && allowAdd == true) {
+				results.add(item);
+			}
+		}
+
+		if (amtpaid > 0 && lackingpenalty > 0) {
+			if (amtpaid >= lackingpenalty) {
+				amtpaid -= lackingpenalty;
+				item.put("penalty", lackingpenalty);
+				tp += lackingpenalty;
+				lackingpenalty = 0;
+			} else if (amtpaid < lackingpenalty) {
+				lackingpenalty -= amtpaid;
+				item.put("penalty", amtpaid);
+				tp += amtpaid;
+				amtpaid = 0;
+			}
+		}
+
+		item = new HashMap();
+		allowAdd = false;
+
+		item.put("day", currentday);
+		if (amtpaid > 0 && waiveinterest == false && interest > 0) {
+			if (amtpaid >= interest) {
+				amtpaid -= interest;
+				item.put("interest", interest);
+				ti += interest;
+				allowAdd = true;
+			} else if (amtpaid < interest) {
+				interest -= amtpaid;
+				item.put("interest", amtpaid);
+				lackinginterest += interest;
+				ti += amtpaid;
+				amtpaid = 0;
+				allowAdd = true;
+			}
+			if (!item.isEmpty() && allowAdd == true) {
+				results.add(item);
+			}
+		}
+
+		if (amtpaid > 0 && waivepenalty == false && isexempted == false && penalty > 0) {
+			if (amtpaid >= penalty) {
+				amtpaid -= penalty;
+				item.put("penalty", penalty);
+				tp += penalty;
+			} else if (amtpaid < penalty) {
+				penalty -= amtpaid;
+				item.put("penalty", amtpaid);
+				lackingpenalty += penalty;
+				tp += amtpaid;
+				amtpaid = 0;
+			}
+		}
+
+		if (results.size() > 0) {
+			Map lastitem = (Map) results.get(results.size() - 1);
+
+			double balance = r.getBalance();
+
+			double amt = r.getAmountPaid();
+			amt -= (ti + tp);
+
+			if (balance >= amt) {
+				balance -= amt;
+			} else if (balance < amt) {
+				balance = 0;
+			}
+
+			lastitem.put("payment", r.getAmountPaid());
+			lastitem.put("balance", balance);
+			lastitem.put("totalinterest", ti);
+			lastitem.put("totalpenalty", tp);
+			lastitem.put("lackinginterest", lackinginterest);
+			lastitem.put("lackingpenalty", lackingpenalty);
+		}
+
+end
+
+/*
+rule "amount paid less than or equal to interest: offset is true and has lacking true"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(lessThanInterest == true, isOffset == true, hasLacking == true)
+	then
+		Map item = new HashMap();
+
+		double lackinginterest = 0.00;
+		if (lastPayment.containsKey("lackinginterest")) {
+			lackinginterest = Double.parseDouble(lastPayment.get("lackinginterest").toString());
+		}
+
+		double lackingpenalty = 0.00;
+		if (lastPayment.containsKey("lackingpenalty")) {
+			lackingpenalty = Double.parseDouble(lastPayment.get("lackingpenalty").toString());
+		}
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		double amtpaid = p.getAmountPaid();
+
+		int currentday = 
+
+		item.put
+
+		System.out.println("offset is true and has lacking is true");
+
+		System.out.println("lacking interest " + lackinginterest);
+		System.out.println("lacking penalty " + lackingpenalty);
+end
+*/
+
+/*
+rule "amount paid less than or equal to interest"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(isOffset == true, lessThanInterest == true)
+	then
+		Map item = new HashMap();
+
+		boolean allowUpdate = false;
+
+		if (allowUpdate == true) {
+
+		} else if (allowUpdate == false && results.size() > 1) {
+			Map lastitem = (Map) result.get(results.size() - 1);
+		}
+end
+*/
+
+rule "amount paid less than or equal to interest + penalty"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(lessThanInterestAndPenalty == true, isOffset == false, hasLacking == false, isProceed == false)
+	then
+		Map item = new HashMap();
+
+		double amt = p.getAmountPaid();
+
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		double li = 0;
+		if (amt > 0) {
+			if (amt >= interest) {
+				amt -= interest;
+				item.put("interest", interest);
+				item.put("totalinterest", interest);
+			} else if (amt < interest) {
+				li = interest - amt;
+				item.put("interest", amt);
+				item.put("totalinterest", amt);
+				amt = 0;
+			}
+		}
+
+		double lp = 0;
+		if (amt > 0) {
+			if (amt >= penalty) {
+				amt -= penalty;
+				item.put("penalty", penalty);
+				item.put("totalpenalty", penalty);
+			} else if (amt < penalty) {
+				lp = penalty - amt;
+				item.put("penalty", amt);
+				item.put("totalpenalty", amt);
+				amt = 0;
+			}
+		}
+
+		item.put("day", p.getCurrentDay());
+		item.put("payment", r.getAmountPaid());
+		item.put("balance", r.getBalance());
+		item.put("lackinginterest", li);
+		item.put("lackingpenalty", lp);
+
+		results.add(item);
+end
+
+rule "amount paid less than or equal to interest + penalty: has lacking is true"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(lessThanInterestAndPenalty == true, hasLacking == true, isProceed == false)
+	then
+		Map item = new HashMap();
+
+		int currentday = p.getCurrentDay();
+
+		double lackinginterest = 0.00;
+		if (lastPayment.containsKey("lackinginterest")) {
+			lackinginterest = Double.parseDouble(lastPayment.get("lackinginterest").toString());
+		}
+
+		double lackingpenalty = 0.00;
+		if (lastPayment.containsKey("lackingpenalty")) {
+			lackingpenalty = Double.parseDouble(lastPayment.get("lackingpenalty").toString());
+		}
+
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		double amtpaid = p.getAmountPaid();
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		boolean waiveinterest = r.getWaiveInterest();
+		boolean waivepenalty = r.getWaivePenalty();
+		boolean isexempted = r.getIsExempted();
+
+		boolean allowAdd = false;
+
+		item.put("day", currentday);
+		if (amtpaid > 0 && lackinginterest > 0) {
+			if (amtpaid >= lackinginterest) {
+				amtpaid -= lackinginterest;
+				item.put("interest", lackinginterest);
+				ti += lackinginterest;
+				lackinginterest = 0;
+				currentday++;
+				allowAdd = true;
+			} else if (amtpaid < lackinginterest) {
+				lackinginterest -= amtpaid;
+				item.put("interest", amtpaid);
+				ti += amtpaid;
+				amtpaid = 0;
+				allowAdd = true;
+			}
+			if (!item.isEmpty() && allowAdd == true) {
+				results.add(item);
+			}
+		}
+
+		if (amtpaid > 0 && lackingpenalty > 0) {
+			if (amtpaid >= lackingpenalty) {
+				amtpaid -= lackingpenalty;
+
+				tp += lackingpenalty;
+				lackingpenalty = 0;
+			} else if (amtpaid < lackingpenalty) {
+				lackingpenalty -= amtpaid;
+				tp += amtpaid;
+				amtpaid = 0;
+			}
+		}
+
+		item = new HashMap();
+		allowAdd = false;
+
+		item.put("day", currentday);
+		if (amtpaid > 0 && waiveinterest == true && interest > 0) {
+			if (amtpaid >= interest) {
+				amtpaid -= interest;
+				item.put("interest", interest);
+				ti += interest;
+				currentday++;
+				allowAdd = true;
+			} else if (amtpaid < interest) {
+				interest -= amtpaid;
+				item.put("interest", amtpaid);
+				ti += amtpaid;
+				lackinginterest += interest;
+				amtpaid = 0;
+				allowAdd = true;
+			}
+
+			if (!item.isEmpty() && allowAdd == true) {
+				results.add(item);
+			}
+		}
+
+		if (amtpaid > 0 && waivepenalty == false && isexempted == false && penalty > 0) {
+			if (amtpaid <= penalty) {
+				amtpaid -= penalty;
+				tp += penalty;
+			} else if (amtpaid < penalty) {
+				penalty -= amtpaid;
+				tp += amtpaid;
+				amtpaid = 0;
+			}
+		}
+
+		if (results.size() > 0) {
+			Map lastitem = (Map) results.get(results.size() - 1);
+
+			double amt = r.getAmountPaid();
+
+			amt -= (ti + tp);
+
+			double balance = r.getBalance();
+
+			if (balance > amt) {
+				balance -= amt;
+			} else if (balance < amt) {
+				balance = 0;
+			}
+
+
+			lastitem.put("payment", r.getAmountPaid());
+			lastitem.put("balance", balance);
+			lastitem.put("totalinterest", ti);
+			if (waivepenalty == false && isexempted == false) {
+				lastitem.put("penalty", tp);
+				lastitem.put("totalpenalty", tp);
+			}
+			lastitem.put("lackinginterest", lackinginterest);
+			lastitem.put("lackingpenalty", lackingpenalty);
+		}
+end
+
+rule "proceed payment: has lacking is false"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(isOffset == false, isProceed == true, hasLacking == false)
+	then
+		Map item = new HashMap();
+		boolean allowUpdate = false;
+
+		int currentday = p.getCurrentDay();
+		int schedcounter = p.getScheduleCounter();
+		int noofschedule = r.getNoOfSchedule();
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		boolean waiveinterest = r.getWaiveInterest();
+		boolean waivepenalty = r.getWaivePenalty();
+		boolean isexempted = r.getIsExempted();
+
+		double amtpaid = r.getAmountPaid();
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		if (schedcounter < noofschedule) {
+			if (waiveinterest == false) {
+				if (amtpaid >= interest) {
+					item.put("interest", interest);
+					ti += interest;
+				} else {
+					if (amtpaid > 0 && amtpaid < interest) {
+						interest -= amtpaid;
+						item.put("interest", amtpaid);
+						item.put("lackinginterest", interest);
+						ti += amtpaid;
+						amtpaid = 0;
+					} else {
+						item.put("lackinginterest", interest);
+					}
+				}
+			}
+
+			if (waivepenalty == false && isexempted == false) {
+				if (amtpaid >= penalty) {
+					item.put("penalty", penalty);
+					tp += penalty;
+				} else {
+					if (amtpaid > 0 && amtpaid < penalty) {
+						penalty -= amtpaid;
+						item.put("penalty", amtpaid);
+						item.put("lackingpenalty", penalty);
+						tp += amtpaid;
+						amtpaid = 0;
+					} else {
+						item.put("lackingpenalty", penalty);
+					}
+				}
+			}
+
+			item.put("day", currentday);
+			results.add(item);
+			currentday++;
+			schedcounter++;
+			allowUpdate = true;
+		}
+
+		if (allowUpdate == true) {
+			p.setTotalInterest(ti);
+			p.setTotalPenalty(tp);
+			p.setCurrentDay(currentday);
+			p.setScheduleCounter(schedcounter);
+			update(p);
+		} else if (allowUpdate == false && results.size() > 0) {
+			Map lastitem = (Map) results.get(results.size() - 1);
+
+			double amt = r.getAmountPaid();
+			amt -= (ti + tp);
+
+			double balance = r.getBalance();
+
+			if (balance >= amt) {
+				balance -= amt;
+			} else if (balance < amt) {
+				balance = 0;
+			}
+
+			lastitem.put("partialpayment", amt);
+			lastitem.put("payment", r.getAmountPaid());
+			lastitem.put("balance", balance);
+			lastitem.put("totalinterest", ti);
+			if (tp > 0) {
+				lastitem.put("totalpenalty", tp);
+				lastitem.put("penalty", tp);
+			}
+		}
+end
+
+rule "proceed payment: has lacking is true"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(isOffset == false, isProceed == true, hasLacking == true)
+	then
+		Map item = new HashMap();
+
+		boolean allowUpdate = false;
+
+		int currentday = p.getCurrentDay();
+		int schedcounter = p.getScheduleCounter();
+		int noofschedule = r.getNoOfSchedule();
+
+		double ti = p.getTotalInterest();
+		double tp = p.getTotalPenalty();
+
+		double lackinginterest = 0;
+		if (lastPayment.containsKey("lackinginterest")) {
+			lackinginterest = Double.parseDouble(lastPayment.get("lackinginterest").toString());
+		}
+
+		double lackingpenalty = 0;
+		if (lastPayment.containsKey("lackingpenalty")) {
+			lackingpenalty = Double.parseDouble(lastPayment.get("lackingpenalty").toString());
+		}
+
+		double interest = r.getInterest();
+		double penalty = r.getPenalty();
+
+		double amtpaid = p.getAmountPaid();
+
+		amtpaid -= (ti + tp);
+
+		boolean waiveinterest = r.getWaiveInterest();
+		boolean waivepenalty = r.getWaivePenalty();
+		boolean isexempted = r.getIsExempted();
+
+		/*
+		System.out.println("sched counter " + schedcounter);
+		System.out.println("no of schedule " + noofschedule);
+		*/
+
+
+		if (schedcounter < noofschedule) {
+			if (waiveinterest == false) {
+				if (lackinginterest > 0) {
+					if (amtpaid > 0 && amtpaid >= lackinginterest) {
+						amtpaid -= lackinginterest;
+						item.put("interest", lackinginterest);
+						ti += lackinginterest;
+						lackinginterest = 0;
+						lastPayment.put("lackinginterest", lackinginterest);
+					} else if (amtpaid > 0 && amtpaid < lackinginterest) {
+						lackinginterest -= amtpaid;
+						item.put("interest", amtpaid);
+						ti += amtpaid;
+						lastPayment.put("lackinginterest", lackinginterest);
+						amtpaid = 0;
+					}
+				} else if (interest > 0) {
+					if (amtpaid > 0 && amtpaid >= interest) {
+						amtpaid -= interest;
+						item.put("interest", interest);
+						ti += interest;
+					} else if (amtpaid > 0 && amtpaid < interest) {
+						interest -= amtpaid;
+						item.put("interest", amtpaid);
+						ti += amtpaid;
+						lackinginterest += interest;
+						amtpaid = 0;
+					}
+				}
+			}
+
+			if (waivepenalty == false && isexempted == false) {
+				if (lackingpenalty > 0) {
+					if (amtpaid > 0 && amtpaid >= lackingpenalty) {
+						amtpaid -= lackingpenalty;
+						tp += lackingpenalty;
+						lackingpenalty = 0;
+						lastPayment.put("lackingpenalty", lackingpenalty);
+					} else if (amtpaid > 0 && amtpaid < lackingpenalty) {
+						lackingpenalty -= amtpaid;
+						tp += amtpaid;
+						lastPayment.put("lackingpenalty", lackingpenalty);
+						amtpaid = 0;
+					}
+				} else if (penalty > 0) {
+					if (amtpaid > 0 && amtpaid >= penalty) {
+						amtpaid -= penalty;
+						tp += penalty;
+					} else if (amtpaid > 0 && amtpaid < penalty) {
+						penalty -= amtpaid;
+						tp += amtpaid;
+						lackingpenalty += penalty;
+						amtpaid = 0;
+					}
+				}
+			}
+
+			item.put("day", currentday);
+			results.add(item);
+			currentday++;
+			schedcounter++;
+			allowUpdate = true;
+		}
+
+		if (allowUpdate == true) {
+			p.setCurrentDay(currentday);
+			p.setScheduleCounter(schedcounter);
+			update(p);
+		} else if (allowUpdate == false && results.size() > 0) {
+			Map lastitem = (Map) results.get(results.size() - 1);
+
+			double amt = r.getAmountPaid();
+			amt -= (ti + tp);
+
+			double balance = r.getBalance();
+
+			if (balance >= amt) {
+				balance -= amt;
+			} else if (balance < amt) {
+				balance = 0;
+			}
+
+
+			lastitem.put("partialpayment", amt);
+			lastitem.put("payment", r.getAmountPaid());
+			lastitem.put("balance", balance);
+			lastitem.put("totalinterest", ti);
+			if (tp > 0) {
+				lastitem.put("totalpenalty", tp);
+				lastitem.put("penalty", tp);
+			}
+			lastitem.put("lackinginterest", lackinginterest);
+			lastitem.put("lackingpenalty", lackingpenalty);
+		}
+
+end
+/*
+
+rule "amount paid less than or equal to interest + penalty: has lacking true"
+	when
+		p: Payment(amountPaid > 0)
+		r: References(lessThanInterestAndPenalty == true, isOffset == false, hasLacking == true)
+	then
+		Map item = new HashMap();
+
+		System.out.println("amount paid less than or equal to interest + penalty and has lacking is true");
+
+end
+*/

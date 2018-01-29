@@ -1,0 +1,736 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.server.common.*;
+import com.rameses.rules.common.*;
+import java.text.*;
+import java.rmi.server.UID;
+import loan.branch.actions.*;
+
+class LoanPaymentBranchService
+{
+	@ActiveDB('ledger_branchloan_posting')
+	def em;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('loanapp_capture')
+	def loanapp_capture;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('posting_setting')
+	def posting_setting;
+
+	@ActiveDB('branch_loan_interest')
+	def branch_loan_interest;
+
+	@ActiveDB('loan_product_type')
+	def loan_product_type;
+
+	@ActiveDB('calendar_event')
+	def calendar_event;
+
+	@ActiveDB('checkpayment')
+	def checkpayment;
+
+	@ActiveDB('collection_withpartial')
+	def collection_withpartial;
+
+	@ActiveDB('loan_ledger_adjustment')
+	def ledger_adjustment;
+
+	@ActiveDB('loan_ledger_payment')
+	def ledger_payment;
+
+	@Resource('RuleService')
+	def ruleSvc;
+
+	@Service('NumberService')
+	def numSvc;
+
+	@Service('DateService')
+	def dateSvc;
+		
+	@Service('LoanLedgerService')
+	def ledgerSvc;
+
+	@Service()
+	def selfSvc;
+
+	private def DATE_FORMAT = new SimpleDateFormat('yyyy-MM-dd');
+
+	@ProxyMethod
+	public def postPayment( params ) {
+		if (params.entity) {
+			params.txndate = params.entity.txndate;
+		}
+
+		//println 'date: ' + params.txndate;
+
+		def ledger = loan_ledger.findByAppId([appid: params.appid]);
+
+		if (params.isadjustment == true) {
+			return postAdjustment(params, ledger);
+		}
+
+		def interest = computeInterest(params, ledger);
+		ledger.interestamount = interest;
+		loan_ledger.update(ledger);
+
+		def app = loanapp.read([objid: ledger?.appid]);
+		if (!app.dtreleased) {
+			def lac = loanapp_capture.read(app);
+			if (lac) app.dtreleased = lac.dtreleased;
+		}
+
+		def pt = loan_product_type.read([name: app?.producttype?.name]);
+
+		def cal = Calendar.getInstance();
+		cal.setTime(parseDate(app?.dtreleased));
+
+		def lastpayment;
+		def lastitem = em.findLastDetailItemNotAdjustment([objid: ledger?.objid]);
+		if (lastitem) {
+			def info = lastitem.remove('info');
+			info = em.serializer.read(info);
+			lastitem.putAll(info);
+
+			lastpayment = loan_ledger.read([objid: lastitem?.paymentid], 'payment');
+			if (lastpayment?.lastdtschedule) {
+				cal.setTime(parseDate(lastpayment?.lastdtschedule));
+				//cal.add(Calendar.DATE, 1);
+			}
+		}
+
+
+
+		switch (pt?.paymentschedule) {
+			case 'ANNUAL' 	: cal.add(Calendar.YEAR, 1); break;
+			case 'MONTHLY'	: cal.add(Calendar.MONTH, 1); break;
+			case 'DAILY' 	: cal.add(Calendar.DATE, 1); break
+		}
+
+		def dtcurrentschedule = DATE_FORMAT.format(cal.getTime());
+		dtcurrentschedule = parseDate(dtcurrentschedule);
+
+		/*
+		if (params.withpartial == true) {
+			def txndate = parseDate(params.txndate);
+			if (dtcurrentschedule.compareTo(txndate) > 0) {
+				def xdate = cal.setTime(dtcurrentschedule);
+				switch (pt?.paymentschedule) {
+					case 'ANNUAL' 	: cal.add(Calendar.YEAR, -1); break;
+					case 'MONTHLY'	: cal.add(Calendar.MONTH, -1); break;
+					case 'DAILY' 	: cal.add(Calendar.DATE, -1); break
+				}
+
+
+				xdate = DATE_FORMAT.format(cal.getTime());
+				xdate = parseDate(xdate);
+
+				def wp = collection_withpartial.read([objid: params.withpartialid]);
+				def cp = checkpayment.read([objid: wp?.checkpaymentid]);
+
+				ledger.interestamount = computeDailyInterest(xdate, cp?.postingdate, interest);
+				dtcurrentschedule = txndate;
+			}
+		}
+		*/
+
+		def referenceFact = [
+			allowPosting		: true, 
+			onSupplyValue		: true, 
+			allowOffset 		: false,
+			postingTerm			: pt?.paymentschedule,
+			withPartialPayment 	: params?.withpartial
+		];
+
+
+		def headers = getPostingSequence(ledger);
+		headers?.each{ o->
+			if (o.postingexpr) o.expr = o.postingexpr;
+
+			//println 'posting-seq ' + o;
+		}
+
+		//throw new RuntimeException('stopping');
+
+		def pyt = loan_ledger.read([objid: params?.ledgerpaymentid], 'payment');
+
+		def loanFact = [:];
+		loanFact.index = 0;
+		loanFact.postingItems = [];
+		loanFact.postingSequence = headers;
+		loanFact.postingItem = [:];
+		loanFact.values = [:];
+		loanFact.bindings = [
+			CURRENT_SCHEDULE	: dtcurrentschedule,
+			AMOUNT 				: pyt?.amount,
+			AMOUNTPAID 			: pyt?.amount,
+			INTEREST 			: ledger?.interestamount,
+			BALANCE 			: ledger?.balance,
+			REFNO 				: pyt?.refno,
+			//DATE_PAID 			: java.sql.Date.valueOf('2005-12-07'),//pyt?.txndate,
+			DATE_PAID 			: pyt?.txndate,
+			REMARKS 			: ''
+		];
+
+		def interestpaid = 0;
+		def lackinginterest = 0;
+		if (lastitem?.lackinginterest) {
+			lackinginterest = lastitem.lackinginterest;
+			if (!lackinginterest) lackinginterest = 0;
+			loanFact.bindings.LACKINGINTEREST = lackinginterest;
+
+			interestpaid = lastitem.interestpaid;
+			if (!interestpaid) interestpaid = 0;
+			loanFact.bindings.INTERESTPAID = interestpaid;
+		}
+
+		def txndate = parseDate(params.txndate);
+
+		if (params.withpartial == true) {
+			if (params.entity) {
+				def cp = collection_withpartial.read([objid: params.withpartialid]);
+				cp.paymentid = params.ledgerpaymentid;
+				collection_withpartial.update(cp);
+			}
+
+			def intrst = computeDailyInterest(ledger.interestamount);
+			loanFact.partialPaymentDailyInterest = intrst;
+
+			def wp = collection_withpartial.read([objid: params.withpartialid]);
+			//def cp = checkpayment.read([objid: wp?.checkpaymentid]);
+			if (wp?.postingdate) loanFact.partialPaymentPostingDate = wp?.postingdate;
+
+			if (dtcurrentschedule.compareTo(txndate) > 0) {
+				def xdate = cal.setTime(dtcurrentschedule);
+				switch (pt?.paymentschedule) {
+					case 'ANNUAL' 	: cal.add(Calendar.YEAR, -1); break;
+					case 'MONTHLY'	: cal.add(Calendar.MONTH, -1); break;
+					case 'DAILY' 	: cal.add(Calendar.DATE, -1); break
+				}
+
+				loanFact?.bindings?.INTEREST = 0;
+				loanFact?.bindings?.LAST_SCHEDULE = loanFact?.bindings?.CURRENT_SCHEDULE;
+				loanFact?.bindings?.CURRENT_SCHEDULE = txndate;
+			}
+		}
+
+		def paymentFact = [
+			amountPaid 		: pyt?.amount,
+			totalInterest 	: 0,
+			totalPenalty 	: 0
+		];
+
+		def req = new RuleRequest('loanbranch');
+		req.addFact('loanbranch', 'References', referenceFact);
+		req.addFact('loanbranch', 'Loan', loanFact);
+		req.addFact('loanbranch', 'Payment', paymentFact);
+
+		def actions = new RuleAction(); 
+		actions.addCommand('postItem', new PostItem(NS: numSvc));
+		actions.addCommand('calcAmount', new CalcAmount(NS: numSvc));
+		actions.addCommand('supplyFieldValue', new SupplyFieldValue(NS: numSvc));
+		actions.addCommand('offsetFieldValue', new OffsetFieldValue(NS: numSvc));
+		actions.addCommand('buildConstraintExpression', new BuildConstraintExpression(SERVICE: selfSvc));
+		actions.addCommand('validateConstraintExpression', new ValidateConstraintExpression());
+		req.addGlobal('action', actions);
+
+		def lastpaymentdate;
+		if (ledger?.dtlastpaid) lastpaymentdate = parseDate(ledger?.dtlastpaid);
+
+		def totalpayment = 0;
+		if (lastpaymentdate && txndate.compareTo(lastpaymentdate) == 0) {
+			referenceFact.allowOffset = true;
+			referenceFact.remove('onSupplyValue');
+			if (!lastitem) lastitem = [:];
+			loanFact.lastPostingItem = lastitem;
+
+			if (lastpayment?.totalinterest > 0) {
+				paymentFact.totalInterest = lastpayment.totalinterest;
+			}
+
+			if (lastpayment?.totalpenalty > 0) {
+				paymentFact.totalPenalty = lastpayment.totalpenalty;
+			}
+
+
+			def pytlist = getPreviousPayments(ledger?.objid, params.txndate, pyt);
+
+			if (pytlist) {
+				def fp = pytlist[0];
+				fp = loan_ledger.read([objid: fp?.objid], 'payment');
+				loanFact?.bindings?.LACKINGINTEREST = 0;
+
+				if (fp?.lastitem?.lackinginterest) {
+					lackinginterest = fp.lastitem.lackinginterest;
+					if (!lackinginterest) lackinginterest;
+					loanFact?.bindings?.LACKINGINTEREST = fp.lastitem.lackinginterest;
+
+					interestpaid = fp.lastitem.interestpaid;
+					if (!interestpaid) interestpaid = 0;
+					loanFact?.bindings?.INTERESTPAID = interestpaid;
+				}
+				loanFact?.bindings?.LACKINGPENALTY = 0;
+				if (fp?.lastitem?.LACKINGPENALTY) {
+					loanFact?.bindings?.LACKINGPENALTY = fp?.lastitem?.lackingpenalty;
+				}
+			}
+
+			totalpayment = pytlist?.amount.sum();
+			if (!totalpayment) totalpayment = 0;
+
+			totalpayment += (pyt?.amount? pyt.amount : 0);
+
+			//if (loanFact.bindings.LACKINGINTEREST > 0) {
+				cal.setTime(dtcurrentschedule);
+
+				switch (pt?.paymentschedule) {
+					case 'ANNUAL' 	: cal.add(Calendar.YEAR, -1); break;
+					case 'MONTHLY'	: cal.add(Calendar.MONTH, -1); break;
+					default		 	: cal.add(Calendar.DATE, -1); break
+				}
+
+
+				dtcurrentschedule = DATE_FORMAT.format(cal.getTime());
+				dtcurrentschedule = parseDate(dtcurrentschedule);
+
+				loanFact?.bindings?.CURRENT_SCHEDULE = dtcurrentschedule;
+
+			//}
+
+			//smcFact.bindings?.AMOUNTPAID += amt;
+
+
+			//throw new RuntimeException('stopping');
+		}
+
+		def bindings = [:];
+		req.addGlobal('bindings', bindings);
+
+		/*
+		if (parseDate(pyt.txndate).compareTo(parseDate('2009-11-07')) == 0) {
+			println '\nbindings';
+			loanFact.bindings?.each{ println it }
+		} else if (parseDate(pyt.txndate).compareTo(parseDate('2009-11-10')) == 0) {
+			println '\nbindings';
+			loanFact.bindings?.each{ println it }
+		}
+		*/
+
+		//println 'bindings';
+		//loanFact.bindings?.each{ println it }
+
+		//loanFact.bindings?.each{ println it }
+		try {
+			ruleSvc.execute(req);
+			//println '';
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+
+		//throw new RuntimeException('stop posting');
+
+		//println '\nbindings2';
+		//loanFact.bindings?.each{ println it }
+
+		//throw new RuntimeException('stop posting');
+
+		def items = loanFact?.postingItems;
+
+		if (items) {
+			def li = items[items.size() - 1];
+			if (li?.balance >= 0) {
+				ledger.balance = li.balance;
+				loan_ledger.update([objid: ledger?.objid, balance: ledger?.balance], 'balance');
+			}
+
+			if (ledger?.balance <= 0) {
+				ledger.state = 'CLOSE';
+				loan_ledger.update([objid: ledger?.objid, state: ledger?.state]);
+				app.state = 'CLOSED';
+				loanapp.update([objid: app?.objid, state: app?.state]);
+				def apps = loanapp.read([objid: app?.objid], 'loanapp_search');
+				if (apps) {
+					apps.state = 'CLOSED';
+					loanapp.update([objid: apps?.objid, state: apps?.state], 'loanapp_search');	
+				}
+			}
+
+			if (referenceFact.allowOffset == true) {
+				if (!li.remarks) li.remarks = '';
+				li.remarks += totalpayment + ' Total Payment \n';
+			}
+			if (params.withpartial == true) {
+				if (!li.remarks) li.remarks = '';
+				li.remarks += 'With partial payment\n';
+			}
+		}
+
+		def lc = loanapp.read([objid: ledger.appid], 'loanapp_close');
+		if (lc) {
+			ledger.state = 'CLOSE';
+			loan_ledger.update([objid: ledger?.objid, state: ledger?.state]);
+			app.state = 'CLOSED';
+			loanapp.update([objid: app?.objid, state: app?.state]);
+			def apps = loanapp.read([objid: app?.objid], 'loanapp_search');
+			if (apps) {
+				apps.state = 'CLOSED';
+				loanapp.update([objid: apps?.objid, state: apps?.state], 'loanapp_search');	
+			}
+		}
+
+		def sequenceno = pyt?.txndate.toString() + pyt?.refno;
+
+		if (pyt?.lastdtschedule) {
+			pyt.remove('lastdtschedule');
+		}
+
+		if (pyt?.lastitem) {
+			pyt.remove('lastitem');
+		}
+
+		def totalinterest = 0, totalpenalty = 0;
+		items?.each{ o->
+			if (!o.objid) o.objid = 'LDTL' + new UID();
+			if (!o.parentid) o.parentid = ledger?.objid;
+			if (!o.sequenceno) o.sequenceno = sequenceno;
+			o.paymentid = pyt?.objid;
+
+			if (o.dtschedule) pyt.lastdtschedule = o.dtschedule;
+			
+			if (o.totalinterest > 0) totalinterest = o.totalinterest;
+			if (o.totalpenalty > 0) totalpenalty = o.totalpenalty;
+			//if (o.interest > 0) totalinterest += o.interest;
+			//if (o.penalty > 0) totalpenalty += o.penalty;
+
+			if (!o.remarks) o.remarks = '';
+
+			if (lackinginterest > 0 && o.interestpaid) o.interestpaid += interestpaid;
+
+			if (o.lackinginterest > 0) o.remarks += 'lacking interest: ' + o.lackinginterest + ' \n';
+			if (o.lackingpenalty > 0) o.remarks += 'lacking penalty: ' + o.lackingpenalty + ' \n';
+
+			o.remarks += addSundayRemarks(o.dtschedule);
+			o.remarks += addHolidayRemarks(o.dtschedule);
+
+			//println 'item ' + o;
+ 			em.create(o, 'posting-detail');
+		};
+
+		def xpyt = [
+			objid 			: pyt?.objid,
+			totalinterest 	: totalinterest,
+			totalpenalty 	: totalpenalty
+		];
+
+		if (!pyt?.lastdtschedule) {
+			def cs = loanFact.bindings.CURRENT_SCHEDULE;
+			cal.setTime(parseDate(cs));
+			switch (pt?.paymentschedule) {
+				case 'MONTHLY'  : cal.add(Calendar.MONTH, -1); break;
+				default 		: cal.add(Calendar.DATE, -1); break;
+			}
+			pyt?.lastdtschedule = parseDate(DATE_FORMAT.format(cal.getTime()));
+		}
+		//println 'lastschedule ' + pyt.lastdtschedule;
+		
+		xpyt.lastdtschedule = pyt?.lastdtschedule;
+		/*
+		if (pyt?.lastdtschedule) {
+			xpyt.lastdtschedule = pyt?.lastdtschedule;
+		}
+		*/
+
+		loan_ledger.update(xpyt, 'payment');
+
+		loan_ledger.update([objid: ledger?.objid, dtlastpaid: params.txndate], "dtlastpaid");
+
+		def res = [
+			txndate 	: pyt?.txndate,
+			ledgerid 	: ledger?.objid,
+			interest 	: totalinterest,
+			penalty 	: totalpenalty
+		]
+		//println '==============================================';
+		return res;
+	}
+
+	@ProxyMethod
+	public def buildConstraintExpression( params ) {
+		def bindings = [:];
+		def cons = params.constraints;
+
+		def list = cons?.findAll{ it.varname != null && !it.operator }
+		list?.each{ o->
+			bindings[o.varname] = params.bindings[o.field.name.toUpperCase()];
+			//bindings[o.varname] = params.item[o.field.name];
+			//println 'val1 ' + params.item[o.field.name] + ' val2 ' + params.bindings[o.field.name.toUpperCase()];
+			/*
+			if (o.field?.name?.matches('interest|penalty')) {
+				def fn = 'LACKING' + o.varname;
+				bindings[fn] = params.item['lacking' + o.field.name];
+				if (!bindings[fn]) bindings[fn] = 0;
+
+				fn = o.varname + 'PAID';
+				bindings[fn] = params.item[o.field.name + 'paid'];
+				if (!bindings[fn]) bindings[fn] = 0;
+			}
+			*/
+		}
+
+		params.bindings2 = bindings;
+
+		def expr = 'if (';
+		list = cons?.findAll{ it.operator != null }
+		list?.eachWithIndex{ o, idx->
+			switch (o.field.datatype) {
+				case 'decimal':
+					if (idx > 0) expr += ' && ';
+					def val = params.bindings[o.field.name.toUpperCase()];
+					if (!val) val = 0;
+
+					def val2 = params.item[o.field.name];
+					if (!val2) val2 = 0;
+
+					//println 'fn ' + o.field.name + ' val1 ' + val + ' val2 ' + val2;
+
+					val += val2;
+
+					expr += '(' + val + ' ' + o.operator.symbol + ' ';
+					if (o.usevar == 0) {
+						expr += o.intvalue;
+					} else if (o.usevar == 1) {
+						expr += o.var.name;
+					}
+					expr += ')';
+			}
+		}
+		expr += ') { return true; };'
+		expr += '\nelse { return false; };';
+
+		params.constraintexpr = expr;
+		//println 'constraint expr ' + expr;
+
+		/*
+		println 'bindings';
+		params.bindings?.each{ println it }
+		println '\nbindings2';
+		bindings?.each{ println it }
+		println '\nexpr ' + expr;
+		*/
+	}
+
+	def postAdjustment( params, ledger ) {
+		def ad = ledger_adjustment.read([objid: params.adjustmentid]);
+		def lastitem = em.findLastDetailItem([objid: ledger?.objid]);
+		if (lastitem && ad) {
+			def balance = ledger.balance;
+			lastitem = em.read([objid: lastitem?.objid], 'posting-detail');
+
+			def item = [
+				objid			: ad.objid,
+				parentid 		: ledger?.objid,
+				sequenceno 		: lastitem?.sequenceno,
+				idx 			: lastitem?.idx + 1,
+				paymentid 		: lastitem?.paymentid,
+				//balance 		: ledger?.balance,
+				//partialpayment 	: 0,//lastitem.partialpayment? lastitem.partialpayment : 0,
+				//interest 		: 0,//lastitem.interest? lastitem.interest : 0,
+				//penalty 		: 0,//lastitem.penalty? lastitem.penalty : 0,
+				totalinterest  	: lastitem.totalinterest? lastitem.totalinterest : 0,
+				totalpenalty 	: lastitem.totalpenalty? lastitem.totalPenalty : 0,
+				dtpaid 			: ad.txndate,
+				remarks 		: ad.remarks,
+				debit 			: ad.debit,
+				credit 			: ad.credit,
+				adjustmentid 	: ad.objid
+			];
+
+			def partialpayment = lastitem.partialpayment? lastitem.partialpayment : 0;
+			balance += partialpayment;
+			item.totalinterest -= lastitem.interest? lastitem.interest : 0;
+			item.totalpenalty -= lastitem.penalty? lastitem.penalty : 0;
+
+			switch (ad?.debit?.type) {
+				case 'interest':
+					item.interest = ad.debit.amount;
+					item.totalinterest += item.interest;
+					break;
+				case 'penalty':
+					item.penalty = ad.debit.amount;
+					item.totalpenalty += item.penalty;
+					break;
+				case 'partialpayment':
+					item.partialpayment = ad.debit.amount;
+					partialpayment += item.partialpayment;
+					break;
+			}
+
+			switch (ad?.credit?.type) {
+				case 'interest':
+					item.interest = ad.credit.amount;
+					break;
+				case 'penalty':
+					item.penalty = ad.credit.amount;
+					break;
+				case 'partialpayment':
+					item.partialpayment = ad.credit.amount;
+					partialpayment -= item.partialpayment;
+					break;
+			}
+
+			if (partialpayment != null) balance -= partialpayment;
+			//item.totalinterest += item.interest;
+			//item.totalpenalty += item.penalty;
+			em.create(item, "posting-detail");
+
+			ledger.balance = balance;
+			loan_ledger.update([objid: ledger?.objid, balance: ledger?.balance]);
+			/*
+			ledger?.balance += params.payamount;
+			loan_ledger.update([objid: ledger?.objid, balance: ledger?.balance]);
+
+
+			item.remarks = ad?.remarks;
+
+			em.create(item, 'posting-detail');
+			*/
+		}
+	}
+
+	def addSundayRemarks( date ) {
+		def rem = '';
+
+		if (date) {
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(date));
+
+			if (cal.get(Calendar.DAY_OF_WEEK) == 1) {
+				rem = 'Sunday\n';
+			}
+		}
+
+		return rem;
+	}
+
+	def addHolidayRemarks( date ) {
+		def rem = '';
+
+		def evt = calendar_event.findByDate([date: date]);
+		if (evt) rem = evt.name + '\n';
+
+		return rem;
+	}
+
+	def getPreviousPayments( ledgerid, date, payment ) {
+		def list = [];		
+		def pytlist = ledger_payment.getPaymentsByParentidAndTxndate([parentid: ledgerid, txndate: date]);
+		pytlist?.sort{ it.refno }
+
+		def itr = pytlist.iterator();
+		def itm;
+		while (itr.hasNext()) {
+			itm = itr.next();
+			if (itm?.objid == payment?.objid) {
+				break;
+			}
+
+			list << itm;
+		}
+
+		return list;
+	}
+
+	def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+	def computeDailyInterest( interest ) {
+		def amt = 0;
+
+		def intrst = interest/30;
+		intrst = new BigDecimal(String.valueOf(intrst)).setScale(2, BigDecimal.ROUND_HALF_UP);
+		amt = ledgerSvc.roundOffAmount(intrst);
+
+		if (!amt) amt = 0;
+		return amt;
+	}
+	/*
+	def computeDailyInterest( currentschedule, paymentdate, interest ) {
+		def amt = 0;
+
+		def days = dateSvc.getDaysDiff(currentschedule, paymentdate) - 1;
+		def intrst = interest/30;
+		intrst = new BigDecimal(String.valueOf(intrst)).setScale(2, BigDecimal.ROUND_HALF_UP);
+		intrst = ledgerSvc.roundOffAmount(intrst);
+		if (!days) days = 0;
+		interest = days * intrst;
+
+		if (!amt) amt = interest;
+		return amt;
+	}
+	*/
+
+	def computeInterest( params, ledger ) {
+		def referenceFact = [allowCompute: true];
+		def req = new RuleRequest('loanbranch');
+		req.addFact('loanbranch', 'References', referenceFact); 
+
+		def data = [:];
+		def actions = new RuleAction(); 
+		actions.addCommand('calcAmount', new CalcAmount(NS: numSvc, data: data));
+		req.addGlobal('action', actions);
+
+		def bindings = [:];
+		req.addGlobal('bindings', bindings);
+
+		def pt = loan_product_type.read([name: ledger.producttypeid]);
+		//def settings = branch_loan_interest.findActiveSettingByYear([year: dateSvc.getYear(params.txndate)]);
+		def intrate = pt?.interestrate;
+		if (!intrate) intrate = 0;
+
+
+		String expr = '' + ledger?.balance + ' * ' + intrate;
+		req.addGlobal('expr', expr);
+
+		try {
+			ruleSvc.execute(req);
+			//println '';
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		def amt = data?.amount;
+		if (!amt) amt = 0;
+
+		return amt;
+	}
+
+	def getPostingSequence( ledger ) {
+		def list = [];
+		def pos = posting_setting.findCurrentPostingSettingByType([type: 'BRANCH']);
+		if (pos) {
+			pos = posting_setting.read(pos);
+			pos?.postingsequence?.each{ o->
+				list << o;
+			}
+		}
+
+		list?.sort{ it.sequence }
+
+		return list;
+	}
+}	

@@ -1,0 +1,163 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class LoanCancelBillingRequestService extends ActiveCrudListService {
+
+	@Env
+	def env;
+
+	@ActiveDB("ledger_billing_cancelrequest")
+	def em;
+
+	@ActiveDB("ledger_billing")
+	def ledger_billing;
+
+	@ActiveDB("specialcollection")
+	def specialcollection;
+
+	@ActiveDB('datatxnlog')
+	def txnlog;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("InboxService")
+	def inboxSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: "txnstate", caption: "Status"];
+
+		cols << [name: "dtfiled", caption: "Date Requested"];
+		cols << [name: "author.name", caption: "Requested By"];
+		cols << [name: "billing.description", caption: "Billing"];
+		cols << [name: "billing.date", caption: "Date", type: "date", outputFormat: "MMM-dd-yyyy"];
+		cols << [name: "collector.name", caption: "Collector"];
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: "All"],
+			[caption: "PENDING", state: "PENDING"],
+			[caption: "FOR APPROVAL", state: "FOR_APPROVAL"],
+			[caption: "APPROVED", state: "APPROVED"],
+			[caption: "DISAPPROVED", state: "DISAPPROVED"]
+		]
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+		if (params.state) {
+			params._listMethod = "getListByState";
+		}
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		def data = approveImpl(params, 'APPROVED');
+
+		updateBillingItem(data.billing.itemid, "CANCELLED");
+		def bi = ledger_billing.read([objid: data.billing.itemid], "billing-item");
+		if (bi) {
+			bi.dtcancelled = data.dtposted;
+			bi.cancelledby = data.author;
+			ledger_billing.update(bi, "cancel-item");
+		}
+
+		def sc = specialcollection.read([objid: data.billing.itemid]);
+		if (sc) {
+			sc.dtcancelled = data.dtposted;
+			sc.cancelledby = data.author;
+			sc.cancelledby.remarks = data.remarks;
+			specialcollection.update(sc, "sc-cancel");	
+		}
+
+		updateSpecialCollection(data.billing.itemid, "CANCELLED");
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def disapproveDocument( params ) {
+		def data = approveImpl(params, 'DISAPPROVED');
+
+		updateBillingItem(data.billing.itemid, data.billing.state);
+		updateSpecialCollection(data.billing.itemid, data.billing.state);
+
+		return data;
+	}
+
+	private void updateBillingItem( itemid, state ) {
+		def bi = ledger_billing.read([objid: itemid], "billing-item");
+		if (bi) {
+			bi.state = state;
+			ledger_billing.update(bi, "billing-item");
+		}
+	}
+
+	private void updateSpecialCollection( itemid, state ) {
+		def sc = specialcollection.read([objid: itemid]);
+		if (sc) {
+			sc.state = state;
+			specialcollection.update(sc);
+		}
+	}
+
+	private def approveImpl( params, state ) {
+		def data = changeState(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = getUser();
+		em.update(data, "post");
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]); 
+
+		return open(data);
+	}
+
+	private def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new RuntimeException("Cancel billing request record does not exist or has already been deleted.");
+
+		if (data.txnstate == state) {
+			throw new RuntimeException("Cancel billing request has already been " + state + ".");
+		}
+
+		data.txnstate = state;
+		em.update(data);
+		
+		def action, remarks;
+		switch (state) {
+			case 'APPROVED' 		: action = 'Approve';
+									  remarks = 'Approved cancel billing request (' + data.billing.date + ' ' + data.billing.description;
+									  break;
+			case 'DISAPPROVED'		: action = 'Disapprove';
+									  remarks = 'Disapprove cancel billing request (' + data.billing.date + ' ' + data.billing.description;
+									  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+}

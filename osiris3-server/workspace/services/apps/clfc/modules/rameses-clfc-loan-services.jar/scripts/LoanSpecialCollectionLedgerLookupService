@@ -1,0 +1,65 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class LoanSpecialCollectionLedgerLookupService extends ActiveListService
+{
+	/*
+	@ActiveDB(value="specialcollection")
+	def em;
+	*/
+	@ActiveDB('specialcollection')
+	def em;
+
+	@Service("DateService")
+	def dateSvc;
+
+	String listMethod = 'getForSpecialCollectionList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'acctname', caption: 'Borrower'];
+		cols << [name: 'route.description', caption: 'Route Description'];
+		cols << [name: 'route.area', caption: 'Route Area'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		switch (params.type) {
+			case 'specialbilling': params._listMethod = 'getSpecialBillingList'; break;
+		}
+		//println 'params ' + params;
+		/*
+		if (!params.billdate) {
+			params.billdate = dateSvc.serverDate.split(' ')[0];
+		}
+		if (!params.collectorid) {
+			params.collectorid = '';
+		}
+		*/
+	}
+
+	@ProxyMethod
+	public def getOptions() {
+		return [
+			[caption: 'Ledgers'],
+			[caption: 'Special Billing', type: 'specialbilling']
+		];
+	}
+
+	/*
+	@ProxyMethod
+	public def getList( params ) {
+		params.billdate = params.billdate? params.billdate : dateSvc.serverDate;
+		params.billdate = params.billdate.toString().split(' ')[0];
+		params.collectorid = params.collectorid? params.collectorid : '';
+		params.searchtext = params.searchtext? params.searchtext+'%' : '%';
+		return em.getForSpecialCollectionList(params);
+	}
+	*/
+	
+}

@@ -1,0 +1,563 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+import java.text.*;
+import com.rameses.rules.common.*;
+import smc.actions.*;
+
+class AmnestyUpdateService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('amnesty_update')
+	def em;
+
+	@ActiveDB('ledgeramnesty_fix')
+	def ledgeramnesty_fix;
+
+	@ActiveDB('ledgeramnesty_smc')
+	def ledgeramnesty_smc;
+
+	@ActiveDB('ledgeramnesty')
+	def ledgeramnesty;
+
+	@ActiveDB('datatxnlog')
+	def txnlog;
+
+	@ActiveDB('ledgeramnesty_collection')
+	def ledgeramnesty_collection;
+
+	@ActiveDB('posting_setting')
+	def posting_setting;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('InboxService')
+	def inboxSvc;
+
+	@Service('LedgerAmnestyCaptureSMCService')
+	def captureSmcSvc;
+
+	@Service('NumberService')
+	def numSvc;
+
+	@Resource('RuleService')
+	def ruleSvc;
+
+	private def dateFormat = new SimpleDateFormat('yyyy-MM-dd');
+	private def dateFormat2 = new SimpleDateFormat('MMM. dd, yyyy');
+	private def decFormat = new DecimalFormat('#,##0.00');
+
+	private def SMC_DEFAULT_COND_LIST = ['AMOUNT', 'MATURITY_DATE'];
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'dtcreated', caption: 'Date Requested', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'author.name', caption: 'Requested By'];
+		cols << [name: 'amnesty.refno', caption: 'Ref. No.'];
+
+		if (params.state == 'APPROVED') {
+			cols << [name: 'dtposted', caption: 'Date Approved', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+			cols << [name: 'poster.name', caption: 'Approved By'];
+
+		} else if (params.state == 'DISAPPROVED') {
+			cols << [name: 'dtposted', caption: 'Date Disapproved', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+			cols << [name: 'poster.name', caption: 'Disapproved By'];
+
+		}
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		def states = [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'APPROVED', state: 'APPROVED'],
+			[caption: 'DISAPPROVED', state: 'DISAPPROVED']
+		];
+		return states;
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+
+	void beforeCreate( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = getUser();
+	}
+
+	void afterOpen( data ) {
+		switch (data.reftype?.toLowerCase()) {
+			case 'smc': smcAfterOpen(data); break;
+		}
+	}
+
+	void smcAfterOpen( data ) {
+		data?.update?.conditions?.each{ o->
+			o._allowremove = true;
+			def i = SMC_DEFAULT_COND_LIST?.find{ it == o.conditionid }
+			if (i) o._allowremove = false;
+
+		}
+
+	}
+
+	@ProxyMethod
+	public def getFixAmnestyInformation( params ) {
+		def data = [:];
+
+		data.amnesty = ledgeramnesty_fix.read(params);
+		data.availed = ledgeramnesty.read([objid: data?.amnesty?.refid], 'detail');
+
+		data.update = data.availed;
+		data.update.dtstarted = data.amnesty.dtstarted;
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def getSMCAmnestyInformation( params ) {
+		def data = [amnesty: [:], availed: [:], update: [:]];
+
+		def smc = ledgeramnesty_smc.read(params);
+		def am = [
+			objid		: smc?.objid,
+			refno 		: smc?.refno,
+			loanapp 	: smc?.loanapp,
+			borrower	: smc?.borrower,
+			dtstarted 	: smc?.dtstarted,
+			dtended		: smc?.dtended,
+			posting		: [term: smc?.postinginfo?.term, dtstarted: smc?.postinginfo?.dtstarted],
+			conditions 	: smc?.courtinfo?.conditions
+		]
+		data.amnesty = am;
+		data.update = am;
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def getSMCDefaultVarList() {
+		return captureSmcSvc.getDefaultVarList();
+	}
+
+	@ProxyMethod
+	public def getSMCTermList() {
+		return captureSmcSvc.getTermList();
+	}
+
+	@ProxyMethod
+	public def submitForApproval( params ) {
+		def data = changeState(params, 'FOR_APPROVAL');
+
+		def msginfo = [ 
+			objid 		: data.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: data.objid, 
+			filetype 	: 'amnesty:update', 
+			message 	: 'For approval amnesty update with Ref. No. ' + data?.amnesty?.refno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'AUDIT_APPROVER' 
+		]; 
+		inboxSvc.addMessage( msginfo );
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		def data = approveImpl(params, 'APPROVED');
+
+		def smc = ledgeramnesty_smc.read([objid: data?.amnesty?.objid]);
+
+		switch (data.reftype.toLowerCase()) {
+			case 'fix'	: afterApproveFixProcess(data); break;
+			case 'smc'	: afterApproveSMCProcess(data); break;
+		}
+
+		return data;
+	}
+
+	void afterApproveFixProcess( data ) {
+
+		def update = data.update;
+
+		def am = ledgeramnesty_fix.read(data.amnesty);
+		am.dtstarted = update.dtstarted;
+		am.amount = update.amount;
+
+		def desc = decFormat.format(am.amount) + ' ';
+
+		if (update.withmd == 1) {
+			
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(am.dtstarted));
+			
+			if (update.usedate == 1) {
+				def dt = parseDate(update.date);
+				cal.setTime(dt);
+				desc += 'until ' + dateFormat2.format(dt) + ' ';
+			} else if (!update.usedate || update.usedate == 0) {
+				if (update.month) {
+					cal.add(Calendar.MONTH, update.month);
+					desc += update.month + ' Month(s) ';
+				}
+				if (update.day) {
+					cal.add(Calendar.DATE, update.day);
+					desc += update.day + ' Day(s) ';
+				}
+			}
+
+			def md = parseDate(dateFormat.format(cal.getTime()));
+			am.dtended = md;
+		} else if (!update.withmd || update.withmd == 0) {
+			am.dtended = null;
+			desc += 'No Maturity Date ';
+		}
+		am.description = desc;
+		ledgeramnesty_fix.update(am);
+
+		def ac = ledgeramnesty_collection.findByRefid([refid: am?.objid]);
+		ac.description = am.description;
+		ac.dtstarted = am.dtstarted;
+		ac.dtended = am.dtended;
+
+		ledgeramnesty_collection.update(ac);
+
+		ac = ledgeramnesty.findActiveByRefid([refid: am?.objid]);
+		ac.description = am.description;
+		ac.dtstarted = am.dtstarted;
+		ac.dtended = am.dtended;
+
+		ledgeramnesty.update(ac, 'active');
+
+	}
+
+	void afterApproveSMCProcess( data ) {
+
+		def withinterest = false;
+		def i = data?.update?.conditions?.find{ it.conditionid == 'INTEREST' }
+		if (i) withinterest = true;
+
+
+		def smc = ledgeramnesty_smc.read([objid: data?.amnesty?.objid]);
+		if (!smc) throw new Exception('SMC record does not exist or has already been deleted.');
+
+		def update = data.update;
+
+		smc.courtinfo.dtstarted = update.dtstarted;
+		smc.postinginfo.dtstarted = update.posting.dtstarted;
+		smc.postinginfo.term = update.posting.term;
+
+
+		ledgeramnesty_smc.removePostingHeader([objid: smc.objid]);
+
+		def setting = posting_setting.findCurrentPostingSettingByType([type: 'SMC']);
+		if (setting) {
+			setting = posting_setting.read(setting);
+
+			if (withinterest == false) {
+				def regex = '(SCHEDULE_DATE|INTEREST)';
+
+				def xlist = setting?.postingheader?.findAll{ it.code.matches(regex) }
+				xlist?.each{ setting?.postingheader?.remove(it); }
+
+				setting?.postingheader?.sort{ it.sequence }
+				setting?.postingheader?.eachWithIndex{ o, idx->
+					o.index = idx;
+					o.sequence = (idx + 1);
+				}
+
+				xlist = setting?.postingsequence?.findAll{ it.code.matches(regex); }
+				xlist?.each{ setting?.postingsequence?.remove(it); }
+
+				setting?.postingsequence?.sort{ it.sequence }
+				setting?.postingsequence?.eachWithIndex{ o, idx->
+					o.index = idx;
+					o.sequence = (idx + 1);
+				}
+
+			}
+			def item, objid;
+			setting?.postingheader?.each{ o->
+				objid = o.code + smc?.objid;
+				item = ledgeramnesty_smc.read([objid: o.objid], 'posting-header');
+				if (!item) {
+					item = [objid: objid, refid: smc?.objid];
+					item.putAll(o);
+					ledgeramnesty_smc.create(item, 'posting-header');
+				}
+			}
+
+			smc.courtinfo.conditions = data.update.conditions;
+			smc?.postinginfo?.conditions = setting?.postingsequence;
+
+			ledgeramnesty_smc.update(smc);
+		}
+		
+		ledgeramnesty_smc.removeCondition([objid: smc.objid]);
+		smc.courtinfo.conditions?.each{ o->
+			if (!o.objid) o.objid = 'LSMCCOND ' + new UID();
+			if (!o.parentid) o.parentid = smc.objid;
+			ledgeramnesty_smc.create(o, 'condition');
+		}
+
+		def list = smc.courtinfo.conditions?.findAll{ it.expr != null }
+		computeConditions(smc, list);
+		calculateMaturityDate(smc);
+	}
+
+	void computeConditions( data, list ) {
+		def referenceFact = [isComputeAmount: true];
+
+		def bindings = [:];
+
+		def currdate = dateSvc.serverDate;
+
+		def varlist =  getSMCDefaultVarList();
+		varlist?.each{ o->
+			switch (o.handler) {
+				case 'date' 		: bindings.put(o.signature, currdate); break;
+				case 'expression' 	: bindings.put(o.signature, 0); break;
+			}
+		}
+
+		varlist = list?.findAll{ it.varname != null }
+		varlist?.each{ o->
+			switch (o.handler) {
+				case 'date' 		: bindings.put(o.varname, currdate); break;
+				case 'expression' 	: bindings.put(o.varname, 0); break;
+			}
+			//bindings.put(o.varname, 0);
+		}
+
+		if (bindings?.containsKey('CURRENT_DATE')) {
+			bindings.put('CURRENT_DATE', currdate);
+		}
+
+		def lastitem = loan_ledger.findLastLedgerItemByParentId([parentid: data?.ledger?.objid]);
+		if (lastitem) {
+			def cal = Calendar.getInstance();
+			cal.setTime(parseDate(data?.loanapp?.dtreleased));
+			cal.add(Calendar.DATE, lastitem?.day);
+
+			if (bindings?.containsKey('LAST_SCHEDULE_DATE')) {
+				bindings.put('LAST_SCHEDULE_DATE', cal.getTime());
+			}
+		}
+
+		def xdata = [:];
+
+		def expr, actions;
+		list?.sort{ it.index }
+		list?.each{ o->
+			xdata = [:]
+
+			def req = new RuleRequest("smc");
+			req.addFact("smc", "Reference", referenceFact); 
+
+			req.addGlobal("bindings", bindings);
+			actions = new RuleAction(); 
+			actions.addCommand( "calcAmount", new  CalcAmount(NS: numSvc, data: xdata) );
+			req.addGlobal('action', actions);
+
+
+			expr = o.expr;
+			if (!expr) expr = '';
+			req.addGlobal('expr', expr);
+
+			try {
+				ruleSvc.execute(req);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw e;
+			}
+
+			if (o.varname && bindings?.containsKey(o.varname)) {
+				bindings.put(o.varname, xdata?.amount);
+			} else if (o.conditionid && bindings?.containsKey(o.conditionid)) {
+				bindings.put(o.conditionid, xdata?.amount);
+			}
+
+			if (o.conditionid == 'AMOUNT') {
+				bindings.put("BALANCE", xdata?.amount);
+			}
+
+			switch (o.conditionid) {
+				case 'AMOUNT' 	: data.amount = xdata.amount; 
+								  data.balance = data.amount;
+								  break;
+				case 'BALANCE' 	: data.balance = xdata.amount; break;
+			}
+
+			def xitem = ledgeramnesty_smc.read([objid: o.objid], 'condition');
+			if (xitem) {
+				o.value = xdata.amount;
+				xitem.value = xdata.amount;
+				ledgeramnesty_smc.update(xitem, 'condition');
+			} 
+		}
+
+		ledgeramnesty_smc.update(data);
+	}
+
+	void calculateMaturityDate( data ) {
+		def xitem = ledgeramnesty_collection.read([objid: data?.objid]);
+		if (!xitem) throw new RuntimeException('SMC record does not exist or has already been deleted.');
+
+		data.dtstarted = data?.courtinfo?.dtstarted;
+
+		data.dtstarted = parseDate(dateFormat.format(parseDate(data.dtstarted)));
+		xitem.dtstarted = data.dtstarted;
+
+		def conditions = data?.courtinfo?.conditions;
+		def md_item = conditions?.find{ it.conditionid == 'MATURITY_DATE' }
+		if (md_item) {
+			def cal;
+			switch (md_item?.operator?.value) {
+				case 'specify'	: cal = Calendar.getInstance();
+								  cal.setTime(parseDate(md_item.date));
+								  break;
+				case 'term' 	: cal = Calendar.getInstance();
+								  cal.setTime(data?.dtstarted);
+								  if (md_item?.year > 0) cal.add(Calendar.YEAR, md_item.year);
+								  if (md_item?.month > 0) cal.add(Calendar.MONTH, md_item.month);
+								  if (md_item?.day > 0) cal.add(Calendar.DATE, md_item.day);
+								  break;
+			}
+
+			if (cal) {
+				data.dtended = parseDate(dateFormat.format(cal.getTime()));
+				data?.courtinfo?.dtended = data.dtended;
+				xitem.dtended = data.dtended;
+
+
+				if (data.dtstarted.compareTo(data.dtended) > 0) {
+					throw new Exception('Maturity Date must be greater than Effectivity Date.');
+				}
+			}
+		}
+
+		data.description = buildDescription(data);
+		xitem.description = data.description;
+
+		def ac = ledgeramnesty.findActiveByRefid([refid: data.objid]);
+		ac.dtstarted = data.dtstarted;
+		ac.description = data.description;
+
+		ledgeramnesty.update(ac, 'active');
+
+		ledgeramnesty_collection.update(xitem);
+
+		ledgeramnesty_smc.update(data);
+	}
+
+	def buildDescription( data ) {
+		def str = '';
+
+		def conditions = data?.courtinfo?.conditions;
+		def xitem = conditions?.find{ it.conditionid == 'AMOUNT' }
+		if (xitem) {
+			def amt = new BigDecimal(xitem.value).setScale(2, BigDecimal.ROUND_HALF_UP);
+			str += decFormat.format(amt) + ' ';
+		}
+
+		xitem = conditions?.find{ it.conditionid == 'MATURITY_DATE' }
+		if (xitem) {
+			if (xitem.stringvalue) str += xitem.stringvalue;
+		}
+
+		return str;
+	}
+
+	def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		def data = approveImpl(params, 'DISAPPROVED');
+
+		return data;
+	}
+
+	def approveImpl( params, state ) {
+		def data = changeState(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.poster = getUser();
+		em.update(data, 'post');
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+
+		return open(data);
+	}
+
+	def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Amnesty update record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Amnesty update record has already been ' + state);
+		}
+
+		data.txnstate = state;
+		em.update(data);
+
+		def action, remarks;
+		switch (state) {
+			case 'FOR_VERIFICATION'	: action = 'For Verification';
+								  	  remarks = 'Submitt for verification document with Ref. No. ' + data.refno;
+								  	  break;
+			case 'SEND_BACK' 		: action = 'Send Back';
+									  remarks = 'Send back document with Ref. No. ' + data.refno;
+									  break;
+			case 'VERIFIED'		    : action = 'Verify';
+									  remarks = 'Verify document with Ref. No. ' + data.refno;
+									  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+
+}

@@ -1,0 +1,5 @@
+provider=script
+app.host=119.92.151.226:8070
+app.cluster=osiris3
+app.context=clfc
+readTimeout=60000

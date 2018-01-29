@@ -1,0 +1,113 @@
+<schema>
+
+	<element tablename='ledgeramnesty_smc'>
+		<field name='objid' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='txnmode' required='true' />
+		<field name='txnstate' required='true' />
+		<field name='refno' required='true' />
+		<field name='borrower_objid' required='true' />
+		<field name='borrower_name' required='true' />
+		<field name='loanapp_objid' required='true' />
+		<field name='loanapp_appno' required='true' />
+		<field name='ledger_objid' required='true' />
+		<field name='ledger_dtreleased' required='true' />
+		<field name='ledger_dtmatured' required='true' />
+		<field name='amount' />
+		<field name='balance' />
+		<field name='dtstarted' />
+		<field name='dtended' />
+		<field name='dtfiled' />
+		<field name='filedby_objid' />
+		<field name='filedby_name' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<element name='balance' tablename='ledgeramnesty_smc'>
+		<field name='objid' primary='true' />
+		<field name='balance' required='true' />
+	</element>
+
+	<element name='file-document' tablename='ledgeramnesty_smc'>
+		<field name='objid' primary='true' />
+		<field name='dtfiled' required='true' />
+		<field name='filedby_objid' required='true' />
+		<field name='filedby_name' required='true' />
+	</element>
+
+	<element name='approve' tablename='ledgeramnesty_smc'>
+		<field name='objid' primary='true' />
+		<field name='dtfiled' required='true' />
+		<field name='filedby_objid' required='true' />
+		<field name='filedby_name' required='true' />
+	</element>
+
+	<element name='condition' tablename='ledgeramnesty_smc_condition'>
+		<field name='objid' primary='true' />
+		<field name='parentid' required='true' />
+		<field name='conditionid' required='true' />
+		<field name='title' required='true' />
+		<field name='expr' />
+		<field name='term' />
+		<field name='computationterm' />
+		<field name='index' required='true' />
+		<field name='value' />
+		<field name='datatype' />
+		<field name='year' />
+		<field name='month' />
+		<field name='day' />
+		<field name='date' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<element name='smc-document' tablename='ledgeramnesty_smc_document'>
+		<field name='objid' primary='true' />
+		<field name='parentid' required='true' />
+		<field name='code' required='true' />
+		<field name='title' required='true' />
+		<field name='reftype' required='true' />
+		<field name='qty' required='true' />
+	</element>
+
+	<element name='smc-fee' tablename='ledgeramnesty_smc_fee'>
+		<field name='objid' primary='true' />
+		<field name='parentid' required='true' />
+		<field name='code' required='true' />
+		<field name='title' required='true' />
+		<field name='reftype' required='true' />
+		<field name='amount' required='true' />
+	</element>
+
+	<element name='posting-header' tablename='ledgeramnesty_smc_posting_header'>
+		<field name='objid' primary='true' />
+		<field name='code' rqeuired='true' />
+		<field name='refid' required='true' />
+		<field name='title' required='true' />
+		<field name='name' required='true' />
+		<field name='sequence' required='true' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<element name='posting-detail' tablename='ledgeramnesty_smc_posting_detail'>
+		<field name='objid' primary='true' />
+		<field name='parentid' required='true' />
+		<field name='sequenceno' required='true' />
+		<field name='idx' required='true' />
+		<field name='paymentid' required='true' />
+		<field name='remarks' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<!--
+	<element name='condition' tablename='ledgeramnesty_smc_condition'>
+		<field name='objid' primary='true' />
+		<field name='parentid' required='true' />
+		<field name='conditionid' required='true' />
+		<field name='title' required='true' />
+		<field name='expr' required='true' />
+		<field name='term' />
+	</element>
+	-->
+</schema>

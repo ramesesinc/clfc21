@@ -1,0 +1,245 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+import java.text.SimpleDateFormat;
+
+class BorrowerNextToResolverService
+{
+	@Env
+	def env;
+
+	@ActiveDB('borrower_nextto')
+	def em;
+
+	@ActiveDB('loanapp_borrower')
+	def loanapp_borrower;
+
+	@ActiveDB('borrower')
+	def borrower;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('BranchService')
+	def branchSvc;
+
+	@ProxyMethod
+	public def getInfo( params ) {
+		def data = [
+			route 	: params.route
+		];
+
+		data.list = em.getBorrowersByRoutecode([searchtext: "%", routecode: data.route.code]);
+		//data.list.each{ println it }
+		data.startborrower = data.list.find{ it.borrower?.isstart==1 }
+
+		return data;
+	}
+
+	@ProxyMethod
+	public def getLedgers( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		def list = em.getBorrowersByRoutecode(params);
+
+		/*
+		def xlist = list.findAll{ it.nextto.objid }
+
+		println 'with next to size  ' + xlist?.size();
+
+		def ledgers = [];
+		*/
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def displayRouteLedgers( params ) {
+		params.searchtext = '%';
+		def list = em.getBorrowersByRoutecode(params);
+
+		def seqlist = [];
+		while (true) {			
+			def item = list.find{ it.borrower.isstart==1 }
+			if (!item) item = list.find{ it.nextto.objid != null };
+			if (!item) break;
+
+			def previtem;
+			while (item?.nextto?.objid != null) {
+				previtem = item;
+				item = list?.find{ it.borrower?.objid == item.nextto?.objid }
+				if (!item) {
+					item = previtem;
+					break;
+				}
+			}
+
+			def xitmlist;
+			while (item != null) {
+				xitmlist = list.findAll{ it.borrower.objid == item.borrower.objid }
+				xitmlist?.sort{ it.appno }
+				xitmlist?.each{ xitm->
+					seqlist << xitm;
+					list.remove(xitm);
+				}
+				item = list?.find{ it.nextto?.objid == item.borrower?.objid }
+			}
+		}
+
+		if (list) seqlist.addAll(list);
+
+
+		/*
+		def seqlist = [];
+		while (true) {
+			def xlist = list.findAll{ it.nextto.objid != null }
+			if (!xlist) break;
+
+			def item = xlist[0];
+			def previtem;
+			while (item?.nextto?.objid != null) {
+				previtem = item;
+				item = list?.find{ it.borrower?.objid == item.nextto?.objid }
+				if (!item) {
+					item = previtem;
+					break;
+				}
+			}
+
+			def xitmlist;
+			while (item != null) {
+				xitmlist = list.findAll{ it.borrower.objid == item.borrower.objid }
+				xitmlist?.sort{ it.appno }
+				xitmlist?.each{ xitm->
+					seqlist << xitm;
+					list.remove(xitm);
+				}
+				item = list?.find{ it.nextto?.objid == item.borrower?.objid }
+			}
+
+			//println '\nxlist size ' + xlist.size();
+			//println 'seqlist size ' + seqlist.size();
+		}
+		*/
+		/*
+		def xlist = list.findAll{ it.nextto.objid != null }
+		if (xlist) {
+
+			def item = xlist[0];
+			while (item?.nextto?.objid != null) {
+				item = list?.find{ it.borrower?.objid == item.nextto?.objid }
+				println 'item ' + item;
+			}
+
+			def seqlist = [];
+			while (item != null) {
+				seqlist << item;
+				item = list?.find{ it.nextto?.objid == item.borrower?.objid }
+				println 'item2 ' + item;
+			}
+
+			println 'xlist size ' + xlist.size();
+			println 'seqlist size ' + seqlist.size();
+		}
+		*/
+		return seqlist;
+	}
+
+
+	@ProxyMethod
+	public def setNextTo( params ) {
+		if (!params.borrowerid) throw new RuntimeException("Please specify borrowerid.");
+		if (!params.nexttoid) throw new RuntimeException("Please specify nexttoid.");
+		if (!params.routecode) throw new RuntimeException("Please specify routecode.");
+		/*
+		def b = borrower.read([objid: params.borrowerid]);
+		println 'borrower ' + b?.name;
+
+		def b2 = borrower.read([objid: params.nexttoid])
+		println 'next to ' + b2?.name;
+		*/
+
+		def list = em.getBorrowersByRoutecode([searchtext: "%", routecode: params.routecode]);
+		def b = borrower.read([objid: params.nexttoid]);
+		def nexttoid = params.nexttoid;
+		while (true) {
+			def item = list.find{ it.borrower.objid==nexttoid }
+			if (!item || !item.nextto.objid) {
+				break;
+			}
+			nexttoid = item.nextto.objid;
+			if (params.borrowerid == nexttoid) {
+				def msg = "Cannot set borrower next to " + b?.name + " because it will result in an infinite cycle for the collection sheet sequence. ";
+				msg += "To resolve this, make sure " + b?.name + " is not next to another borrower to avoid an infinite cycle for the collection sheet sequence.";
+				throw new RuntimeException(msg);
+			}
+		}
+
+		def item = em.findNextToByNexttoid(params);
+		if (item) {
+			item.nexttoid = params.borrowerid;
+			loanapp_borrower.update(item, 'nextto');
+		}
+
+		def data = em.findNextToByBorrowerid(params);
+		if (!data) {
+			data = [
+				objid	 	: 'LBN ' + new UID(),
+				borrowerid 	: params.borrowerid,
+				nexttoid 	: params.nexttoid
+			];
+			loanapp_borrower.create(data, 'nextto');
+		} else {
+			data.nexttoid = params.nexttoid;
+			loanapp_borrower.update(data, 'nextto');
+		}
+	}
+
+
+	@ProxyMethod
+	public def removeNextTo( params ) {
+		if (params.nextto.recordid) {
+			loanapp_borrower.delete([objid: params.nextto.recordid], 'nextto');
+		} else {
+			def nextto = em.findNextToByBorrowerid([borrowerid: params.borrower.objid]);
+			if (nextto) {
+				loanapp_borrower.delete(nextto, 'nextto');
+			}	
+		}
+	}
+
+	@ProxyMethod
+	public def setAsStartingBorrower( params ) {
+		def prevsb = params.prevstartborrower;
+		if (prevsb) {
+			loanapp_borrower.update([objid: prevsb.borrower.recordid, isstart: null]);
+		}
+
+		def sb = params.startborrower;
+		if (sb) {
+			sb.borrower.isstart = 1;
+			loanapp_borrower.update([objid: sb.borrower.recordid, isstart: sb.borrower.isstart]);
+		}
+
+		return sb;
+	}
+
+	@ProxyMethod
+	public def getReportData( params ) {
+		if (!params.routecode) throw new Exception('Please specify routecode.');
+
+		def list = displayRouteLedgers(params);
+
+		def currdate = dateSvc.serverDate;
+		def branch = branchSvc.open([:]);
+		def data = [
+			date_period 		: new SimpleDateFormat('MMM-dd-yyyy').format(currdate),//sd + " TO " + ed,//new SimpleDateFormat("yyyy-MMM-dd").format(java.sql.Date.valueOf(params.txndate+"")),
+			dtprinted			: new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a").format(currdate),
+			printedby 			: env.NAME,
+			items				: list
+		];
+		branch.each{ k, v->
+			data["branch_"+k] = v;
+		}
+		return data;
+	}
+}

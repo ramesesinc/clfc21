@@ -1,0 +1,37 @@
+<schema>
+	
+	<element tablename="loan_application">
+		<field name="objid" primary="true" />
+		<field name="dtcreated" required="true" />
+		<field name="author_objid" required="true" />
+		<field name="author_name" required="true" />
+		<field name="txnstate" required="true" />
+		<field name="appno" required="true" />
+		<field name="apptype" required="true" />
+		<field name="txnmode" required="true" />
+		<field name="txntype" />
+		<field name="borrower_objid" required="true" />
+		<field name="borrower_name" required="true" />
+		<field name="amount" required="true" />
+		<field name="dtreleased" required="true" />
+		<field name="dtmatured" />
+		<field name="producttype_name" required="true" />
+		<field name="producttype_term" required="true" />
+		<field name="route_code" required="true" />
+		<field name="loantype" required="true" />
+		<field name="loancount" required="true" />
+		<field name="purpose" required="true" />
+		<complex name="info" required="false" serializer="default" merge="true" />
+		<field name="dtposted" />
+		<field name="postedby_objid" />
+		<field name="postedby_name" />
+	</element>
+
+	<element name="post" tablename="loan_application">
+		<field name="objid" primary="true" />
+		<field name="dtposted" required="true" />
+		<field name="postedby_objid" required="true" />
+		<field name="postedby_name" required="true" />
+	</element>
+
+</schema>

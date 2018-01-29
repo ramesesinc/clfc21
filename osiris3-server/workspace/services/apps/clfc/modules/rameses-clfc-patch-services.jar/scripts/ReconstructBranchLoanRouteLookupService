@@ -1,0 +1,25 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class ReconstructBranchLoanRouteLookupService extends ActiveListService
+{
+	@ActiveDB('reconstruct_branchloan')
+	def em;
+
+	String listMethod = 'getRouteLookupList';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'code', caption: 'Code'];
+		cols << [name: 'description', caption: 'Description'];
+		cols << [name: 'area', caption: 'Area'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+	}
+}

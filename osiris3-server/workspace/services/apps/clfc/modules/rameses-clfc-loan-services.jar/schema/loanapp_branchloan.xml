@@ -1,0 +1,26 @@
+<schema>
+	
+	<element tablename='loanapp_branchloan'>
+		<field name='objid' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='appno' required='true' />
+		<field name='borrower_objid' required='true' />
+		<field name='borrower_name' required='true' />
+		<field name='appcount' required='true' />
+	</element>
+
+	<element name='detail' tablename='loanapp_branchloan_detail'>
+		<field name='objid' primary='true' />
+		<field name='parentid' required='true' />
+		<field name='refid' required='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='appno' required='true' />
+		<field name='dtreleased' required='true' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+</schema>

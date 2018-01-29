@@ -1,0 +1,825 @@
+package loanbranch;
+
+import java.util.*;
+import java.lang.*;
+import com.rameses.rules.common.*;
+
+global Map bindings;
+global String expr;
+global RuleAction action;
+
+declare References
+	allowCompute				: Boolean
+	allowPosting 				: Boolean
+	allowOffset 				: Boolean
+	onSupplyValue 				: Boolean
+	onPostPerItem 				: Boolean
+	onPostLastItem 				: Boolean
+	onPostingComplete 			: Boolean
+	postingTerm 				: String
+	withPartialPayment			: Boolean
+end
+
+declare Loan
+	index 						: int
+	postingSequence				: List
+	postingItems 				: List
+	postingItem 				: Map
+	values 						: Map
+	bindings 					: Map
+	lastPostingItem 			: Map	
+	partialPaymentDailyInterest : double
+	partialPaymentPostingDate 	: Date
+end
+
+declare Payment
+	amountPaid 	: double
+	totalInterest 	: double
+	totalPenalty 	: double
+end
+
+function Double parseDouble( String amt ) {
+	if (amt == null) return 0.00;
+	return Double.parseDouble(amt);
+}
+
+function Date parseDateUtil( String date ) {
+	if (date == null) return null;
+
+	return java.sql.Date.valueOf(date);
+}
+
+function Map copyMap( Map src ) {
+	Map data = new HashMap();
+	data.putAll(src);
+	return data;
+}
+
+function void println( String text ) {
+	System.out.println(text);
+}
+
+rule "Compute Amount"
+when
+	References( allowCompute == true )
+then
+	if (bindings == null) bindings = new HashMap();
+
+	Map params = new HashMap();
+	params.put("amount", (new ActionExpression(expr, bindings)) );
+
+	action.execute("calcAmount", params, drools);
+end
+
+rule "initialization"
+salience 15000
+when
+	r: References( allowPosting == true, os: onSupplyValue, ao: allowOffset )
+	l: Loan( bindings2: bindings )
+	eval((os != null && os == true) || (ao != null || ao == true))
+then
+	if (bindings2 == null) bindings2 = new HashMap();
+
+	Map data = copyMap(bindings2);
+	if (data != null && !data.isEmpty()) {
+		if (bindings == null) bindings = new HashMap();
+		bindings.putAll(data);
+	}
+end
+
+rule "Offset Field Value"
+salience 13000
+when
+	References( allowPosting == true, allowOffset == true )
+	l: Loan( idx: index, headers: postingSequence, item: postingItem, lastitem: lastPostingItem, bindings2: bindings )
+	p: Payment()
+	eval(idx < headers.size())
+then
+	Map seqitem = (Map) headers.get(idx);
+	if (seqitem == null) seqitem = new HashMap();
+	
+	Boolean flag = false;
+	if (seqitem.containsKey("allowoffset")) {
+		flag = Boolean.valueOf(seqitem.get("allowoffset").toString());
+	}
+
+	String expression = "return " + flag + ";";
+
+	Map params = new HashMap();
+
+	params.put("PAYMENT", p);
+	params.put("seqitem", seqitem);
+	params.put("bindings", bindings2);
+	params.put("lastitem", lastitem);
+	params.put("item", item);
+	params.put("action", (new ActionExpression(expression, bindings2)));
+
+	action.execute("offsetFieldValue", params, drools);
+
+	l.setIndex(idx + 1);
+	update(l);
+end
+
+rule "Proceed to Supply Field Value"
+salience 13000
+when
+	r: References( allowPosting == true, allowOffset == true )
+	l: Loan( idx: index, headers: postingSequence, items: postingItems, item: postingItem )
+	eval(idx >= headers.size())
+then
+	r.setAllowOffset(false);
+	r.setOnSupplyValue(true);
+	update(r);
+
+	if (item != null) {
+		item.put("idx", items.size());
+		items.add(item);
+		l.setPostingItems(items);
+	}
+
+	l.setValues(new HashMap());
+	l.setPostingItem(new HashMap());
+	l.setIndex(0);
+	update(l);
+end
+
+rule "Supply Field Value"
+salience 10000
+when
+	References( allowPosting == true, onSupplyValue == true )
+	l: Loan( idx: index, headers: postingSequence, items: postingItems, bindings2: bindings, values: values )
+	eval(idx < headers.size())
+then
+	Map seqItem = (Map) headers.get(idx);
+	if (seqItem == null) seqItem = new HashMap();
+
+	String expression = "";
+	if (seqItem.containsKey("expr")) {
+		expression = seqItem.get("expr").toString();
+	}
+
+	Boolean updateValues = false;
+	if (values == null) {
+		values = new HashMap();
+		updateValues = true;
+	}
+
+	Map params = new HashMap();
+	params.put("seqitem", seqItem);
+	params.put("values", values);
+	params.put("bindings", bindings2);
+	params.put("items", items);
+	params.put("action", (new ActionExpression(expression, bindings2)));
+
+	action.execute("supplyFieldValue", params, drools);
+
+	if (updateValues == true) {
+		l.setValues(values);
+	}
+
+	l.setIndex(idx + 1);
+	update(l);
+end
+
+rule "Proceed to Post Field Item: per item"
+salience 10000
+when
+	r: References( allowPosting == true, onSupplyValue == true )
+	l: Loan( idx: index, headers: postingSequence )
+	eval(idx >= headers.size())
+then
+	r.setOnSupplyValue(false);
+	r.setOnPostPerItem(true);
+	update(r);
+
+	l.setIndex(0);
+	update(l);
+end
+
+rule "Post Field Item: per item"
+salience 8000
+when
+	References( allowPosting == true, onPostPerItem == true, postingterm: postingTerm )
+	l: Loan( idx: index, headers: postingSequence, values: values, item: postingItem, bindings2: bindings )
+	p: Payment()
+	eval(idx < headers.size())
+then
+	//println("post field item per item");
+	Map seqItem = (Map) headers.get(idx);
+	if (seqItem == null) seqItem = new HashMap();
+
+	Boolean flag = false;
+
+	if (seqItem.containsKey("postperitem")) {
+		String val = seqItem.get("postperitem").toString();
+		if (val != null) {
+			flag = Boolean.valueOf(val);
+		}
+	}
+
+	Map params = new HashMap();
+
+	Boolean allowPost = flag;
+	Boolean constraintFlag = false;
+	if (seqItem.containsKey("constraints")) {
+		List list = (List) seqItem.get("constraints");
+		if (list != null && !list.isEmpty()) {
+			params.put("constraints", list);
+			params.put("item", item);
+			params.put("bindings", bindings2);
+
+			action.execute("buildConstraintExpression", params, drools);
+
+			String constraintExpr = params.get("constraintexpr").toString();
+			Map xbindings = (Map) params.get("bindings2");
+
+			params = new HashMap();
+
+			//println("constraint expr " + constraintExpr);
+			params.put("action", (new ActionExpression(constraintExpr, xbindings)));
+			action.execute("validateConstraintExpression", params, drools);
+
+			if (params.containsKey("value")) {
+				String val = params.get("value").toString();
+				if (val != null) {
+					allowPost = Boolean.valueOf(val);
+				}
+			}
+			//println("params " + params);
+		}
+	}
+
+	//Boolean constraintFlag = false;
+	/*
+	Boolean hasConstraint = false;
+	try {
+		hasConstraint = seqItem.containsKey("constraints");
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+	*/
+	//if (hasConstraint == true) {
+	//	params.put("contraints", seqItem.get("constraints"));
+
+		//action.execute("buildConstraintExpression", params, drools);
+	//}
+
+	//if (flag == true && (hasConstraint == false || (hasConstraint == true && constraintFlag == true))) {
+	//	allowPost = true;
+	//}
+
+	String expression = "return " + allowPost + ";";
+
+	params = new HashMap();
+
+	params.put("PAYMENT", p);
+	params.put("seqitem", seqItem);
+	params.put("values", values);
+	params.put("bindings", bindings2);
+	params.put("headers", headers);
+	params.put("item", item);
+	params.put("postingterm", postingterm);
+	params.put("action", (new ActionExpression(expression, bindings2)));
+
+	action.execute("postItem", params, drools);
+
+	l.setIndex(idx + 1);
+	update(l);
+end
+
+rule "Check if proceed to Post Field Item: on last item"
+salience 8000
+when
+	r: References( allowPosting == true, onPostPerItem == true, wp: withPartialPayment )
+	l: Loan( idx: index, headers: postingSequence, bindings2: bindings, item: postingItem )
+	Payment( amtpaid: amountPaid )
+	eval(idx >= headers.size())
+then
+	r.setOnPostPerItem(false);
+	r.setOnPostLastItem(false);
+	r.setOnPostingComplete(false);
+
+	
+	/*
+	Calendar cal = Calendar.getInstance();
+
+	Date paymentDate = cal.getTime();
+	if (bindings2.containsKey("DATE_PAID")) {
+		String val = bindings2.get("DATE_PAID").toString();
+		paymentDate = parseDateUtil(val);
+	}
+
+	Date schedule = paymentDate;
+	if (bindings.containsKey("CURRENT_SCHEDULE")) {
+		String val = bindings.get("CURRENT_SCHEDULE").toString();
+		schedule = parseDateUtil(val);
+	}		
+
+	if (amtpaid <= 0 || schedule.compareTo(paymentDate) >= 0) {
+	//if (amtpaid <= 0) {
+		r.setOnPostLastItem(true);
+
+		l.setIndex(0);
+		update(l);
+	}
+	*/
+
+	if (wp == true) {
+	
+		Calendar cal = Calendar.getInstance();
+
+		Date paymentDate = cal.getTime();
+		if (bindings2.containsKey("DATE_PAID")) {
+			String val = bindings2.get("DATE_PAID").toString();
+			paymentDate = parseDateUtil(val);
+		}
+
+		Date schedule = paymentDate;
+		if (bindings.containsKey("CURRENT_SCHEDULE")) {
+			String val = bindings.get("CURRENT_SCHEDULE").toString();
+			schedule = parseDateUtil(val);
+		}		
+
+		if (amtpaid <= 0 || schedule.compareTo(paymentDate) >= 0) {
+		//if (amtpaid <= 0) {
+			r.setOnPostLastItem(true);
+
+			l.setIndex(0);
+			update(l);
+		}
+	} else {
+		if (amtpaid <= 0) {
+			r.setOnPostLastItem(true);
+
+			l.setIndex(0);
+			update(l);
+		}
+	}
+	
+	//println("amtpaid " + amtpaid);
+	//println("posting item " + item);
+
+	update(r);
+end
+
+rule "Post Field Item: on last item"
+salience 6000
+when
+	References( allowPosting == true, onPostLastItem == true, postingterm: postingTerm )
+	l: Loan( idx: index, headers: postingSequence, values: values, item: postingItem, bindings2: bindings )
+	p: Payment()
+	eval(idx < headers.size()) //check current schedule with payment date
+then
+	Map seqItem = (Map) headers.get(idx);
+	if (seqItem == null) seqItem = new HashMap();
+
+	if (bindings2 == null) bindings2 = new HashMap();
+
+
+	Boolean flag = false;
+
+	if (seqItem.containsKey("postonlastitem")) {
+		String val = seqItem.get("postonlastitem").toString();
+		if (val != null) {
+			flag = Boolean.valueOf(val);
+		}
+	}
+
+	String expression = "return " + flag + ";";
+
+	Map params = new HashMap();
+
+	params.put("PAYMENT", p);
+	params.put("seqitem", seqItem);
+	params.put("values", values);
+	params.put("bindings", bindings2);
+	params.put("headers", headers);
+	params.put("item", item);
+	params.put("postingterm", postingterm);
+	params.put("action", (new ActionExpression(expression, bindings2)));
+
+	action.execute("postItem", params, drools);
+
+	if (params.containsKey("isPosted")) {
+		String val = params.get("isPosted").toString();
+		if (Boolean.valueOf(val)) {
+			item = (Map) params.get("item");
+			l.setPostingItem(item);
+		}
+	}
+
+	l.setIndex(idx + 1);
+	update(l);
+
+end
+
+rule "Proceed to Add posting item to list"
+salience 6000
+when
+	r: References( allowPosting == true, onPostLastItem == true )
+	l: Loan( idx: index, headers: postingSequence, item: postingItem )
+	p: Payment()
+	eval(idx >= headers.size())
+then
+	r.setOnPostLastItem(false);
+	r.setOnPostingComplete(true);
+	update(r);
+
+	item.put("totalinterest", p.getTotalInterest());
+	item.put("totalpenalty", p.getTotalPenalty());
+	l.setPostingItem(item);
+	update(l);
+end
+
+rule "Add posting item to list"
+salience 4000
+when
+	r: References( allowPosting == true, onPostPerItem == false, onPostLastItem == false )
+	l: Loan( item: postingItem, items: postingItems )
+	p: Payment()
+then
+	if (item != null) {
+		item.put("idx", items.size());
+		items.add(item);
+		l.setPostingItems(items);
+	}
+
+	Boolean postingcomplete = r.getOnPostingComplete();
+	if (postingcomplete == null || postingcomplete == false) {
+		l.setIndex(0);
+		l.setPostingItem(new HashMap());
+		l.setValues(new HashMap());
+		update(l);
+
+		r.setOnSupplyValue(true);
+		update(r);
+	} else if (postingcomplete == true) {
+		Boolean withpp = r.getWithPartialPayment();
+		if (withpp == true) {
+			Map bindings2 = (Map) l.getBindings();
+			Calendar cal = Calendar.getInstance();
+			String val = "";
+
+			Date sd = cal.getTime();
+			if (bindings2.containsKey("LAST_SCHEDULE")) {
+				val = bindings2.get("LAST_SCHEDULE").toString();
+				sd = parseDateUtil(val);
+			} else if (bindings.containsKey("CURRENT_SCHEDULE")) {
+				val = bindings.get("CURRENT_SCHEDULE").toString();
+				sd = parseDateUtil(val);
+			}
+
+			Date ed = l.getPartialPaymentPostingDate();
+			if (ed == null) {
+				ed = sd;
+			}
+			item.put("dtschedule", ed);
+
+			if (sd.compareTo(ed) > 0) {
+				cal.setTime(sd);
+
+				String postingterm = r.getPostingTerm();
+				if (postingterm != null && postingterm.equals("MONTHLY")) {
+					cal.add(Calendar.MONTH, -1);
+				}
+
+				sd = cal.getTime();
+				//val = String.valueOf(cal.getTime());
+				//sd = parseDateUtil(val);
+			}
+
+			double ppint = l.getPartialPaymentDailyInterest();
+						
+			Map xbindings = new HashMap();
+			xbindings.put("STARTDATE", sd);
+			xbindings.put("ENDDATE", ed);
+			xbindings.put("INTEREST", ppint);
+
+			///println("bindings " + xbindings);
+			String expression = "@DAYDIFF(STARTDATE, ENDDATE) * INTEREST";
+			Map params = new HashMap();
+
+			params.put("amount", (new ActionExpression(expression, xbindings)) );
+			action.execute("calcAmount", params, drools);
+
+			double amt = 0.00;
+			if (item.containsKey("interest")) {
+				amt = parseDouble(item.get("interest").toString());
+			}
+
+			double amt2 = 0.00;
+			if (params.containsKey("amount")) {
+				amt2 = parseDouble(params.get("amount").toString());
+				double ti = p.getTotalInterest();
+				ti += amt2;
+				item.put("totalinterest", ti);
+			}
+
+			amt += amt2;
+
+			item.put("interest", amt);
+
+			amt = 0.00;
+			if (item.containsKey("partialpayment")) {
+				amt = parseDouble(item.get("partialpayment").toString());
+			}
+
+			if (amt >= amt2) {
+				amt -= amt2;
+			}
+
+			item.put("partialpayment", amt);
+
+			amt = 0.00;
+			if (item.containsKey("balance")) {
+				amt = parseDouble(item.get("balance").toString());
+			}
+
+			amt += amt2;
+
+			item.put("balance", amt);
+
+			update(p);
+			r.setAllowPosting(false);
+			update(r);
+			/*
+			double amt = 0.00;
+			if (item.containsKey("interest")) {
+				amt = parseDouble(item.get("interest").toString());
+			}
+			double ppint = r.getPartialPaymentInterest();
+			if (ppint == null) {
+				ppint = 0.00;
+			}
+			amt += ppint;
+			item.put("interest", amt);
+			*/
+		}
+
+	}
+end
+
+/*
+package loanbranch;
+import java.util.*;
+global List results;
+global Map lastPayment;
+global Map floating;
+global Map resultMap;
+
+declare Payment
+	amountPaid		: double
+	lackingInterest	: double
+	balance			: double
+	days 			: int
+	currentSchedule	: int
+	addLacking 		: Boolean
+end
+
+declare References
+	amountPaid 			: double
+	interest 			: double
+	totalPayment 		: double
+	noOfSchedules 		: int
+	isFullPayment 		: Boolean
+	isOffset 			: Boolean
+	hasPartialPayment 	: Boolean
+end
+
+declare CurrentSchedule
+	allowGet 		: Boolean
+	runningDate 	: Date
+	currentDate		: Date
+	noOfSchedules 	: int
+	day 			: int
+	loantype		: String
+end
+
+declare ResolveScheduleDate
+	allowResolve 	: Boolean
+	runningDate 	: Date
+	currentSchedule : int
+	counter 		: int
+	loantype 		: String
+end
+
+declare ResolveSchedules
+	allowResolve	: Boolean
+	noOfSchedules 	: int
+	interest 		: double
+	amountPaid 		: double
+	lackingInterest : double
+	loantype 		: String
+end
+
+rule "resolve number of schedules monthly"
+	when
+		r: ResolveSchedules(allowResolve == true, loantype == "MONTHLY")
+	then
+		double amountpaid = r.getAmountPaid();
+		double interest = r.getInterest();
+
+		int noofschedules = r.getNoOfSchedules();
+
+		amountpaid -= (noofschedules * interest);
+
+		if (noofschedules <= 0) {
+			amountpaid = 0;
+		}
+
+		Boolean allowupdate = false;
+		if (amountpaid < 0) {
+			allowupdate = true;
+		}
+
+
+		if (allowupdate == true) {
+			noofschedules--;
+			r.setNoOfSchedules(noofschedules);
+			update(r);
+		} else if (allowupdate == false) {
+			if (noofschedules < 0) noofschedules = 0;
+			resultMap.put("noOfSchedules", noofschedules);
+		}
+
+end
+
+rule "resolve schedule date monthly"
+	when
+		r: ResolveScheduleDate(allowResolve == true, loantype == "MONTHLY")
+	then	
+		int counter = r.getCounter();
+		int currentschedule = r.getCurrentSchedule();
+
+		Date runningdate = r.getRunningDate();
+
+		Boolean allowupdate = true;
+		if (counter == currentschedule) {
+			allowupdate = false;
+		}
+
+		if (allowupdate == true) {
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(runningdate);
+			cal.add(Calendar.MONTH, 1);
+
+			counter++;
+			r.setCounter(counter);
+			r.setRunningDate(cal.getTime());
+			update(r);
+		} else if (allowupdate == false) {
+			resultMap.put("scheduledate", new java.text.SimpleDateFormat("yyyy-MM-dd").format(runningdate));
+		}
+end
+
+rule "get current schedule monthly"
+	when
+		c: CurrentSchedule(allowGet == true, loantype == "MONTHLY")
+	then
+		int noofschedules = c.getNoOfSchedules();
+
+		Date runningdate = c.getRunningDate();
+		Date currentdate = c.getCurrentDate();
+
+		Boolean allowupdate = true;
+		if (runningdate.compareTo(currentdate) > 0) {
+			allowupdate = false;
+		}
+
+		if (allowupdate == true) {
+			noofschedules++;
+
+			Calendar runCal = Calendar.getInstance();
+			runCal.setTime(runningdate);
+			runCal.add(Calendar.MONTH, 1);
+
+			c.setNoOfSchedules(noofschedules);
+			c.setRunningDate(runCal.getTime());
+			update(c);
+		} else if (allowupdate == false) {
+			if (noofschedules < 0) noofschedules = 0;
+			resultMap.put("noOfSchedules", noofschedules);
+		}
+end
+
+rule "amount paid less than equal to total payment"
+	when
+		r: References(amtpaid: amountPaid <= totalPayment, hasPartialPayment == false, isOffset == false, isFullPayment == false)
+		p: Payment()
+	then
+		Map listItem = new HashMap();
+
+		int currentschedule = p.getCurrentSchedule();
+		int noofschedules = r.getNoOfSchedules();
+		int days = p.getDays();
+
+		double interest = r.getInterest();
+
+		double lackinginterest = p.getLackingInterest();
+		Boolean addLacking = p.getAddLacking();
+		double interestpaid = 0;
+
+		if (days <= noofschedules) {
+			listItem.put("scheduleday", currentschedule);
+			listItem.put("interestPaid", interest);
+			days++;
+			currentschedule++;
+			results.add(listItem);
+		} else {
+			amtpaid = 0;
+		}
+
+		if (amtpaid == 0) {
+			Map item = new HashMap();
+			if (results.size() > 0) item = (Map) results.get(results.size() - 1);
+
+			double totalinterest = 0;
+
+			if (addLacking == true) {
+				totalinterest = interestpaid;
+			} else if (addLacking == false) {
+				totalinterest = (noofschedules * interest) + lackinginterest;
+			}
+
+			if (totalinterest > 0) item.put("totalinterest", totalinterest);
+
+		} else if (amtpaid > 0) {
+			p.setDays(days);
+			p.setCurrentSchedule(currentschedule);
+			update(p);
+		}
+end
+
+rule "amount paid less than interest"
+	when
+		r: References(amtpaid: amountPaid < interest, isOffset == false)
+		p: Payment()
+	then
+		Map listItem = new HashMap();
+
+		int currentschedule = p.getCurrentSchedule();
+		double lackinginterest = p.getLackingInterest();
+		double interest = r.getInterest();
+
+
+		if (amtpaid > 0 && lackinginterest == 0) {
+			listItem.put("scheduleday", currentschedule);
+			listItem.put("interestPaid", amtpaid);
+			listItem.put("totalinterest", amtpaid);
+			interest -= amtpaid;
+
+			floating.put("lackingInterest", interest);
+		}
+
+		results.add(listItem);
+end
+
+rule "amount paid has partial payment and offset is false"
+	when
+		r: References(hasPartialPayment == true, isOffset == false)
+		p: Payment();
+	then
+		Map listItem = new HashMap();
+
+		double interest = r.getInterest();
+		double amtpaid = r.getAmountPaid();
+		double lackinginterest = p.getLackingInterest();
+
+		int days = p.getDays();
+		int currentschedule = p.getCurrentSchedule();
+		int noofschedules = r.getNoOfSchedules();
+
+		Boolean addLacking = p.getAddLacking();
+		double interestpaid = 0;
+
+		if (days <= noofschedules) {
+			listItem.put("scheduleday", currentschedule);
+			listItem.put("interestPaid", interest);
+			days++;
+			currentschedule++;
+			results.add(listItem);
+		} else {
+			amtpaid = 0;
+		}
+
+		if (amtpaid == 0) {
+			Map item = new HashMap();
+			if (results.size() > 0) item = (Map) results.get(results.size() - 1);
+
+			double totalinterest = 0;
+
+			if (addLacking == true) {
+				totalinterest = interestpaid;
+			} else if (addLacking == false) {
+				totalinterest = (noofschedules * interest) + lackinginterest;
+			}
+
+			if (totalinterest > 0) item.put("totalinterest", totalinterest);
+
+		} else if (amtpaid > 0) {
+			p.setDays(days);
+			p.setCurrentSchedule(currentschedule);
+			update(p);
+		}
+end
+*/

@@ -1,0 +1,12 @@
+<schema>
+
+	<element tablename='collection_withpartial'>
+		<field name='objid' primary='true' />
+		<field name='collectionid' />
+		<field name='refid' />
+		<field name='checkpaymentid' />
+		<field name='paymentid' />
+		<field name='postingdate' />
+	</element>
+
+</schema>

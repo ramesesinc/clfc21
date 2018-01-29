@@ -1,0 +1,27 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class DepositSlipCheckLookupService extends ActiveListService {
+
+	@ActiveDB("checkaccount")
+	def em;
+
+	String listMethod = 'getLookupListForDepositSlip';
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'checkno', caption: 'Check No.'];
+		cols << [name: 'txndate', caption: 'Check Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'amount', caption: 'Amount', type: 'decimal', format: '#,##0.00'];
+		cols << [name: 'bank.name', caption: 'Bank'];
+		cols << [name: 'reftype', caption: 'Type'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+	}
+}

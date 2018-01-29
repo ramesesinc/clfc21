@@ -1,0 +1,23 @@
+<schema>
+	
+	<element name='posting-header' tablename='ledger_branchloan_posting_header'>
+		<field name='objid' primary='true' />
+		<field name='code' required='true' />
+		<field name='refid' required='true' />
+		<field name='title' required='true' />
+		<field name='name' required='true' />
+		<field name='sequence' required='true' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<element name='posting-detail' tablename='ledger_branchloan_posting_detail'>
+		<field name='objid' primary='true' />
+		<field name='parentid' required='true' />
+		<field name='sequenceno' required='true' />
+		<field name='idx' required='true' />
+		<field name='paymentid' required='true' />
+		<field name='remarks' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+</schema>

@@ -1,0 +1,89 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class PostingHeaderService extends ActiveCrudListService 
+{
+	@Env
+	def env;
+
+	@ActiveDB('posting_header')
+	def em;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: 'code', caption: 'Code'];
+		cols << [name: 'dtcreated', caption: 'Date Created'];
+		cols << [name: 'author.name', caption: 'Created By'];
+		cols << [name: 'title', caption: 'Title'];
+		cols << [name: 'name', caption: 'Field Name'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	void beforeCreate( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = getUser();
+		list = em.getList();
+		data.sequence = list?.size();
+		if (!data.sequence) data.sequence = 1;
+	}
+
+	void afterCreate( data ) {
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateInfo(data);
+	}
+
+	void updateInfo( data ) {
+		def item, item2;
+		data?._removedgroupwith?.each{ o->
+			item = em.read([code: o.code]);
+			if (item) {
+				item2 = item.groupwith?.find{ it.code == data?.code }
+				if (item2) {
+					item.groupwith?.remove(item2);
+					em.update(item);
+				}
+			}
+		}
+
+		data?._addedgroupwith?.each{ o->
+			item = em.read([code: o.code]);
+			if (item) {
+				item2 = item.groupwith?.find{ it.code == data?.code }
+				if (!item2) {
+					item.groupwith << [code: item.code, title: item.title];
+					em.update(item);
+				}
+			}
+		}
+
+		data?.groupwith?.each{ o->
+			item = em.read([code: o.code]);
+			if (item) {
+				item2 = item.groupwith?.find{ it.code == data?.code }
+				if (!item2) {
+					item.groupwith << [code: item.code, title: item.title];
+					em.update(item);
+				}
+			}
+		}
+	}
+
+}
