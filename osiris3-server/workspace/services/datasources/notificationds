@@ -1,0 +1,5 @@
+dialect=mysql
+driverClass=com.mysql.jdbc.Driver
+url=jdbc:mysql://localhost:3307/gingoog_notificationdb_20171102
+user=root
+pwd=1234
