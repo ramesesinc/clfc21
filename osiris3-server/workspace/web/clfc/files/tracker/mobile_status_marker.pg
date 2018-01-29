@@ -1,0 +1,5 @@
+{
+	title: "Map Marker Information",
+	context: "mobile_status_marker",
+	hidden: true
+}
