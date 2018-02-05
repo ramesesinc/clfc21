@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="producttype:attribute:plugin" reftype="list" caption="list" />
+        <invoker type="producttype:attribute:list" action="init" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.attribute.handler.ListHandlerController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.attribute.handler.ListHandlerPage" />
+    </pages>
+</workunit>

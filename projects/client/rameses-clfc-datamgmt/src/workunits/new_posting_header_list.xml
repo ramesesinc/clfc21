@@ -1,0 +1,40 @@
+<workunit extends="wtemplates/ListController.xml" >
+    <invokers>
+        <invoker folderid='/home/online/master' caption='Posting Header 2' role='ADMIN_SUPPORT' domain='ADMIN' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class PostingHeaderListController extends ListController {
+            
+            @Service("NewPostingHeaderService")
+            def svc;
+        
+            String serviceName = "NewPostingHeaderService";
+            String entityName = "posting:header";
+        
+            void beforeGetColumns(Map params) {
+                params.category = selectedOption?.category;
+            }
+        
+            def selectedOption;
+            def optionsModel = [
+                getItems: {
+                    return svc.getCategories();
+                }, 
+                onselect: { o->
+                    query.category = o.category;
+                    reloadAll();
+                }
+            ] as ListPaneModel;
+        }
+    </code>
+    
+    <pages>
+        <page template="com.rameses.clfc.ui.ListPage" />
+    </pages>
+</workunit>

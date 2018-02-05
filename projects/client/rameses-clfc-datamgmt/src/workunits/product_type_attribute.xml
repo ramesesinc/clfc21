@@ -1,0 +1,17 @@
+<workunit>
+    <invokers>
+        <invoker type="loan:producttype:attribute:create" action="create" caption="Product Type Attribute" target="popup" />
+        <invoker type="loan:producttype:attribute:open" action="open" caption="Product Type Attribute" target="popup" />
+        
+        <invoker type="formActions" action="activate" caption="Activate" mnemonic="a" shortcut="ctrl a"
+            visibleWhen="${mode=='read' &amp;&amp; entity.txnstate.matches('DRAFT|DEACTIVATED')}" />
+        <invoker type="formActions" action="deactivate" caption="Deactivate" mnemonic="d" shortcut="ctrl d"
+            visibleWhen="${mode=='read' &amp;&amp; entity.txnstate=='ACTIVATED'}" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.attribute.AttributeController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.attribute.AttributePage" />
+    </pages>
+</workunit>

@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type="producttype:plugin" reftype="posting" caption="Posting Information" index="3" />
+        <invoker type="producttype:posting" action="init" />
+        <invoker type="producttype:attribute:category:plugin" caption="POSTING" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.PostingInfoController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.PostingInfoPage" />
+    </pages>
+</workunit>

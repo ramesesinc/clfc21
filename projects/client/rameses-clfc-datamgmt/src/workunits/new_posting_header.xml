@@ -1,0 +1,14 @@
+<workunit>
+    <invokers>
+        <invoker type="posting:header:create" action="create" caption="Posting Header" target="popup" />
+        <invoker type="posting:header:open" action="open" caption="Posting Header" target="popup" />
+        
+        <invoker type="formActions" action="testExpression" caption="Test Expression" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.posting.header2.PostingHeaderController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.posting.header2.PostingHeaderPage" />
+    </pages>
+</workunit>

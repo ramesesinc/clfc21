@@ -1,0 +1,6 @@
+<workunit extends="wtemplates/posting_constraint_decimal.xml">
+    <invokers>
+        <invoker type='producttype:postinginfo:constraint:decimal' action="init" />
+    </invokers>
+    
+</workunit>

@@ -1,0 +1,12 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}
+"xhandler" [mode!='read' && entity.usedefault!=1] {
+    enabled: true;
+}
+"xhandler" [mode=='read' || entity.usedefault==1] {
+    enabled: false;
+}

@@ -1,0 +1,6 @@
+"entity.defaultvalue" [mode!='read'] {
+    enabled: true;
+}
+"entity.defaultvalue" [mode=='read'] {
+    enabled: false;
+}

@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="producttype:attribute:plugin" reftype="integer" caption="integer" />
+        <invoker type="producttype:attribute:integer" action="init" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.attribute.handler.IntegerHandlerController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.attribute.handler.IntegerHandlerPage" />
+    </pages>
+</workunit>

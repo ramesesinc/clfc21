@@ -44,6 +44,7 @@ public class ItemAccountPage extends javax.swing.JPanel {
 
         setLayout(new java.awt.BorderLayout());
 
+        xLabel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 10, 0, 0));
         xLabel1.setExpression("#{entity.txnstate}");
         xLabel1.setFont(new java.awt.Font("Tahoma", 1, 16)); // NOI18N
         xLabel1.setForeground(new java.awt.Color(255, 0, 0));

@@ -1,0 +1,7 @@
+<workunit>
+    <code class='com.rameses.clfc.ui.NumberHandler' />
+    
+    <pages>
+        <page template='com.rameses.clfc.ui.DecimalHandler' />
+    </pages>
+</workunit>

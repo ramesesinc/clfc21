@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="posting:header:lookup" caption="Lookup Posting Header" target="popup" />
+    </invokers>
+    
+    <code class='com.rameses.clfc.posting.header2.PostingHeaderLookupController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.posting.header2.PostingHeaderLookupPage' />
+    </pages>
+</workunit>

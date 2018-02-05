@@ -1,0 +1,12 @@
+"entity.code" [mode=='create'] {
+    enabled: true;
+}
+"entity.code" [mode!='create'] {
+    enabled: false;
+}
+"type" [mode!='read'] {
+    enabled: true;
+}
+"type" [mode=='read'] {
+    enabled: false;
+}

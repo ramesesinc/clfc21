@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="ils:fact:create" action="create" caption="ILS Fact" target="popup" />
+        <invoker type="ils:fact:open" action="open" caption="ILS Fact" target="popup" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.ils.fact.ILSFactController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.ils.fact.ILSFactPage" />
+    </pages>
+</workunit>

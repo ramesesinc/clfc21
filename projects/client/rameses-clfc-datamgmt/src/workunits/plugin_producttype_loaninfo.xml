@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type="producttype:plugin" reftype="loan" caption="Loan Information" index="2" />
+        <invoker type="producttype:loan" action="init" />
+        <invoker type="producttype:attribute:category:plugin" caption="LOAN" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.LoanInfoController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.LoanInfoPage" />
+    </pages>
+</workunit>

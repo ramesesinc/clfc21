@@ -1,0 +1,6 @@
+<workunit extends="wtemplates/posting_constraint_select.xml">
+    <invokers>
+        <invoker type='producttype:postinginfo:constraint:select' caption='Select Constraint' target='popup' />
+    </invokers>
+    
+</workunit>

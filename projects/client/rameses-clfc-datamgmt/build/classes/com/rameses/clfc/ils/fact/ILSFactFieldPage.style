@@ -1,0 +1,6 @@
+"entity.(schemaname|subschemaname|primarykey|paramkey|fieldname)" [entity.source=='database'] {
+    enabled: true;
+}
+"entity.(schemaname|subschemaname|primarykey|paramkey|fieldname)" [entity.source!='database'] {
+    enabled: false;
+}

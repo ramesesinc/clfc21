@@ -1,0 +1,21 @@
+<workunit>
+    <invokers>
+        <invoker folderid="/home/online/settings" action='init' caption="BL Posting" role="DATAMGMT_AUTHOR" />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w'
+            visibleWhen="#{mode=='read'}" immediate='true' />
+        <invoker type='formActions' action='cancel' caption='Cancel' mnemonic='c' shortcut='ctrl c'
+            visibleWhen="#{mode!='read'}" immediate='true' />
+        
+        <invoker type='formActions' action='save' caption='Save' mnemonic='s' shortcut='ctrl s'
+            visibleWhen="#{mode!='read'}" />
+        <invoker type='formActions' action='edit' caption='Edit' mnemonic='e' shortcut='ctrl e'
+            visibleWhen="#{mode=='read'}" />
+    </invokers>
+    
+    <code class='com.rameses.clfc.branchloan.posting.BranchLoanPostingController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.branchloan.posting.BranchLoanPostingPage' />
+    </pages>
+</workunit>

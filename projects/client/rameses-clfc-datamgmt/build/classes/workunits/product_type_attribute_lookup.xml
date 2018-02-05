@@ -1,0 +1,24 @@
+<workunit extends="wtemplates/LookupController.xml" >
+    <invokers>
+        <invoker type="loan:producttype:attribute:lookup" caption="Lookup Attributes" target="popup" />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class ProductTypeAttributeLookupController extends LookupController {
+            
+            String serviceName = "LoanProductTypeAttributeLookupService";
+        
+            def category;
+        
+            List fetchList(Map params) {
+                params.category = category;
+                return super.fetchList(params);
+            }
+        }
+    </code>
+</workunit>

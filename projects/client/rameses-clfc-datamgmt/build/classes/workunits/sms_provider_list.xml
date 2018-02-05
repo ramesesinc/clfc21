@@ -1,0 +1,19 @@
+<workunit extends='wtemplates/ListController.xml'>
+    <invokers>
+        <invoker folderid="/home/online/master" caption="SMS Providers" 
+            role="DATAMGMT_AUTHOR" /> 
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class SMSProviderListController extends ListController
+        {
+            String serviceName = 'SMSProviderService';
+            String entityName = 'smsprovider';
+        }
+    </code>
+</workunit>

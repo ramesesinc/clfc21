@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="producttype:loan:attribute:decimal" action="init" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.handler.DecimalHandlerController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.handler.DecimalHandlerPage" />
+    </pages>
+</workunit>

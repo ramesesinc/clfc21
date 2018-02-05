@@ -1,0 +1,22 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.(isdeductabletoamount|allowoffset|isexempted|recalculateifnotenough)" [mode != 'read' && entity.datatype == 'decimal'] {
+    enabled: true;
+}
+"entity.(isdeductabletoamount|allowoffset|isexempted|recalculateifnotenough)" [mode == 'read' || entity.datatype != 'decimal'] {
+    enabled: false;
+}
+"entity.isincrementafterposting" [mode != 'read' && entity.datatype == 'date'] {
+    enabled: true;
+}
+"entity.isincrementafterposting" [mode == 'read' || entity.datatype != 'date'] {
+    enabled: false;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}
+"entity.postingexpr" [1==1] {
+    enabled: true;
+    readonly: true;
+}

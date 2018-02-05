@@ -1,0 +1,19 @@
+<workunit>
+    <invokers>
+        <invoker type="ils:fact:field:create" action="create" caption="Fact Field" target="popup" />
+        <invoker type="ils:fact:field:open" action="open" caption="Fact Field" target="popup" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.ils.fact.ILSFactFieldController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.ils.fact.ILSFactFieldPage" />
+        
+        <page template="com.rameses.clfc.ils.fact.FactFieldDefaultPage" name="integer" />
+        <page template="com.rameses.clfc.ils.fact.FactFieldDefaultPage" name="decimal" />
+        <page template="com.rameses.clfc.ils.fact.FactFieldDefaultPage" name="boolean" />
+        <page template="com.rameses.clfc.ils.fact.FactFieldDefaultPage" name="string" />
+        <page template="com.rameses.clfc.ils.fact.FactFieldDefaultPage" name="date" />
+        <page template="com.rameses.clfc.ils.fact.FactFieldLookupPage" name="lookup" />
+    </pages>
+</workunit>

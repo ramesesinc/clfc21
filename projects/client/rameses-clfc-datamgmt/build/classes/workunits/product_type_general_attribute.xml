@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="loan:producttype:general:attribute:popup:create" action="create" caption="Attribute" target="popup" />
+        <invoker type="loan:producttype:general:attribute:popup:open" action="open" caption="Attribute" target="popup" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.GeneralAttributeController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.GeneralAttributePage" />
+    </pages>
+</workunit>

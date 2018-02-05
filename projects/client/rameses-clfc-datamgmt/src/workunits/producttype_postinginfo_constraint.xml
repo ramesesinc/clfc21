@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="producttype:postinginfo:constraint:create" action="init" caption="Posting Constraint" target="popup" />
+        <invoker type="producttype:postinginfo:constraint:open" action="open" caption="Posting Constraint" target="popup" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.constraint.PostingConstraintController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.constraint.PostingConstraintPage" />
+    </pages>
+</workunit>

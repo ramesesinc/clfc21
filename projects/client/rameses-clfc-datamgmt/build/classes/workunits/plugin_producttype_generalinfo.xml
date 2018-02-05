@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type="producttype:plugin" reftype="general" caption="General Information" index="1" />
+        <invoker type="producttype:general" action="init" />
+        <invoker type="producttype:attribute:category:plugin" caption="GENERAL" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.GeneralInfoController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.GeneralInfoPage" />
+    </pages>
+</workunit>

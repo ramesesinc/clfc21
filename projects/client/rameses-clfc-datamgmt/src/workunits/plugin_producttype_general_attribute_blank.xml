@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="producttype:attribute:blank" action="init" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.producttype2.attribute.handler.BlankHandlerController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.producttype2.attribute.handler.BlankHandlerPage" />
+    </pages>
+</workunit>
