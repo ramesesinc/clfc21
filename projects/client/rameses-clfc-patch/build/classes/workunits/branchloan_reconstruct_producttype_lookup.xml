@@ -1,0 +1,5 @@
+<workunit extends='wtemplates/ServiceLookupController.xml' serviceName='ReconstructBranchLoanProductTypeLookupService' >
+    <invokers>
+        <invoker type='reconstruct:branchloan:producttype:lookup' caption='Lookup Product Type' target='popup' />
+    </invokers>
+</workunit>

@@ -39,8 +39,10 @@ public class BorrowerNextToResolverPage extends javax.swing.JPanel {
         xButton2 = new com.rameses.rcp.control.XButton();
         xLabel3 = new com.rameses.rcp.control.XLabel();
         xActionTextField1 = new com.rameses.rcp.control.XActionTextField();
+        xButton3 = new com.rameses.rcp.control.XButton();
         xFormPanel1 = new com.rameses.rcp.control.XFormPanel();
         xLookupField1 = new com.rameses.rcp.control.XLookupField();
+        xLabel1 = new com.rameses.rcp.control.XLabel();
 
         com.rameses.rcp.control.border.XTitledBorder xTitledBorder1 = new com.rameses.rcp.control.border.XTitledBorder();
         xTitledBorder1.setTitle("Ledgers");
@@ -80,17 +82,15 @@ public class BorrowerNextToResolverPage extends javax.swing.JPanel {
 
         xButton1.setDepends(new String[] {"selectedItem"});
         xButton1.setDisableWhen("#{selectedItem==null||selectedItem.nextto.objid!=null}");
-        xButton1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xButton1.setName("addNextTo"); // NOI18N
-        xButton1.setPreferredSize(new java.awt.Dimension(200, 23));
-        xButton1.setText("Add Next to Borrower");
+        xButton1.setPreferredSize(new java.awt.Dimension(40, 23));
+        xButton1.setText("+");
 
         xButton2.setDepends(new String[] {"selectedItem"});
         xButton2.setDisableWhen("#{selectedItem==null||selectedItem.nextto.objid==null}");
-        xButton2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xButton2.setName("removeNextTo"); // NOI18N
-        xButton2.setPreferredSize(new java.awt.Dimension(200, 23));
-        xButton2.setText("Remove Next to Borrower");
+        xButton2.setPreferredSize(new java.awt.Dimension(40, 23));
+        xButton2.setText("-");
 
         xLabel3.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
         xLabel3.setForeground(new java.awt.Color(0, 153, 153));
@@ -99,6 +99,11 @@ public class BorrowerNextToResolverPage extends javax.swing.JPanel {
 
         xActionTextField1.setActionCommand("search");
         xActionTextField1.setName("searchtext"); // NOI18N
+
+        xButton3.setDepends(new String[] {"selectedItem"});
+        xButton3.setDisableWhen("${selectedItem==null||selectedItem?.nextto?.objid!=null}");
+        xButton3.setName("setAsStartingBorrower"); // NOI18N
+        xButton3.setText("Set as Starting Borrower");
 
         javax.swing.GroupLayout xPanel1Layout = new javax.swing.GroupLayout(xPanel1);
         xPanel1.setLayout(xPanel1Layout);
@@ -112,9 +117,11 @@ public class BorrowerNextToResolverPage extends javax.swing.JPanel {
                         .addComponent(xButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 201, Short.MAX_VALUE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, xPanel1Layout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addGap(0, 271, Short.MAX_VALUE)
                         .addComponent(xLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(xActionTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 287, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -127,24 +134,31 @@ public class BorrowerNextToResolverPage extends javax.swing.JPanel {
                     .addComponent(xLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(xActionTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(xDataTable1, javax.swing.GroupLayout.DEFAULT_SIZE, 237, Short.MAX_VALUE)
+                .addComponent(xDataTable1, javax.swing.GroupLayout.DEFAULT_SIZE, 225, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(xPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(xButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap())
         );
 
         xFormPanel1.setCaptionFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        xFormPanel1.setCaptionWidth(120);
         xFormPanel1.setPadding(new java.awt.Insets(0, 0, 5, 5));
 
         xLookupField1.setCaption("Route");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{route.name}");
+        xLookupField1.setExpression("#{entity.route.name}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("routeLookup");
-        xLookupField1.setPreferredSize(new java.awt.Dimension(0, 20));
+        xLookupField1.setPreferredSize(new java.awt.Dimension(300, 23));
         xFormPanel1.add(xLookupField1);
+
+        xLabel1.setCaption("Starting Borrower");
+        xLabel1.setExpression("${entity.startborrower.borrower.name}");
+        xLabel1.setPreferredSize(new java.awt.Dimension(0, 20));
+        xFormPanel1.add(xLabel1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -152,16 +166,16 @@ public class BorrowerNextToResolverPage extends javax.swing.JPanel {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(xPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(xPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(xFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(xFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(xPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
@@ -171,8 +185,10 @@ public class BorrowerNextToResolverPage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XActionTextField xActionTextField1;
     private com.rameses.rcp.control.XButton xButton1;
     private com.rameses.rcp.control.XButton xButton2;
+    private com.rameses.rcp.control.XButton xButton3;
     private com.rameses.rcp.control.XDataTable xDataTable1;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
+    private com.rameses.rcp.control.XLabel xLabel1;
     private com.rameses.rcp.control.XLabel xLabel3;
     private com.rameses.rcp.control.XLookupField xLookupField1;
     private com.rameses.rcp.control.XPanel xPanel1;

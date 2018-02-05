@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='edit:posting:waiver:detail:create' action='create' caption='Posting Detail' target='popup' />
+        <invoker type='edit:posting:waiver:detail:edit' action='edit' caption='Posting Detail' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.waiver.PostingDetailController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.waiver.PostingDetailPage' />
+    </pages>
+</workunit>

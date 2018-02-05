@@ -1,0 +1,5 @@
+<workunit extends='wtemplates/ServiceLookupController.xml' serviceName='LostCollectionRouteLookupService'>
+    <invokers>
+        <invoker type='lostcollection:route:lookup' caption='Route Lookup' target='popup' />
+    </invokers>
+</workunit>

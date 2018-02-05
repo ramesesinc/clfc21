@@ -1,0 +1,15 @@
+<workunit>
+    <invokers>
+        <invoker folderid='/home/online/support' action='init' caption='Reconstruct Branch Loan' 
+            domain='LOAN' role='ACCT_ASSISTANT,CAO_OFFICER' />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w' immediate='true' />
+        <invoker type='formActions' action='reconstructLoan' caption='Reconstruct Loan' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.loan.branch.ReconstructBranchLoanController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.loan.branch.ReconstructBranchLoanPage' />
+    </pages>
+</workunit>

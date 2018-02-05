@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type='reconstruct:branchloan:item:create' action='create' caption='Loan Application' target='popup' />
+        <invoker type='reconstruct:branchloan:item:edit' action='edit' caption='Loan Application' target='popup' />
+        <invoker type='reconstruct:branchloan:item:open' action='open' caption='Loan Application' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.loan.branch.ItemController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.loan.branch.ItemPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type='posting:waiver:edit' action='init' caption='Edit Posting' target='popup' />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w' immediate='true' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.waiver.PaymentPostingDetailController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.waiver.PaymentPostingDetailPage' />
+    </pages>
+</workunit>

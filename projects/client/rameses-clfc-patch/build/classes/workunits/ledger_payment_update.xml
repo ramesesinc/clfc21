@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker folderid='/home/online/support' caption='Payment Update' domain='LOAN' role='ACCT_ASSISTANT' />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w' immediate='true' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.payment.LedgerPaymentController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.payment.LedgerPaymentPage' />
+    </pages>
+</workunit>

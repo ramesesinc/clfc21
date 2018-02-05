@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type='edit:ledger:posting' action='init' caption='Ledger Posting' target='window' />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w' immediate='true' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.EditLedgerPostingController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.EditLedgerPostingPage' />
+    </pages>
+</workunit>

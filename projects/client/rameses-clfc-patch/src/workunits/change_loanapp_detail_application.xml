@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="change:loanapp:detail:plugin" reftype="appinfo" caption="Application Info." index="0" />
+        <invoker type="change:loanapp:detail:appinfo" action="init" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.patch.loan.detail.AppInfoController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.patch.loan.detail.AppInfoPage" />
+    </pages>
+</workunit>

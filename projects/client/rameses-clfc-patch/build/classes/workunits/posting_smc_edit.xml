@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type='posting:smc:edit' action='init' caption='Edit Posting' target='popup' />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w' immediate='true' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.smc.PaymentPostingDetailController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.smc.PaymentPostingDetailPage' />
+    </pages>
+</workunit>

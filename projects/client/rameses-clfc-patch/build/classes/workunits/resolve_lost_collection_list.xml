@@ -1,0 +1,44 @@
+<workunit extends='wtemplates/ListController.xml'>
+    <invokers>
+        <invoker folderid='/home/online/support' caption='Resolve Lost Collection' 
+            domain='ADMIN' role='ADMIN_SUPPORT' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class ResolveLostCollectionListController extends ListController
+        {
+            @Service('ResolveLostCollectionService')
+            def svc;
+        
+            String serviceName = 'ResolveLostCollectionService';
+            String entityName = 'resolve:lost:collection';
+            
+            Map createPermission = [domain: 'ADMIN', role: 'ADMIN_SUPPORT'];
+        
+            boolean closeButtonAdded = false;
+            void beforeGetColumns(Map params) {
+                params.state = selectedOption?.state;
+            }
+        
+            def selectedOption;
+            def optionsModel = [
+                fetchList: { 
+                    return svc.getStates();
+                },
+                onselect: {o-> 
+                    query.state = selectedOption?.state; 
+                    reloadAll(); 
+                }
+            ] as ListPaneModel; 
+        }
+    </code>
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.resolve.collection.ResolveLostCollectionListPage' />
+    </pages>
+</workunit>

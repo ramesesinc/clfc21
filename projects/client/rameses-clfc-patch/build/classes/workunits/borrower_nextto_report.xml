@@ -1,0 +1,23 @@
+<workunit>
+    <invokers>
+        <!--
+        <invoker folderid="/home/online/report" caption="Loan Expiries" action="init" 
+            role="BRANCH_MANAGER,ASST_BRANCH_MANAGER,CAO_OFFICER" />
+        
+        <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl c"
+            visibleWhen="#{mode=='init'}" immediate="true" />
+        <invoker type="formActions" action="preview" caption="Preview" mnemonic="v" shortcut="ctrl v"
+            visibleWhen="#{mode=='init'}" />
+       
+        <invoker type="formActions" action="back" caption="Back" mnemonic="b" shortcut="ctrl b"
+            visibleWhen="#{mode=='preview'}" immediate="true" />
+        -->
+        <invoker type='borrower:nextto:report' action='preview' caption='Borrower Next to Report' target='popup' />
+    </invokers>
+    
+    <code class="com.rameses.clfc.patch.loan.nextto.report.BorrowerNextToReportController" />
+    
+    <pages>
+        <page template="com.rameses.osiris2.common.ui.ReportPreviewPage" />
+    </pages>
+</workunit>

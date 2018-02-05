@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="change:loanapp:detail:plugin" reftype="charges" caption="Charges" index="1" />
+        <invoker type="change:loanapp:detail:charges" action="init" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.patch.loan.detail.ChargesController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.patch.loan.detail.ChargesPage" />
+    </pages>
+</workunit>

@@ -1,0 +1,14 @@
+<workunit>
+    <invokers>
+        <invoker folderid='/home/online/support' caption='Edit Ledger Posting' />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w' immediate='true' />
+        <invoker type='formActions' action='editLedger' caption='Edit Ledger' mnemonic='e' shortcut='ctrl e' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.ledger.edit.posting.EditLedgerPostingInitialController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.ledger.edit.posting.EditLedgerPostingInitialPage' />
+    </pages>
+</workunit>

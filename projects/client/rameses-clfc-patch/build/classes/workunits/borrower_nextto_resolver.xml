@@ -1,0 +1,18 @@
+<workunit>
+    <invokers>
+        <invoker folderid='/menu/txn' caption='Borrower Next to Resolver' target='popup' 
+            domain='LOAN' role='ACCT_ASSISTANT' />
+        <invoker folderid='/home/online/support' caption='Borrower Next to Resolver' 
+            domain='LOAN' role='ACCT_ASSISTANT' />
+            
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w' />
+        <invoker type='formActions' action='displayRouteLedgers' caption='Display Route Ledger' mnemonic='d'
+            shortcut='ctrl d' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.patch.loan.nextto.BorrowerNextToResolverController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.patch.loan.nextto.BorrowerNextToResolverPage' />
+    </pages>
+</workunit>

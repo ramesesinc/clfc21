@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="change:loanapp:detail:chargeitem:create" caption="Charges" action="init" target="popup" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.patch.loan.detail.ChargeItemController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.patch.loan.detail.ChargeItemPage" />
+    </pages>
+</workunit>
