@@ -1,0 +1,51 @@
+<workunit>
+    <invokers>
+        <invoker type="depositslip:create" action="create" caption="Deposit Slip" target="popup" resizable="false"/> 
+            
+        <invoker type="depositslip:open" action="open" caption="Deposit Slip" 
+            target="popup" resizable="false"/> 
+            
+        <invoker type='formActions' action='submitForApproval' caption='Submit for Approval' mnemonic='s' shortcut='ctrl s'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.state=='DRAFT'}" role='CASHIER' />
+            
+        <invoker type='formActions' action='approveDocument' caption='Approve' mnemonic='a' shortcut='ctrl a'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.state=='FOR_APPROVAL'}" role='ACCT_ASSISTANT' />
+        <invoker type='formActions' action='disapprove' caption='Disapprove' mnemonic='d' shortcut='ctrl d'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.state=='FOR_APPROVAL'}" role='ACCT_ASSISTANT' />
+            
+        <invoker type='formActions' action='cancelDepositSlip' caption='Cancel Deposit Slip'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.state=='APPROVED' &amp;&amp; entity.reftype==null}" 
+            role='CASHIER' />
+        
+        <invoker type='formActions' action='approveCancel' caption='Approve' mnemonic='a' shortcut='ctrl a'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.state=='FOR_CANCEL'}" role='APPROVER' />
+        <invoker type='formActions' action='disapproveCancel' caption='Disappove' mnemonic='d' shortcut='ctrl d'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.state=='FOR_CANCEL'}" role='APPROVER' />
+        <invoker type='formActions' action='viewCancelRemarks' caption='View cancel remarks' mnemonic='v' shortcut='ctrl v'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.state=='FOR_CANCEL'}" />
+        
+        <!--
+        <invoker type='formActions' action='approveDocument' caption='Approve' mnemonic='a' shortcut='ctrl a'
+            visibleWhen="#{mode=='read' &amp;&amp; entity?.state=='DRAFT'}" role='CASHIER' />
+        -->
+        <!--
+        <invoker type="formActions" action="safekeep" caption="Safe Keep" mnemonic="f" shortcut="ctrl F"
+            visibleWhen="#{entity.state=='APPROVED'}" role="BRANCH_MANAGER" />
+            
+        <invoker type="formActions" action="deposit" caption="Deposit" mnemonic="d" shortcut="ctrl D"
+            visibleWhen="#{entity.state=='APPROVED'}" />
+            
+        <invoker type="formActions" action="checkout" caption="Check Out" mnemonic="o" shortcut="ctrl O"
+            visibleWhen="#{entity.state=='CLOSED' &amp;&amp; entity.reftype=='SAFE_KEEP'}" />
+            
+        <invoker type="formActions" action="reinstate" caption="Re-instate" mnemonic="r" shortcut="ctrl R"
+            visibleWhen="#{allowReinstate}" />
+        -->
+    </invokers>
+    
+    <code class="com.rameses.clfc.treasury.depositslip.DepositSlipController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.treasury.depositslip.DepositSlipPage" />
+    </pages>
+</workunit>

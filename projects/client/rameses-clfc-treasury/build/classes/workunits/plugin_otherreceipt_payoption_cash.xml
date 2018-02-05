@@ -1,0 +1,24 @@
+<workunit>
+    <invokers>
+        <invoker type='plugin:otherreceipt' reftype='cash' caption='Cash' idx='1' />
+        <invoker type='otherreceipt:cash' action='init' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class OtherReceiptPaymentCashController {
+            
+            def entity;
+            void init() {}
+        
+        }
+    </code>
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.otherreceipt.OtherReceiptPaymentDefaultPage' />
+    </pages>
+</workunit>

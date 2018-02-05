@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type='plugin:smccondition:handler' value='expression' index='0' />
+        <invoker type='smccondition:handler:expression' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.handler.ExpressionHandlerController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.handler.ExpressionHandlerPage' />
+    </pages>
+</workunit>
+    

@@ -1,0 +1,8 @@
+"entity.filinginfo.remarks" [filingmode=='read'] {
+    enabled: true;
+    readonly: true;
+}
+"entity.filinginfo.remarks" [filingmode!='read'] {
+    enabled: true;
+    readonly: false;
+}

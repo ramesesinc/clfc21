@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker type='plugin:smccondition:handler' value='date' index='1' />
+        <invoker type='smccondition:handler:date' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.handler.DateHandlerController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.handler.DateHandlerPage' />
+    </pages>
+</workunit>
+    

@@ -1,0 +1,12 @@
+<workunit extends='wtemplates/SMCListController.xml'>
+    <invokers>
+        <invoker type='amnesty:smc:court:plugin' reftype='fees' caption='Fees' index='3' />
+        <invoker type='amnesty:smc:court:fees' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.SMCFeesListController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.SMCFeesListPage' />
+    </pages>
+</workunit>

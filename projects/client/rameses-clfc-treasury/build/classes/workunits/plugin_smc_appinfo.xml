@@ -1,0 +1,17 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:smc:plugin' reftype='appinfo' caption='App. Information' index='0' />
+        <invoker type='amnesty:smc:appinfo' action='init' />
+        
+        <invoker type="navActions2" caption="" action="moveFirstPage" icon="images/navbar/first.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveBackPage" icon="images/navbar/previous.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveNextPage" icon="images/navbar/next.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveLastPage" icon="images/navbar/last.png" immediate="true" />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.AppInfoController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.AppInfoPage' />
+    </pages>
+</workunit>

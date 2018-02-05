@@ -1,0 +1,16 @@
+<workunit>
+    <invokers>
+        <invoker type='formActions' action='reload' caption='Refresh' icon='images/toolbars/refresh.png' immediate='true' />
+        <invoker type='formActions' action='create' caption='Add' icon='images/toolbars/create.png' immediate='true' 
+            visibleWhen="#{mode!='read'}" />
+        <invoker type='formActions' action='open' caption='Open' icon='images/toolbars/open.png' immediate='true' 
+            visibleWhen="#{selectedItem != null}" />
+        <invoker type='formActions' action='remove' caption='Remove' icon='images/toolbars/trash.png' immediate='true'
+            visibleWhen="mode!='read' &amp;&amp; selectedItem != null" />
+        
+        <invoker type="navActions2" caption="" action="moveFirstPage" icon="images/navbar/first.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveBackPage" icon="images/navbar/previous.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveNextPage" icon="images/navbar/next.png" immediate="true" />
+        <invoker type="navActions2" caption="" action="moveLastPage" icon="images/navbar/last.png" immediate="true" />
+    </invokers>
+</workunit>

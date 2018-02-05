@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='dailycollection:plugin' caption='Other Receipt' reftype='otherreceipt' index='5' />
+        <invoker type="dailycollection:otherreceipt" action="init" caption="Other Receipts" />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.dailycollection.DailyCollectionOtherReceiptController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.dailycollection.DailyCollectionOtherReceiptPage' />
+    </pages>
+</workunit>

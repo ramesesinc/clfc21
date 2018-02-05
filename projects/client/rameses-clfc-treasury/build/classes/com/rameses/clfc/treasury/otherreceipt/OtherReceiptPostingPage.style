@@ -1,0 +1,6 @@
+"entity.cbsno" [entity.txnstate == 'DRAFT' && entity.hascash == true] {
+    enabled: true;
+}
+"entity.cbsno" [entity.txnstate != 'DRAFT' || entity.hascash == false] {
+    enabled: false;
+}

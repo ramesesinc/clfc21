@@ -1,0 +1,25 @@
+<workunit>
+    <invokers>
+        <invoker type='otherreceipt:voidrequest:create' action='create' caption='Void Payment Request' target='popup' />
+        <invoker type='otherreceipt:voidrequest:open' action='open' caption='Void Payment Request' target='popup' />
+        
+        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl c' immediate='true'
+            visibleWhen="${mode=='read'}" />
+        <invoker type='formActions' action='cancel' caption='Cancel' mnemonic='c' shortcut='ctrl c' immediate='true' 
+            visibleWhen="${mode!='read'}" />
+        
+        <invoker type='formActions' action='save' caption='Save' mnemonic='s' shortcut='ctrl s'
+            visibleWhen="${mode!='read'}" />
+        
+        <invoker type='formActions' action='approveDocument' caption='Approve' mnemonic='a' shortcut='ctrl a' 
+            visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='FOR_APPROVAL'}" />
+        <invoker type='formActions' action='disapprove' caption='Disapprove' mnemonic='d' shortcut='ctrl d'
+            visibleWhen="${mode=='read' &amp;&amp; entity.txnstate=='FOR_APPROVAL'}" />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.otherreceipt.OtherReceiptVoidPaymentController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.otherreceipt.OtherReceiptVoidPaymentPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,22 @@
+<workunit>
+    <invokers>
+        <invoker type='phone:followup:result:plugin' reftype='overrideamnesty' caption='Override Amnesty Requests' index='3' />
+        <invoker type='phone:followup:result:overrideamnesty' action='init' />
+        
+        <invoker type='formActions' action='refreshList' caption='Refresh' mnemonic='r' shortcut='ctrl r' 
+            visibleWhen="#{mode=='read'}" />
+        <invoker type='formActions' action='openRequest' caption='Open' mnemonic='o' shortcut='ctrl o'
+            visibleWhen="#{selectedItem!=null}" />
+        
+        <invoker type='formActions' action='addRequest' caption='Add' mnemonic='a' shortcut='ctrl a'
+            visibleWhen="#{mode!='read'}" />
+        <invoker type='formActions' action='removeRequest' caption='Remove'
+            visibleWhen="#{mode!='read' &amp;&amp; selectedItem!=null}" />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.override.OverrideAmnestyRequestListController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.override.OverrideAmnestyRequestListPage' />
+    </pages>
+</workunit>

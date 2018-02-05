@@ -1,0 +1,24 @@
+<workunit extends='wtemplates/LookupController.xml'>
+    <invokers>
+        <invoker type='override:amnesty:request:amnesty:lookup' caption='Lookup Amnesty' target='popup' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class OverrideAmnestyRequestAmnestyLookup extends LookupController
+        {
+            String serviceName = 'OverrideAmnestyRequestAmnestyLookupService'
+        
+            def ledgerid;
+        
+            List fetchList(Map params) {
+                params.ledgerid = ledgerid;
+                return super.fetchList(params);
+            }
+        }
+    </code>
+</workunit>

@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='cashexchange:item' action='init' caption='Cash Exchange' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.encashment.CashExchangeController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.encashment.CashExchangePage' />
+    </pages>
+</workunit>

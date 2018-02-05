@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='smc-ledger:report' action='preview' caption='Ledger' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.report.BorrowerLedgerReportController' />
+    
+    <pages>
+        <page template='com.rameses.osiris2.common.ui.ReportPreviewPage' />
+    </pages>
+</workunit>

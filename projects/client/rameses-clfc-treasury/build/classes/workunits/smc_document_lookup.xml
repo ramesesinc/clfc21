@@ -1,0 +1,5 @@
+<workunit extends='wtemplates/ServiceLookupController.xml' serviceName='SMCDocumentLookupService'>
+    <invokers>
+        <invoker type='smc:document:lookup' caption='Lookup SMC Document' target='popup' />
+    </invokers>
+</workunit>

@@ -1,0 +1,11 @@
+"entity.payment.*" [1==1] {
+    enabled: false;
+}
+"entity.reason" [mode!='read'] {
+    enabled: true;
+    readonly: false;
+}
+"entity.reason" [mode=='read'] {
+    enabled: true;
+    readonly: true;
+}

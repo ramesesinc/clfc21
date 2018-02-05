@@ -1,0 +1,40 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}
+"entity.txndate" [1==1] {
+    enabled: false;
+}
+"entity.remarks" [1==1] {
+    enabled: true;
+}
+"entity.remarks" [mode!='read'] {
+    readonly: false;
+}
+"entity.remarks" [mode=='read'] {
+    readonly: true;
+}
+
+
+
+"xentity.*" [allowEdit == true] {
+    enabled: true;
+}
+"xentity.*" [allowEdit != true] {
+    enabled: false;
+}
+"xentity.txndate" [1==1] {
+    enabled: false;
+}
+"xentity.remarks" [1==1] {
+    enabled: true;
+}
+"xentity.remarks" [allowEdit == true] {
+    readonly: false;
+}
+"xentity.remarks" [allowEdit != true] {
+    readonly: true;
+}
+

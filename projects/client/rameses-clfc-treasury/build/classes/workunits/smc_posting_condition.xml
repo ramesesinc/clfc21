@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='smc:posting:condition:add' action='init' caption='Condition' target='popup' />
+        <invoker type='smc:posting:condition:edit' action='open' caption='Condition' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.settings.smc.posting.constraint.PostingConstraintController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.settings.smc.posting.constraint.PostingConstraintPage' />
+    </pages>
+</workunit>

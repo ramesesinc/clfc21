@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:preview:waiver' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.preview.AmnestyDefaultInformationController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.preview.AmnestyWaiverInformationPage' />
+    </pages>
+</workunit>

@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='deposit:vault' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.deposit.DepositVaultController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.deposit.DepositVaultPage' />
+    </pages>
+</workunit>

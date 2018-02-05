@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:smc:plugin' reftype='courtinfo' caption='Court Information' index='2' />
+        <invoker type='amnesty:smc:courtinfo' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.CourtInfoController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.CourtInfoPage' />
+    </pages> 
+</workunit>

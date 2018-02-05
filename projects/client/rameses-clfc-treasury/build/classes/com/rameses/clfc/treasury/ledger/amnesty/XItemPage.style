@@ -1,0 +1,32 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.(day|month)" [entity?.usedate==0 || entity?.usedate==null] {
+    enabled: true;
+}
+"entity.(day|month)" [entity?.usedate==1] {
+    enabled: false;
+}
+"entity.date" [entity?.usedate==0 || entity?.usedate==null] {
+    enabled: false;
+}
+"entity.date" [entity?.usedate==1] {
+    enabled: enabled;
+}
+"entity.(usedate|date|day|month)" [entity?.withmd==1] {
+    enabled: true;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}
+"entity.withmd" [mode!='read'] {
+    enabled: true;
+    opaque: false;
+    readonly: false;
+}
+"entity.withmd" [mode=='read'] {
+    enabled: true;
+    opaque: false;
+    readonly: true;
+    disabledTextColor: #000; 
+}

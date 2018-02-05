@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='smc:court:doc:create' action='create' caption='SMC Document' target='popup' />
+        <invoker type='smc:court:doc:open' action='open' caption='SMC Document' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.treasury.ledger.amnesty.smc.docs.SMCItemDocumentController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.treasury.ledger.amnesty.smc.docs.SMCItemDocumentPage' />
+    </pages>
+</workunit>

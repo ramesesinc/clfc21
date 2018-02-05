@@ -1,0 +1,38 @@
+<workunit>
+    <invokers>
+        <invoker type="plugin:otherreceipt" reftype="check" caption="Check" idx="2" />
+        <invoker type="otherreceipt:check" action="init" />
+    </invokers>
+
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+
+        class OtherReceiptPaymentCheckController {
+
+            @Binding
+            def binding
+
+            @Service("BankService")
+            def bankSvc;
+
+            def entity;
+
+            void init() {
+                if (!entity) entity = [:];
+                entity.check = [:];
+                entity.bank = [:];
+            }                
+
+            def getBankList() {
+                return bankSvc.getList([state: 'ACTIVE']);
+            }
+        }
+    </code>
+    
+    <pages>
+        <page template="com.rameses.clfc.treasury.otherreceipt.OtherReceiptPaymentCheckPage" />
+    </pages>
+</workunit>
