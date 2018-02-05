@@ -18,7 +18,7 @@ class CustomerSearchController extends BasicLookupModel
         
     } 
 
-    boolean show(String searchtext) {
+    boolean show(String searchtext) { 
         customerlistHandler.searchtext = searchtext; 
         return true; 
     }
@@ -84,7 +84,10 @@ class CustomerSearchController extends BasicLookupModel
         ];
         params.callerContext.closeHandler = {
             customerlistHandler.reload(); 
-        }         
+        } 
+        
+        def type = selectedCustomer.type;
+        if (type == 'INDIVIDUAL') 
         
         def opener = InvokerUtil.lookupOpener('customer:open', params);
         opener.target = 'self';
