@@ -18,6 +18,9 @@ class CaptureLoanAppService extends ActiveListService
 	@ActiveDB('loan_product_type')
 	def productType;
 
+	@ActiveDB("loan_producttype")
+	def loan_producttype;
+
 	@ActiveDB('borrower')
 	def borrower; 	
 
@@ -54,11 +57,14 @@ class CaptureLoanAppService extends ActiveListService
 	@Service("LoanTypeService")
 	def loanTypeSvc;
 
+	@Service("InboxService")
+	def inboxSvc;
+
 	@Service('LoanAppAssessmentService')
 	def appAssessmentSvc;
 
-	@Service("InboxService")
-	def inboxSvc;
+	@Service("NewLoanProductTypeService")
+	def productTypeSvc;
 
 	@Env 
 	def env;
@@ -117,9 +123,15 @@ class CaptureLoanAppService extends ActiveListService
         return entity; 	
 	} 
 
+	/*
 	@ProxyMethod
 	public def getProductTypes() {
 		return productType.getList([searchtext: '%']);
+	}
+	*/
+	@ProxyMethod
+	public def getProductTypes() {
+		return loan_producttype.getListByState([searchtext: "%", txnstate: "ACTIVATED"]).collect{ [title: it.title, code: it.code, version: 2 ]};
 	}
 
 	@ProxyMethod 
@@ -165,13 +177,14 @@ class CaptureLoanAppService extends ActiveListService
 		if (!data.previousloans) data.previousloans = [];
 		data.version = data.previousloans.size() + 1;
 		data.loancount = data?.previousloans?.size() + 1;
-		data.dtmatured = generateMaturityDate(data);
+		//data.dtmatured = generateMaturityDate(data);
 
 		/*
 		if (data.approval == null) data.approval = [:]; 
 		if (!data.approval.amount) data.approval.amount = data.loanamount;
 		*/
 
+		data = applyProductType(data);
 		em.create(data); 
 		/*
 		em.create(data, 'loanapp_capture'); 
@@ -195,7 +208,6 @@ class CaptureLoanAppService extends ActiveListService
 		buildBorrower(data);
 		*/
 
-
 		return open(data);
 	}
 
@@ -206,11 +218,35 @@ class CaptureLoanAppService extends ActiveListService
 		if (!data.previousloans) data.previousloans = [];
 		data.version = data.previousloans.size() + 1;
 		data.loancount = data?.previousloans?.size() + 1;
-		data.dtmatured = generateMaturityDate(data);
+		//data.dtmatured = generateMaturityDate(data);
 
+		data = applyProductType(data);
 		em.update(data);
 
 		return open(data);
+	}
+
+	def applyProductType( data ) {
+
+		data.producttype.name = data.producttype.code;
+		data.producttype.term = 0;
+		//data.dtmatured = generateMaturityDate(data);
+		def xdata = [
+			loanapp 	: [
+				loanamount	: data.amount,
+				dtreleased 	: parseDate(data.dtreleased)
+			]
+		]
+
+		//println 'app ' + xdata.loanapp.each{ println it }
+
+		def res = productTypeSvc.executeProductTypeRulesForLoanApplication(data.producttype, [:], "user", xdata);
+		//println 'svc-> ' + productTypeSvc;
+		res.each{ k,v-> 
+			data[k] = v 
+		}
+
+		return data;
 	}
 
 	@ProxyMethod
@@ -469,12 +505,14 @@ class CaptureLoanAppService extends ActiveListService
 
 		def assessment = data.assessmentinfo;
 		if (!assessment) assessment = [:];
+		
 		def extinfo = [
 			objid 			: data.objid,
 			netamount 		: assessment?.netamount? assessment.netamount : 0,
 			totalcharges 	: assessment?.totalcharges? assessment.totalcharges : 0,
 			dtmatured 		: data.dtmatured,
-			assessmentinfo 	: assessment
+			assessmentinfo 	: assessment,
+			producttype 	: data.producttype
 		];
 		loanapp.create(extinfo, "extinfo");
 

@@ -1,0 +1,370 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import java.math.BigInteger;
+import java.util.LinkedList;
+import java.util.ListIterator;
+
+class PDUConverterService
+{
+    private final int ENCODING_4_BIT = 4;
+    private final int ENCODING_8_BIT = 8;
+    private final int ENCODING_16_BIT = 16;
+    private final int MAX_CHAR_LENGTH = 130;
+
+
+    @ProxyMethod
+    public Map convertToPduMessageMap(String text) {
+        Map data = new HashMap();
+        String str = convertToPduMessage(text);
+
+        int length = str.length();
+        int noOfOctets = Math.abs((text.length()/8));
+
+        length = Integer.parseInt(String.valueOf(length + (noOfOctets * 2)));
+
+        data.put("data", str);
+        data.put("length", length);
+
+        return data;
+    }
+
+    @ProxyMethod
+    public String convertToPduMessage(String text) {
+        LinkedList list = convertToSeptets(text);
+        list = convertToOctets(list);
+
+        String pduMessage = "", binary = "";
+        
+        ListIterator itr = list.listIterator();
+        int idx;
+        while (itr.hasNext()) {
+            binary = itr.next().toString();
+            idx = 0;
+            while (idx < binary.length()) {
+                String str = binary.substring(idx, idx + ENCODING_4_BIT);
+                str = convertToHexadecimal(str);
+                pduMessage += str;
+                
+                idx += ENCODING_4_BIT;
+            }
+        }
+        
+        return pduMessage.toUpperCase();
+    }
+
+    private LinkedList convertToSeptets(String text) {
+        LinkedList list = new LinkedList();
+
+        String binaryOctet = "", binarySeptet = "", binary = "";
+        int CURRENT_IDX = 0, asciiValue = 0;
+        char ch = (char) 13;
+
+        while (true) {
+            ch = text.charAt(CURRENT_IDX);
+            asciiValue = (int) ch;
+            binary = decimalToBinary(asciiValue, ENCODING_8_BIT);
+
+            binaryOctet += binary;
+
+            if (binaryOctet.length() == ENCODING_8_BIT) {
+                binarySeptet = binaryOctet.substring(1, binaryOctet.length());
+                list.add(binarySeptet);
+                binaryOctet = "";
+            }
+
+            CURRENT_IDX++;
+
+            if (CURRENT_IDX >= text.length()) {
+                if (binaryOctet.length() > 0 && binaryOctet.length() < ENCODING_8_BIT) {
+                    binary = decimalToBinary(0);
+                    binaryOctet = binary + binaryOctet;
+                    //System.out.print(binaryOctet +  " ");
+                    binarySeptet = binaryOctet.substring(1, binaryOctet.length());
+                    list.add(binarySeptet);
+                }
+                break;
+            }
+
+        }
+
+        return list;
+    }
+
+    private LinkedList convertToOctets(LinkedList list) {
+        int CURRENT_IDX = 0;
+        String base = "", removeFrom = "";
+        boolean flag = true;
+        if (list.isEmpty()) {
+            flag = false;
+        }
+
+        while (flag) {
+            base = list.get(CURRENT_IDX).toString();
+
+            removeFrom = null;
+            if ((CURRENT_IDX + 1) < list.size()) {
+                removeFrom = list.get(CURRENT_IDX + 1).toString();
+            }
+
+
+            if ((base != null && !base.isEmpty()) && (removeFrom != null && !removeFrom.isEmpty())) {               
+                int noOfBitsToAdd = ENCODING_8_BIT - base.length();
+
+
+                if (noOfBitsToAdd > 0) {
+                    int idx = removeFrom.length() - noOfBitsToAdd;
+                    
+                    String toAdd = removeFrom.substring(idx, removeFrom.length());
+                    
+                    base = toAdd + base;
+                    //_("base: " + base);
+                    list.set(CURRENT_IDX, base);
+                    
+                    //_("before remove: " + removeFrom);
+                    removeFrom = removeFrom.substring(0, idx);
+                    if (removeFrom == null || removeFrom.isEmpty()) {
+                        list.remove(CURRENT_IDX + 1);
+                    } else {
+                        list.set((CURRENT_IDX + 1), removeFrom);
+                    }
+                } else {
+                    flag = false;
+                }
+            } else {
+                if (removeFrom == null || removeFrom.isEmpty()) {
+                    flag = false;
+                }
+
+                if (base == null || base.isEmpty()) {
+                    list.remove(CURRENT_IDX);
+                } else {
+                    if (base.length() > 0 && base.length() < ENCODING_8_BIT) {
+                        base = addLeftPadding(base, "0", ENCODING_8_BIT);
+                    }
+                    list.set(CURRENT_IDX, base);
+                }
+            }
+
+            CURRENT_IDX++;
+            
+            // _("idx: " + CURRENT_IDX + " size: " + list.size());
+            if (CURRENT_IDX >= list.size()) {
+                break;
+            }
+        }
+
+        return list;
+    }
+
+    @ProxyMethod(local=true)
+    public String applyPadding(String UD, int noOfBitPadding, int noOfBits) {
+        
+        String convertedUD = "";
+        String binary = "", binaryOctet = "";
+        char hex = (char) 13;
+        for (int i=0; i<UD.length(); i++) {
+            hex = UD.charAt(i);
+            
+            binary = new BigInteger(String.valueOf(hex), 16).toString(2);
+            binary = addLeftPadding(binary, "0", 4);
+            
+            if (binaryOctet == null) {
+                binaryOctet = "";
+            }
+            binaryOctet += binary;
+            
+            if (binaryOctet.length() >= noOfBits) {
+                binaryOctet = reverseString(binaryOctet);
+                if (convertedUD == null) {
+                    convertedUD = "";
+                }
+                convertedUD += binaryOctet;
+                binaryOctet = "";
+            }
+        }
+        
+//        _("converted UD: " + convertedUD);
+        /*
+        int idx3 = 0;
+        while (idx3 < convertedUD.length()) {
+            String str = convertedUD.substring(idx3, idx3 + ENCODING_8_BIT);
+            System.out.print(str + " ");
+            idx3 += ENCODING_8_BIT;
+        }
+        _("");
+        */
+        
+        int idx = convertedUD.length() - noOfBitPadding;
+        String padding = convertedUD.substring(idx, convertedUD.length());
+        convertedUD = padding + convertedUD.substring(0, idx);
+        
+        String pduMessage = "", str = "", bin = "", reverseBin = "";
+        idx = 0;
+        while (idx < convertedUD.length()) {
+            bin = convertedUD.substring(idx, idx + ENCODING_8_BIT);
+            reverseBin = reverseString(bin);
+            
+            int idx2 = 0;
+            while (idx2 < reverseBin.length()) {
+                str = reverseBin.substring(idx2, idx2 + ENCODING_4_BIT);
+                str = convertToHexadecimal(str);
+                //_("hex: " + str);
+                
+                pduMessage += str;
+                idx2 += ENCODING_4_BIT;
+            }
+            idx += ENCODING_8_BIT;
+        }
+        
+        return pduMessage.toUpperCase();
+    }
+
+    @ProxyMethod
+    public LinkedList convertToMultipartMessageWithHeader( message ) {
+        LinkedList list = convertToMultipartMessage(message);
+
+        Map data = new HashMap(), pdu = new HashMap();
+        String header = "", str1 = "";
+        int size = list.size()
+        for (int i=0; i<size; i++) {
+            data = (Map) list.get(i);
+
+            pdu = new HashMap();
+            if (data.containsKey("pdu")) {
+                pdu = (Map) data.get("pdu");
+                header = "05000303";
+                str1 = String.valueOf(size);
+                if (str1.length() < 2) {
+                    str1 = "0" + str1;
+                }
+                header += str1;
+
+                str1 = String.valueOf((i + 1));
+                if (str1.length() < 2) {
+                    str1 = "0" + str1;
+                }
+                header += str1;
+
+                pdu.put("header", header);
+                pdu.put("headerlength", (header.length() + 2));
+            }
+        }
+
+        return list;
+    }
+
+    @ProxyMethod
+    public LinkedList convertToMultipartMessage( message ) {
+        LinkedList list = new LinkedList();
+
+        int idx = 0, size = 0;
+        String text = "";
+        Map item = new HashMap(), pdu = new HashMap();
+        String data = "";
+        while (idx < message.length()) {
+            item = new HashMap();
+            size = ((idx + MAX_CHAR_LENGTH) < message.length())? (idx + MAX_CHAR_LENGTH) : message.length();
+
+            text = message.substring(idx, size);
+            item.put("text", text);
+            item.put("messageLength", text.length());
+            pdu = convertToPduMessageMap(text);
+            data = pdu.get("data").toString();
+            data = applyPadding(data, 1, ENCODING_8_BIT);
+            pdu.put("data", data);
+
+            item.put("pdu", pdu);
+
+            list.add(item);
+
+            idx += MAX_CHAR_LENGTH;
+        }
+
+        return list;
+    }
+
+
+    @ProxyMethod(local=true)
+    public String convertMobileNumToPduMessage(String mobileno) {
+        String pduMessage = "";
+        String number = convertToInternationalNumber(mobileno);
+
+
+        String str = String.valueOf(number.charAt(0));
+        if (str.equals("+")) {
+            pduMessage += "91";
+        }
+        String newNum = number.substring(1, number.length());
+        int idx = 0;
+        while (idx < newNum.length()) {
+            str = newNum.substring(idx, idx + 2);
+            str = reverseString(str);
+            pduMessage += str;
+            idx += 2;
+        }
+        
+        String mobileL = convertToHexadecimal(newNum.length());
+        if (mobileL.length() < 2) {
+            mobileL = "0" + mobileL;
+        }
+        
+        pduMessage = mobileL + pduMessage;
+        
+        return pduMessage.toUpperCase();
+    }
+
+
+    private String convertToInternationalNumber(String mobileno) {
+        String newMobileno = "+";
+        String prefix = "0", REGEX = "^" + prefix;
+        
+        
+        if (mobileno.startsWith(prefix)) {
+            mobileno = mobileno.replaceFirst(REGEX, "63");
+        }
+        
+        newMobileno += mobileno;
+        
+        if ((newMobileno.length() % 2) == 0) {
+            throw new RuntimeException("Invalid Mobile Number.");
+        }
+
+        
+        return newMobileno;
+    }
+
+    private String reverseString(String text) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(text);
+        return sb.reverse().toString();
+    }
+
+    @ProxyMethod
+    public String convertToHexadecimal(String binary) {
+        return convertToHexadecimal(Integer.parseInt(binary, 2));
+    }
+    
+    @ProxyMethod
+    public String convertToHexadecimal(int decimal) {
+        return Integer.toHexString(decimal);
+    }
+
+    @ProxyMethod
+    public String decimalToBinary(int decimal) {
+        return decimalToBinary(decimal, ENCODING_4_BIT);
+    }
+
+    @ProxyMethod
+    public String decimalToBinary(int decimal, int bitSize) {
+        String binary = Integer.toBinaryString(decimal);
+        binary = addLeftPadding(binary, "0", bitSize);
+        return binary;
+    }
+
+    private String addLeftPadding(String str, String ch, int size) {
+        while (str.length() < size) {
+            str = String.valueOf(ch) + str;
+        }
+        return str;
+    }
+}

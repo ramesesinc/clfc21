@@ -1,0 +1,173 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import com.rameses.rules.common.*;
+
+class NewPostingHeaderService extends ActiveCrudListService {
+
+	@Env
+	def env;
+
+	@ActiveDB( dynamic=true )
+	def db;
+
+	@ActiveDB("postingheader")
+	def em;
+
+	@ActiveDB("ils_fact")
+	def ils_fact;
+
+	@Resource("RuleService")
+	def ruleSvc;
+
+	@Service("LOVService")
+	def lovSvc;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("NumberService")
+	def numSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: "title", caption: "Title"];
+		cols << [name: "name", caption: "Name"];
+		cols << [name: "datatype", caption: "Data Type"];
+		cols << [name: "type", caption: "Type"];
+
+		if (!params.category) cols << [name: "category", caption: "Category"];
+
+		return cols;
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	void beforeCreate( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = getUser();
+	}
+
+	void afterCreate( data ) {
+		updateInfo(data);
+	}
+
+	void afterUpdate( data ) {
+		updateInfo(data);
+	}
+
+	void updateInfo( data ) {
+		em.removeFields(data);
+		data.fields?.each{ o->
+			em.create(o, "factfield");
+		}
+	}
+
+	void afterOpen( data ) {
+		data.fields = em.getFields(data);
+	}
+
+	@ProxyMethod
+	public def getCategories() {
+		def list = [[caption: "All"]];
+		lovSvc.getKeyValues("POSTING_HEADER_CATEGORY").each{ 
+			list << [caption: it["value"], category: it["key"]]; 
+		};
+		return list;
+	}
+
+	@ProxyMethod
+	public def getTypes() {
+		return ["DEFAULT"];
+	}
+
+	@ProxyMethod
+	public def getDataTypes() {
+		return ["decimal", "date", "integer", "string"];
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+		if (params.category) {
+			params._listMethod = "getListByCategory";
+		}
+	}
+
+	@ProxyMethod
+	public def getFactList( params ) {
+		if (!params.category) throw new RuntimeException("Please specify category.");
+
+		params.category = params.category.toLowerCase();
+		return em.getFactListByCategory(params).collect{ [objid: it.objid, title: it.defaultvarname, varname: it.defaultvarname] } 
+	}
+
+	@ProxyMethod
+	public def getFieldList( params ) {
+		if (!params.factid) throw new RuntimeException("Please specify factid.");
+		//if (!params.category) throw new RuntimeException("Please specify category.");
+
+		return em.getFieldListByFactid(params).collect{ [objid: it.objid, name: it.name, title: it.name, handler: it.handler] };
+	}
+
+	@ProxyMethod
+	public def testExpression( params ) {
+		def data = em.read(params);
+
+		def prm = [
+			appid	: "LOAN-13d6f34:14b2fb4b5f3:-7ff9",
+			ledgerid: "LEDGER227d9b69:14b38c960c9:-7ff8"
+		]
+
+		def bindings = [:];
+
+		def fields = em.getFields(data);
+		fields.each{ o->
+
+			def factfield = ils_fact.read([objid: o.field.objid], "factfield");
+			if (factfield) {
+				def schema  = db.lookup("main", factfield.schemaname);
+				def xprm = [:];
+				xprm[factfield.primarykey] = prm[factfield.paramkey];
+				def f = schema.read(xprm);
+				bindings[o.title] = f[factfield.fieldname];
+			}
+		}
+
+		def result = [:];
+
+		def ref = [isDecimal: false, isDate: false, isBuildBindings: false];
+		switch (data.datatype) {
+			case 'decimal'	: ref.isDecimal = true; break;
+			case 'date'		: ref.isDate = true; break;
+		}
+
+		if (fields) ref.isBuildBindings = true;
+
+		def req = new RuleRequest("general_rules");
+		req.addFact('general_rules', 'References', ref);
+
+		def actions = new RuleAction(); 
+		actions.addCommand( 'calcAmount', new ils_rules.general.actions.CalcAmount( NS: numSvc, data: result ) );
+		actions.addCommand( 'calcDate', new ils_rules.general.actions.CalcDate( DS: dateSvc, data: result ) );
+		actions.addCommand( 'buildBindings', new ils_rules.general.actions.BuildBindings( data: result ) );
+
+		req.addGlobal("bindings", bindings);
+		req.addGlobal("action", actions);
+		req.addGlobal("fieldname", data.name);
+		req.addGlobal("expr", data.postingexpr);
+
+		try {
+
+			ruleSvc.execute(req);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		println 'result-> ' + result;
+
+	}
+}

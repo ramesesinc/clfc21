@@ -23,6 +23,7 @@ class OverageSummaryReportService
 	def dateFormat = new SimpleDateFormat('yyyy-MMM-dd');
 	def dateFormat2 = new SimpleDateFormat('MMM-dd-yyyy');
 
+	@Async
 	@ProxyMethod
 	public def getReportData( params ) {
 		//def startdate = dateFormat.format(java.sql.Date.valueOf(params.startdate.toString()));
@@ -50,6 +51,7 @@ class OverageSummaryReportService
 		}
 
 		def l;
+		def overagelist = [];
 		list?.each{ o->
 			o.list = [];
 			l = items.findAll{ it.route == o.route }
@@ -59,19 +61,21 @@ class OverageSummaryReportService
 				//o.list.add(item);
 				o.list << item;
 			}
-			o.total = l?.amount?.sum();
-			if (!o.total) o.total = 0;
-			o.list?.sort{ it.txndate }
+ 			overagelist.addAll( l );
+ 			overagelist.sort{ it.route + it.txndate };
+			//o.total = l?.amount?.sum();
+			//if(!o.total) o.total = 0;
+			//o.list?.sort{ it.txndate }
 		}
 
-		list?.sort{ it.route }
+		//list?.sort{ it.route }
 
 		def branch = branchSvc.open([:]);
 		def data = [
 			date_period : startdate + " TO " + enddate,
 			dtprinted	: new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a").format(dateSvc.serverDate),
 			printedby 	: env.NAME,
-			items		: list
+			items		: overagelist
 		];
 		branch.each{ k, v->
 			data["branch_"+k] = v;

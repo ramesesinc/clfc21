@@ -1,0 +1,30 @@
+<schema>
+
+	<element tablename='resolve_lost_collection'>
+		<field name='objid' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='loanpaymentid' required='true' />
+		<field name='txndate' required='true' />
+		<field name='txnstate' required='true' />
+		<field name='route_code' required='true' />
+		<field name='route_description' required='true' />
+		<field name='collector_objid' />
+		<field name='collector_name' />
+		<field name='cbs_objid' required='true' />
+		<field name='cbs_no' required='true' />
+		<field name='dtposted' />
+		<field name='postedby_objid' />
+		<field name='postedby_name' />
+		<complex name='info' required='false' serializer='default' merge='true' />
+	</element>
+
+	<element name='post' tablename='resolve_lost_collection'>
+		<field name='objid' primary='true' />
+		<field name='dtposted' required='true' />
+		<field name='postedby_objid' required='true' />
+		<field name='postedby_name' required='true' />
+	</element>
+
+</schema>

@@ -1,0 +1,1057 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import com.rameses.rules.common.*;
+import java.rmi.server.UID;
+
+class NewLoanProductTypeService extends ActiveCrudListService {
+
+	@Env
+	def env;
+
+	@ActiveDB( dynamic=true )
+	def db;
+
+	@ActiveDB("loan_producttype")
+	def em;
+
+	@ActiveDB('datatxnlog') 
+	def txnlog;
+
+	@ActiveDB("loan_producttype_attribute")
+	def producttype_attribute;
+
+	@ActiveDB("postingheader")
+	def postingheader;
+
+	@ActiveDB("ils_fact")
+	def ils_fact;
+
+	@ActiveDB("loanapp")
+	def loanapp;
+
+	@ActiveDB("loan_ledger")
+	def loan_ledger;
+
+	@ActiveDB("loan_ledger_payment")
+	def ledger_payment;
+
+	@Resource("RuleService")
+	def ruleSvc;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("LOVService")
+	def lovSvc;
+
+	@Service("NumberService")
+	def numSvc;
+
+	@Service
+	def selfSvc;
+
+	private final def POSTING_RULESET = ["postperitem", "postonlastitem"];
+	private final def POSTING_RULEGROUP = ["before", "during", "after"];
+
+	/*
+	private def DEFAULT_LOAN_VARLIST = ["AMOUNT", "BALANCE", "TOTAL_PAYMENT", "TOTAL_DUE"]
+	private def DEFAULT_POSTING_VARLIST = [
+		[name: "DATE_PAID", datatype: "date"],
+		[name: "REMARKS", datatype: "string",],
+		[name: "REFNO", datatype: "string"],
+	]
+	*/
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: "txnstate", caption: "Status"];
+
+		cols << [name: "code", caption: "Code"];
+		cols << [name: "title", caption: "Title"];
+		cols << [name: "paymentschedule", caption: "Payment Schedule"];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+		if (params.state) {
+			params._listMethod = "getListByState";
+		}
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	@ProxyMethod
+	public def createData( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = getUser();
+		if (!data.txnstate) data.txnstate = "DRAFT";
+
+		return saveData(data, "create");
+	}
+
+	@ProxyMethod
+	public def updateData( data ) {
+		return saveData(data, "update");
+	}
+
+	def saveData( data, mode ) {
+
+		def info;
+		def _addedgenattr, _addedloanattr;
+		def _removedgenattr, _removedloanattr;
+		def _genattr, _loanattr;
+		def loanfields;
+
+		if (data.generalinfo) {
+			info = data.generalinfo;
+			_addedgenattr = info._addedattr? info.remove("_addedattr") : [];
+			_removedgenattr = info._removedattr? info.remove("_removedattr") : [];
+			_genattr = info.attributes? info.remove("attributes") : [];
+		}
+
+		if (data.loaninfo) {
+			info = data.loaninfo;
+			_addedloanattr = info._addedattr? info.remove("_addedattr") : [];
+			_removedloanattr = info._removedattr? info.remove("_removedattr") : [];
+			_loanattr = info.attributes? info.remove("attributes") : [];
+
+			loanfields = info?.fields? info.remove("fields") : [];
+		}
+
+		if (mode == 'create') {
+			em.create(data);
+		} else if (mode == 'update') {
+			em.update(data);
+		}
+			
+		saveAttributes(data, _genattr, _addedgenattr, _removedgenattr, "GENERAL");
+		saveAttributes(data, _loanattr, _addedloanattr, _removedloanattr, "LOAN");
+		saveFields(data, loanfields, "LOAN");
+
+		return open(data);
+	}
+
+	void saveAttributes( data, list, added, removed, category ) {
+		removed?.each{ o->
+			em.delete(o, "attribute");
+		}
+
+		added?.each{ o->
+			if (!o.parentid) o.parentid = data.code;
+			o.category = category;
+			em.create(o, "attribute");
+		}
+
+		list?.findAll{ it._updated==true }?.each{ o->
+			if (!o.parentid) o.parentid = data.code;
+			o.category = category;
+			em.update(o, "attribute");
+		}
+	}
+
+	void saveFields( data, list, category ) {
+		em.removeFieldsByCategory([objid: data.code, category: category]);
+		list.each{ o->
+			if (!o.category) o.category = category;
+			em.create(o, "factfield");
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: "All"],
+			[caption: "DRAFT", state: "DRAFT"],
+			[caption: "ACTIVATED", state: "ACTIVATED"],
+			[caption: "DEACTIVATED", state: "DEACTIVATED"]
+		];
+	}
+
+	void afterOpen( data ) {
+
+		def category;
+		if (data.generalinfo) {
+			category = "GENERAL";
+			def list = [];
+			def x = em.getAttributesByCategory([code: data.code, category: category]);
+			x?.each{ o->
+				def i = em.read(o, "attribute");
+				if (i) list << i;
+			}
+			data.generalinfo.attributes = list;
+		}
+
+		if (data.loaninfo) {
+			category = "LOAN";
+			def list = [];
+			def x = em.getAttributesByCategory([code: data.code, category: category]);
+			x?.each{ o->
+				def i = em.read(o, "attribute");
+				if (i) list << i;
+			}
+
+			data.loaninfo.attributes = list;
+
+			data.loaninfo.fields = em.getFieldsByCategory([objid: data.code, category: category]);
+		}
+
+		/*
+		data.attributes = [];
+		def l = em.getAttributes(data);
+		l.each{ o->
+			def i = em.read(o, "attribute");
+			data.attributes << i;
+		}
+		*/
+	}
+
+	@ProxyMethod
+	public def getFactList( params ) {
+		if (!params.category) throw new RuntimeException("Please specify category.");
+
+		params.category = params.category.toLowerCase();
+		return em.getFactListByCategory(params).collect{ [objid: it.objid, title: it.defaultvarname, varname: it.defaultvarname] } 
+	}
+
+	@ProxyMethod
+	public def getFieldList( params ) {
+		if (!params.factid) throw new RuntimeException("Please specify factid.");
+		//if (!params.category) throw new RuntimeException("Please specify category.");
+
+		return em.getFieldListByFactid(params).collect{ [objid: it.objid, name: it.name, title: it.name, handler: it.handler] };
+	}
+
+	@ProxyMethod
+	public def getPostingRuleGroup() {
+		return POSTING_RULEGROUP;
+	}
+
+	@ProxyMethod
+	public def getDefaultPostingHeader() {
+		def list = [];
+
+		postingheader.getListByCategory([searchtext: "%", category: "PRODUCTTYPE"]).each{ o->
+			def item = list.find{ it.objid == o.objid }
+			if (!item) list << o;
+		}
+
+		list.sort{ it.seqno }
+		list.eachWithIndex{ o, idx-> 
+			o.index = idx;
+			o.seqno++;
+			o.isfirst = false;
+			o.islast = false;
+		}
+
+		if (list.size() > 0) {
+			list[0].isfirst = true;
+			list[list.size() - 1].islast = true;
+		}
+
+		return list;
+		/*
+		def xlist = posting_header.getList([searchtext: '%']);
+		
+		def list = [], item;
+		xlist?.each{ o->
+			item = list?.find{ it.code == o.code }
+			if (!item) list << o;
+		}
+
+		list?.sort{ it.sequence }
+		list?.eachWithIndex{ o, idx->
+			o.index = idx;
+			o.sequence = (idx + 1);
+			o.isfirst = false;
+			o.islast = false;
+		}
+
+		if (list.size() > 0) {
+			list.sort{ it.sequence }
+			list[0].isfirst = true;
+			list[list.size() - 1].islast = true;
+		}
+
+		return list;
+		*/
+	}
+
+	@ProxyMethod
+	public def getDefaultGeneralInfoAttributes() {
+		def list = getDefaultAttributes([category: 'GENERAL']);
+		list.each{ o->
+			def val = o.attribute?.defaultvalue;
+			o.value = val;
+			o.attribute?.value = val;
+			o.usedefault = 1;
+		}
+		return list;
+	}
+
+	@ProxyMethod
+	public def getDefaultLoanInfoAttributes() {
+		def list = getDefaultAttributes([category: 'LOAN']);
+		list.each{ o->
+			o.handler = o.attribute.type;
+			o.computeduringapplication = 1;
+			o.computeduringposting = 0;
+			o.computeuponmaturity = 0;
+		}
+		return list;
+	}
+
+	@ProxyMethod
+	public def getPostingGroup() {
+		def list = lovSvc.getKeyValues("POSTING_GROUP");
+		return list;
+	}
+
+	def getDefaultAttributes( params ) {
+		if (!params.category) throw new RuntimeException("Please specify category.");
+
+		def list = [];
+		def x = producttype_attribute.getDefaultAttributesByCategory(params);
+		x?.eachWithIndex{ o, idx->
+			def i = producttype_attribute.read(o);
+			if (i) {
+				//i.value = i.defaultvalue;
+				def d = [
+					objid		: 'LATTR' + new UID(),
+					attributeid	: i.code,
+					attribute 	: i,
+					index 		: idx
+				]
+				list << d;
+			}
+		}
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def getLoanInfoVarlist() {
+		def list = [];
+		/*
+		DEFAULT_LOAN_VARLIST.eachWithIndex{ itm, idx->
+			def item = [
+				caption 	: itm,
+				title 		: itm,
+				signature 	: itm,
+				handler 	: "decimal",
+				description : "(decimal)"
+			];
+			list << item
+		}
+		*/
+		return list;
+	}
+
+	@ProxyMethod
+	public def getPostingInfoVarList() {
+		def list = [];
+		/*
+		DEFAULT_POSTING_VARLIST.eachWithIndex{ itm, idx-> 
+
+		}
+		*/
+		return list;
+	}
+
+	@ProxyMethod
+	public def getFields( params ) {
+		def list = postingheader.getFields([objid: params.objid]);
+
+		println 'fields ' + list;
+
+
+		return list;
+	}
+
+	@ProxyMethod
+	public def activate( params ) {
+		def data = changeState(params, "ACTIVATED");
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def deactivate( params ) {
+		def data = changeState(params, "DEACTIVATED");
+		return open(data);
+	}
+
+	def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new RuntimeException("Product type record does not exist or has already been deleted.");
+
+		if (data.txnstate == state) {
+			throw new RuntimeException("Product type record has already been " + state + ".");
+		}
+
+		data.txnstate = state;
+		em.update(data);
+
+		def action, remarks;
+
+		switch (data.txnstate) {
+			case 'ACTIVATED':
+				action = "Activate";
+				remarks = "Product type activated";
+				break;
+			case 'DEACTIVATED':
+				action = "Deactivate";
+				remarks = "Product type deactivated";
+				break;
+		}
+
+		if (action && remarks) {
+
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.code, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action, 
+				remarks : remarks 
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def executeProductTypeRulesForLoanApplication( producttype, params, type, prmdata ) {
+		def data = open(producttype);
+
+		def bindings = [:];
+		def result = [:];
+
+		data.generalinfo?.attributes.each{ o->
+			bindings[o.attribute.varname] = o.value;
+		}
+
+		def info = data.loaninfo;
+		if (info) {
+			info.fields.each{ o->
+				def factfield = ils_fact.read([objid: o.field.objid], "factfield");
+				if (factfield && factfield.source=='database') {
+					if (type == 'database') {
+
+						def schema  = db.lookup("main", factfield.schemaname);
+
+						def xprm = [:];
+						xprm[factfield.primarykey] = params[factfield.paramkey];
+
+						def f = schema.read(xprm);
+						if (factfield.subschemaname) {
+							f = schema.read(xprm, factfield.subschemaname);
+						}
+						//println 'schema ' + factfield.schemaname + ' subschema ' + factfield.subschemaname + ' f ' + f;
+						bindings[o.title] = f? f[factfield.fieldname] : null;	
+					} else {
+						def schema = prmdata[factfield.schemaname];
+						bindings[o.title] = schema? schema[factfield.fieldname] : null;
+					}
+				}
+			}
+
+			//info.attributes[0].each{ println it }
+
+			def list = info.attributes?.findAll{ it.computeduringapplication==1 }
+			list.sort{ it.index }
+			list.each{ o->
+				//println 'bindings';
+				//bindings?.each{ println it };
+				def res = executeRule(bindings, o);
+				bindings[o.attribute.varname] = res[o.attribute.fieldname];
+				//println '';
+			}
+
+			list.each{
+				result[it.attribute.fieldname] = bindings[it.attribute.varname]
+			}
+		}
+
+		return result; 
+	}
+
+	@ProxyMethod
+	public def xexecuteProductTypeRulesForLoanApplication( producttype, params ) {
+		def data = open(producttype);
+
+		def bindings = [:];
+		def result = [:];
+
+		data.generalinfo?.attributes.each{ o->
+			bindings[o.attribute.varname] = o.value;
+		}
+
+		def info = data.loaninfo;
+		if (info) {
+			info.fields.each{ o->
+				def factfield = ils_fact.read([objid: o.field.objid], "factfield");
+				if (factfield && factfield.source=='database') {					
+					def schema  = db.lookup("main", factfield.schemaname);
+
+					def xprm = [:];
+					xprm[factfield.primarykey] = params[factfield.paramkey];
+
+					def f = schema.read(xprm);
+					if (factfield.subschemaname) {
+						f = schema.read(xprm, factfield.subschemaname);
+					}
+					bindings[o.title] = f[factfield.fieldname];
+				}
+			}
+
+			//info.attributes[0].each{ println it }
+
+			def list = info.attributes?.findAll{ it.computeduringapplication==1 }
+			list.sort{ it.index }
+			list.each{ o->
+				def res = executeRule(bindings, o);
+				bindings[o.attribute.varname] = res[o.attribute.fieldname];
+			}
+
+			list.each{
+				result[it.attribute.fieldname] = bindings[it.attribute.varname]
+			}
+		}
+
+		return result;
+	}
+
+	@ProxyMethod
+	public def xxtestExpression( params ) {
+		println 'test expression';
+
+		def ref = [executingBase: true, executingRuleset: false];
+		def base = [
+			index 	: 0,
+			sequence: [
+				[name: "base1"],
+				[name: "base2"],
+				[name: "base3"]
+			]
+		];
+		def ruleset = [
+			index 	: 0,
+			sequence: [
+				[name: "sequence1"],
+				[name: "sequence2"],
+				[name: "sequence3"],
+				[name: "sequence4"]
+			]
+		];
+
+
+		def req = new RuleRequest("testing_rules");
+		req.addFact( "testing_rules", "References", ref );
+		req.addFact( "testing_rules", "Base", base );
+		req.addFact( "testing_rules", "Ruleset", ruleset );
+
+		try {
+
+			ruleSvc.execute(req);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+	}
+
+	@ProxyMethod
+	public def xtestExpression( params ) {
+		def data = open( params );
+
+
+	}
+
+
+	@ProxyMethod
+	public def testExpression( params ) {
+		def data = open(params);
+
+		def bindings = [:];
+		def bindings2 = [:];
+		def loanbindings = [:];
+
+		def xparams = [
+			appid		: "LOAN7385099b:15c0faf1736:-7ff6",
+			ledgerid	: "LEDGER-7d4c2fc0:145c6219f8c:-77c6",
+			payments 	: [[paymentid: "LLP70b6b5f0:145ebcbaa08:-d6f"]]
+		];
+
+		//LLP-4da142a:145c7c7e749:1632 2000-03-17
+		//LLP70b6b5f0:145ebcbaa08:-d6f 2000-03-23
+
+		//do not remove 
+		def app = [:];
+		def info = data.loaninfo;
+		if (info) {
+
+			data.generalinfo?.attributes.each{ o->
+				bindings[o.attribute.varname] = o.value;
+				bindings2["GENINFO_" + o.attribute.varname] = o.value;
+				loanbindings[o.attribute.varname] = o.value;
+			}
+
+			info.fields.each{ o->
+				def factfield = ils_fact.read([objid: o.field.objid], "factfield");
+				if (factfield && factfield.source=='database') {					
+					def schema  = db.lookup("main", factfield.schemaname);
+
+					def xprm = [:];
+					xprm[factfield.primarykey] = xparams[factfield.paramkey];
+
+					def f = schema.read(xprm);
+					if (factfield.subschemaname) {
+						f = schema.read(xprm, factfield.subschemaname);
+					}
+					bindings[o.title] = f[factfield.fieldname];
+				}
+			}
+
+			//info.attributes[0].each{ println it }
+
+			def list = info.attributes?.findAll{ it.computeduringapplication==1 }
+			list.sort{ it.index }
+			list.each{ o->
+				def res = executeApplicationRule(bindings, o);
+				bindings[o.attribute.varname] = res[o.attribute.fieldname];
+			}
+
+			//def app = [:];
+			app = loanapp.read([objid: xparams.appid]);
+			list.each{
+				app[it.attribute.fieldname] = bindings[it.attribute.varname]
+			}
+
+			bindings = [:];
+			info.attributes?.each{ 
+				bindings[it.attribute.varname] = null;
+				if (app[it.attribute.fieldname]) {
+					bindings[it.attribute.varname] = app[it.attribute.fieldname];
+					bindings2["LOANINFO_" + it.attribute.varname] = app[it.attribute.fieldname];
+					loanbindings[it.attribute.varname] = app[it.attribute.fieldname];
+				}
+				
+			}
+		}
+
+		//println 'bindings';
+		//bindings.each{ println it }
+
+		//println 'application';
+		//app.each{ println it }
+
+		info = data.postinginfo;
+		def appinfo = data.loaninfo;
+		def geninfo = data.generalinfo;
+		if (info) {
+			appinfo.loanbindings = loanbindings;
+			//println 'bindings';
+			//loanbindings.each{ println it }
+			//println '';
+			xparams.payments?.each{ p->
+				def xprm = [appid: xparams.appid, ledgerid: xparams.ledgerid, paymentid: p.paymentid];
+				def result = executePostingRule( bindings2, geninfo, appinfo, info, xprm );
+				/*
+				info.postingsequence.each{
+					//println 'ps ' + it;
+					//println 'fields ' + it.fields;
+					//println 'expr ' + it.postingexpr;
+					//def fields = postingheader.getFields([objid: it.objid]);
+					//if (fields) {
+					//	println 'fields ' + fields;
+					//}
+					//println '';
+				}
+				*/
+			}
+		}
+
+	}
+
+
+
+	def executeApplicationRule( bindings, item ) {
+
+		def result = [:];
+
+		def ref = [
+			isDecimal	: item?.attribute?.datatype=='decimal'? true : false,
+			isDate 		: item?.attribute?.datatype=='date'? true : false
+		];
+		def req = new RuleRequest("general_rules");
+		req.addFact('general_rules', 'References', ref);
+
+		def actions = new RuleAction(); 
+		actions.addCommand( "calcAmount", new ils_rules.general.actions.CalcAmount( NS: numSvc, data: result ) );
+		actions.addCommand( "calcDate", new ils_rules.general.actions.CalcDate( DS: dateSvc, data: result ) );
+		//actions.addCommand( "buildBindings", new ils_rules.general.actions.BuildBindings( data: result ) );
+
+		req.addGlobal("bindings", bindings);
+		req.addGlobal("action", actions);
+		req.addGlobal("fieldname", item.attribute.fieldname);
+		req.addGlobal("expr", item.expr);
+
+		try {
+
+			ruleSvc.execute(req);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		//println 'result-> ' + result;
+
+		return result;
+	}
+
+	def executePostingRule( bindings, geninfo, appinfo, item, params ) {
+
+		/*
+		def method = "test";
+
+		try {
+			println 'class-> ' + selfSvc.getClass();
+			selfSvc.getClass().getInvocationHandler( selfSvc.getClass() ).invoke( selfSvc.getClass(), "deactivate", [] );
+			//println 'has method deactivate-> ' + selfSvc.invoke("deactivate", new HashMap());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		*/
+
+		/*
+		try {
+			println 'class1-> ' + this.getClass();
+			//println 'has method deactivate2-> ' + this.invoke("deactivate", new HashMap());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		*/
+		
+
+		//throw new RuntimeException("stop");
+		def pyt = loan_ledger.read([objid: params.paymentid], "payment");
+		def ledger = loan_ledger.read([objid: params.ledgerid]);
+
+		def totaldays = getTotalDays( params );
+		//println 'total days ' +  totaldays;
+
+		def ruleset = [index: 0, sequence: POSTING_RULESET];
+		def rulegroup = [index: 0, sequence: POSTING_RULEGROUP];
+
+		//def postingsequence = [];
+		//item.postingsequence.each{ 
+		///	println 'fields ' + it.fields;
+		//	postingsequence << [objid: it.objid, title: it.title, fields: it.fields];
+			//println 'seq ' + it ;
+		//}
+		//println 'fields-> ' + appinfo?.fields?.size();
+		//appinfo?.fields?.each{ println it }
+		//throw new RuntimeException("stopping");
+
+		def applist = appinfo?.attributes?.findAll{ it.computeduringposting==1 && it.attribute.varname != null }
+		
+		def loanBindings = [:];
+		if (applist) {
+
+			def fields = appinfo.fields;
+			if (!fields) fields = [];
+
+			applist.each{ 
+				if (!it.fields) it.fields = [];
+				it.fields.addAll( fields );
+			}
+
+			if (appinfo.loanbindings) loanBindings.putAll(appinfo.loanbindings);
+		}
+
+
+		//println 'app attributes';
+		//applist?.each{ println it }
+		//throw new RuntimeException("stopping");
+		//println 'seq';
+		//postingsequence.each{ println it }
+		if (!bindings) bindings = [:];
+		def bindingsCopy = [:];
+		bindingsCopy.putAll(bindings);
+		def result = [:];
+
+		def ref = [
+			executingRulegroup		: true,
+			executingRuleset 		: false,
+			allowPosting			: false, 
+			allowRepost 			: false,
+			buildBindings 			: false, 
+			onSupplyValue 			: false, 
+			onPostItem 				: false,
+			//onPostPerItem 			: false,
+			//onPostLastItem 			: false,
+			loanAppSupplyOnPosting 	: false,
+			dbParams				: params,
+			totalDays 				: totaldays
+		];
+		def posting = [index: 0, sequence: item.postingsequence, postingItems: [], daysCount: 1, incrementAfterPosting: [:]];
+		def loan = [index: 0, attributes: applist, bindings: loanBindings];
+		def payment = [amount: 0.0d, deductableToAmount: 0.0d, date: pyt?.txndate, totalPaid: [:], total: [:], lacking: [:]];
+		if (pyt?.amount) {
+			payment.amount = ((BigDecimal) pyt.amount).toDouble();
+		}
+
+		/*
+		println 'ref';
+		ref.each{ println it }
+		println '\nposting';
+		posting.each{ println it }
+		*/
+
+		def req = new RuleRequest( "product_type_rules" );
+		req.addFact( "product_type_rules", "References", ref );
+		req.addFact( "product_type_rules", "Posting", posting );
+		req.addFact( "product_type_rules", "Payment", payment );
+		req.addFact( "product_type_rules", "Loan", loan );
+		req.addFact( "product_type_rules", "Ruleset", ruleset );
+		req.addFact( "product_type_rules", "Rulegroup", rulegroup );
+
+		/*
+		println 'ref';
+		ref.each{ println it }
+		println '';
+		println 'posting';
+		posting.each{ println it }
+		*/
+
+		//throw new RuntimeException("stop");
+
+		def actions = new RuleAction(); 
+		actions.addCommand( "buildBindings", new ils_rules.general.actions.BuildBindings( SERVICE: selfSvc ) );
+		actions.addCommand( "supplyFieldValue", new ils_rules.general.actions.SupplyFieldValue( NS: numSvc ) );
+		actions.addCommand( "postItem", new ils_rules.general.actions.PostItem( NS: numSvc ) );
+
+		req.addGlobal("action", actions);
+		req.addGlobal("bindings", bindings);
+		req.addGlobal("bindingsCopy", bindingsCopy);
+
+		try {
+
+			ruleSvc.execute(req);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		/*
+		println 'payment';
+		payment.each{ println it }
+		println '';
+
+		println 'posting items ';
+		posting.postingItems.each{ println it };
+		println '';
+		*/
+		//println 'result-> ' + result;
+
+
+		//throw new RuntimeException("stopping");
+		return result;
+	}
+
+	@ProxyMethod
+	public def getTotalDays( params ) {
+
+		def ledger = loan_ledger.read([objid: params.ledgerid]);
+		def payment = loan_ledger.read([objid: params.paymentid], "payment");
+
+		def ref = [isDecimal: false, isDate: false, isComputeTotalDays: true];
+		def totalDaysRef = [currentSchedule: ledger?.dtcurrentschedule, paymentDate: payment?.txndate, totalDays: 0];
+		/*
+		if (params.incrementdtschedule) {
+
+		}
+		*/
+		//println 'total days ref ' + totalDaysRef;
+
+		def req = new RuleRequest( "general_rules" );
+		req.addFact( "general_rules", "References", ref );
+		req.addFact( "general_rules", "ComputeTotalDaysReference", totalDaysRef );
+
+		Map result = [:];
+
+		req.addGlobal("resultMap", result);
+
+		try {
+
+			ruleSvc.execute(req);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		//println 'total days ' + totalDaysRef.totalDays;
+		//println 'resutl ' + result;
+		if (!result.totaldays) result.totaldays = 1;
+		return result.totaldays;
+		//throw new RuntimeException("stop total days");
+	}
+
+	@ProxyMethod
+	public def getTotalPayment( params ) {
+		def payment = loan_ledger.read([objid: params.paymentid], "payment");
+
+
+		def xlist = ledger_payment.getPaymentsByParentidAndTxndate([parentid: payment?.parentid, txndate: payment.txndate]);
+		xlist.sort{ it.refno }
+
+		def amt = 0;
+
+		for (int i=0; i<xlist.size(); i++) {
+			def pyt = xlist[i];
+			amt += pyt.amount;
+			if (pyt.objid == payment.objid) {
+				break;
+			}
+		}
+
+
+		return amt;
+	} 
+
+	@ProxyMethod
+	public def getTotal( params, type ) {
+		def amt = 0;
+		/*
+		swtich (type) {
+			case 'interest':
+				if (params.total['interest']) {
+					amt = params.t
+				}
+				break;
+			case 'penalty':
+
+				break;
+		}
+		*/
+		if (params.total[type]) {
+			amt = params.total[type];
+		}
+
+		return amt;
+	}
+
+	@ProxyMethod
+	public def getRemarks( params ) {
+		def remarks = '';
+
+		def payment = loan_ledger.read([objid: params.paymentid], "payment");
+
+		def xlist = ledger_payment.getPaymentsByParentidAndTxndate([parentid: payment?.parentid, txndate: payment.txndate]);
+
+		if (xlist?.size() > 0) {
+			xlist.sort{ it.refno }
+
+			def amt = 0;
+			def hasTotalPayment = false;
+
+			for (int i=0; i<xlist.size(); i++) {
+				def pyt = xlist[i];
+				amt += pyt.amount;
+				if (pyt.objid == payment.objid) {
+					if (i > 0) hasTotalPayment = true;
+					break;
+				}
+			}
+
+			if (hasTotalPayment) {
+				remarks += amt + ' Total Payment \n';
+			}
+		}
+
+		if (params.lacking) {
+			params.lacking.each{ k, v->
+				if (v > 0) {
+					remarks += 'Lacking ' + k + ' ' + v + ' \n';
+				}
+			}
+		}
+
+		//println 'params ' + params;
+
+		return remarks;
+	}
+
+	@ProxyMethod
+	public def buildBindings( fields, params ) { 
+		//println 'fields';
+
+		//println 'params';
+		//params.each{ println it }
+
+		def bindings = [:];
+		fields.each{ f->
+			def field = ils_fact.read([objid: f.field.objid], "factfield");
+			if (field) {
+				if (field?.source=="database") {	
+					def schema  = db.lookup("main", field.schemaname);
+
+					def prm = [:];
+					prm[field.primarykey] = params[field.paramkey];
+
+					def ff = schema.read(prm);
+					if (field.subschemaname) {
+						ff = schema.read(prm, field.subschemaname);
+					}
+					bindings[f.title] = ff[field.fieldname];
+				} else if(field?.source=="user") {
+
+					//println 'field name ' + field?.name;
+					switch (field.name) {
+						case 'totaldays':
+							def val;
+							if (params.totaldays) {
+								val = params.totaldays;
+							} else {
+								params.incrementafterposting?.each{ k, v->
+									params["increment" + k] = v;
+								}
+								val = getTotalDays( params );	
+							}
+							//println 'totaldays-> ' + val;
+							bindings[f.title] = val;
+							break;
+						case 'totalpayment':
+							def val = getTotalPayment( params );
+							//println 'totalpayment-> ' + val;
+							bindings[f.title] = val;
+							break;
+						case 'totalinterest':
+							bindings[f.title] = getTotal( params, "interest" );
+							break;
+						case 'totalpenalty':
+							bindings[f.title] = getTotal( params, "penalty" );
+							break;
+						case 'remarks':
+							bindings[f.title] = getRemarks( params );
+							break;
+					}
+
+					//println 'field ' + field;
+				}
+			}
+			//f.each{ println it } 
+			//println ''
+		}
+
+		//println 'bindings';
+		//bindings.each{ println it }
+		return bindings;
+	}
+}

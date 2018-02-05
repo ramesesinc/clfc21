@@ -103,7 +103,7 @@ class SummaryOfCollectionReportService {
 		//i.principal = principal;
 
 	}
-
+	@Async
 	@ProxyMethod
 	public def getReportData( params ) {
 		if (!params.startdate) throw new Exception("Please specify From date.");
@@ -167,7 +167,7 @@ class SummaryOfCollectionReportService {
 					println 'penalty ' + rev;
 				}
 
-				def penalty = 0.00;;
+				def penalty = 0.00;
 				if (rev) {
 					penalty = rev.amount.sum();
 					if (!penalty) penalty = 0.00;

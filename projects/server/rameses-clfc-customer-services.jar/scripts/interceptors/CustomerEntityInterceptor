@@ -20,6 +20,7 @@ class CustomerEntityInterceptor
 		if (!'individual'.equalsIgnoreCase(result.type+'')) return;
 
 		def item = customer.read(result);
+		println 'result ' + result;
 		if (!item) customer.create(result); 
 	}	
 

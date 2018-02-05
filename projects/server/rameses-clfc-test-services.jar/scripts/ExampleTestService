@@ -1,0 +1,17 @@
+import com.rameses.annotations.*;
+
+class ExampleTestService {
+	
+
+	@ActiveDB( dynamic=true )
+	def db;
+
+	@ProxyMethod
+	public def test( params ) {
+		println 'params-> ' + params;
+
+		def entity = db.lookup("entity")
+		println 'entity ' + entity;
+	}
+
+}

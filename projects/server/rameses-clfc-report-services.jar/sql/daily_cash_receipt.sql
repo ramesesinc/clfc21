@@ -77,6 +77,27 @@ where d.parentid = $P{objid}
 
 [getPostedOtherReceiptByDate]
 select d.*
+from (
+	select d.objid
+	from otherreceipt o
+	inner join otherreceipt_detail d on d.parentid=o.objid
+	left join otherreceipt_voidrequest v on d.objid=v.refid
+	where v.objid is null
+		and o.txndate = $P{date}
+		and o.txnstate = 'posted'
+	union 
+	select distinct d.objid
+	from otherreceipt o
+	inner join otherreceipt_detail d on d.parentid=o.objid
+	inner join otherreceipt_voidrequest v on d.objid=v.refid
+	where v.txnstate not in ('for_approval', 'approved')
+		and o.txndate = $P{date}
+		and o.txnstate = 'posted'
+) q inner join otherreceipt_detail d on q.objid=d.objid
+order by d.description
+
+[xgetPostedOtherReceiptByDate]
+select d.*
 from otherreceipt o
 inner join otherreceipt_detail d on o.objid = d.parentid
 where o.txndate = $P{date}

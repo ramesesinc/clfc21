@@ -1,0 +1,31 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class NewPostingHeaderLookupService extends ActiveListService {
+
+	@ActiveDB("postingheader")
+	def em;
+
+	String listMethod = "getLookupList";
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: "title", caption: "Title"];
+		cols << [name: "name", caption: "Name"];
+		cols << [name: "datatype", caption: "Data Type"];
+		cols << [name: "type", caption: "Type"];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+
+		if (params.category) {
+			params._listMethod = "getLookupListByCategory";
+		}
+	}
+
+}

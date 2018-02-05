@@ -1,0 +1,91 @@
+package general_rules;
+
+import java.util.*;
+import java.lang.*;
+import com.rameses.rules.common.*;
+
+global Map bindings;
+global String fieldname;
+global String expr;
+global RuleAction action;
+global Map resultMap;
+
+declare References
+	isDecimal			: Boolean
+	isDate 				: Boolean
+	isComputeTotalDays	: Boolean
+end
+
+declare ComputeTotalDaysReference
+	currentSchedule : Date
+	paymentDate		: Date
+	totalDays 		: int
+end
+
+function void println( Object msg ) {
+	System.out.println(msg.toString());
+}
+
+rule "calculate amount"
+	when
+		References( isDecimal == true )
+	then
+
+		if (bindings == null) bindings = new HashMap();
+
+		Map params = new HashMap();
+		params.put("key", fieldname);
+		params.put(fieldname, (new ActionExpression(expr, bindings)) );
+
+		action.execute("calcAmount", params, drools);
+end
+
+rule "calculate date"
+	when
+		References( isDate == true )
+	then
+
+		if (bindings == null) bindings = new HashMap();
+
+		Map params = new HashMap();
+		params.put("key", fieldname);
+		params.put(fieldname, (new ActionExpression(expr, bindings)) );
+
+		action.execute("calcDate", params, drools);
+end
+
+rule "compute total days"
+	when
+		References( isComputeTotalDays == true )
+		c: ComputeTotalDaysReference( currentschedule: currentSchedule, paymentdate: paymentDate, totaldays: totalDays )
+	then
+		if (resultMap == null) {
+			resultMap = new HashMap();
+		}
+		resultMap.put("totaldays", totaldays);
+		//println("compute total days");
+		//println("total days " + totaldays);
+		
+		Boolean allowUpdate = false;
+		if (currentschedule.compareTo(paymentdate) <= 0) {
+			totaldays++;
+
+			Calendar cal = Calendar.getInstance();
+			cal.setTime( currentschedule );
+			cal.add(Calendar.DATE, 1);
+
+			c.setCurrentSchedule( cal.getTime() );
+			c.setTotalDays( totaldays );
+			allowUpdate = true;
+		} else {
+			if (totaldays <= 0) {
+				c.setTotalDays( 1 );
+				allowUpdate = true;
+			}
+		}
+
+		if (allowUpdate == true) {
+			update( c );
+		}
+end
+	

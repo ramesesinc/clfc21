@@ -2,8 +2,25 @@ import com.rameses.common.*;
 import com.rameses.annotations.*;
 import com.rameses.services.extended.*;
 
-class CaptureLoanAppLookupService
-{
+class CaptureLoanAppLookupService extends ActiveListService {
+
+	@ActiveDB("loanapp_capture")
+	def em;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: "appno", caption: "App. No."];
+		cols << [name: "borrower.name", caption: "Borrower"];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+	}
+	/*
 	@ActiveDB('loanapp_capture')
 	def em;
 
@@ -24,13 +41,7 @@ class CaptureLoanAppLookupService
 		params._start = (params._start? params.start: 0); 
 		params._limit = (params._limit? params._limit: 10); 
 		def list = em.getList(params);
-		/*
-		list.each{
-			it.dtstarted = dateSvc.add(it.dtreleased, "1");
-			if ()
-			it.dtmatured = dateSvc.add(it.dtreleased, it.producttype.term+'');
-		}
-		*/
 		return list;
 	}
+	*/
 }

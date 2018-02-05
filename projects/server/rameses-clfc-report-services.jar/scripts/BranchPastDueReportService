@@ -68,7 +68,7 @@ class BranchPastDueReportService
 			}
 		}
 	}
-
+	@Async
 	@ProxyMethod
 	public def getReportData( params ) {
 		if (!params.startdate) throw new Exception("Please specify start date.");
@@ -99,49 +99,51 @@ class BranchPastDueReportService
 			}
 		}
 
-		def totalbalance = list?.balance?.sum();
-		if (!totalbalance) totalbalance = 0;
+		//def totalbalance = list?.balance?.sum();
+		//if (!totalbalance) totalbalance = 0;
 
-		def totalamount = list?.loanamount?.sum();
-		if (!totalamount) totalamount = 0;
+		//def totalamount = list?.loanamount?.sum();
+		//if (!totalamount) totalamount = 0;
 
-		def noofaccounts = list?.size();
-		if (!noofaccounts) noofaccounts = 0;
+		//def noofaccounts = list?.size();
+		//if (!noofaccounts) noofaccounts = 0;
 
-		def list2 = [];
-		def datelist = [];
-		datelist.addAll(list.findAll{ it.txndate != null });
-		if (datelist) {
-			datelist.unique{ it.txndate }
-			datelist.sort{ it.txndate }
-			def routelist;
-			datelist.each{ d->
-				routelist = [];
-				routelist.addAll(list.findAll{ it.route.code != null && it.txndate == d.txndate }.collect{ it.route });
-				if (routelist) {
-					routelist.unique{ it.code }
-					routelist.sort{ it.description }
-					routelist.each{ r->
-						r.list = list.findAll{ it.route.code == r.code && it.txndate == d.txndate }
-						if (r.list) {
-							r.list.sort{ it.borrower }
-						}
-					}
-					d.routes = routelist;
-				}
-			}
-			list2.addAll(datelist);
-		}
+		//def list2 = [];
+		//def datelist = [];
+		//datelist.addAll(list.findAll{ it.txndate != null });
+		//if (datelist) {
+			//datelist.unique{ it.txndate }
+			//datelist.sort{ it.txndate }
+			//def routelist;
+			//datelist.each{ d->
+				//routelist = [];
+				//routelist.addAll(list.findAll{ it.route.code != null && it.txndate == d.txndate }.collect{ it.route });
+				//if (routelist) {
+					//routelist.unique{ it.code }
+					//routelist.sort{ it.description }
+					//routelist.each{ r->
+						//r.list = list.findAll{ it.route.code == r.code && it.txndate == d.txndate }
+						//if (r.list) {
+							//r.list.sort{ it.borrower }
+						//}
+					//}
+					//d.routes = routelist;
+				//}
+			//}
+			//list2.addAll(datelist);
+		//}
 
+		list.sort{ it.txndate + it.route.description + it.borrower};
+		  
 		def branch = branchSvc.open([:]);
 		def data = [
 			date_period 	: sd + " TO " + ed,//new SimpleDateFormat("yyyy-MMM-dd").format(java.sql.Date.valueOf(params.txndate+"")),
 			dtprinted		: new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a").format(currdate),
 			printedby 		: env.NAME,
-			items			: list2,
-			totalbalance 	: totalbalance,
-			totalamount 	: totalamount,
-			noofaccounts	: noofaccounts
+			items			: list
+			//totalbalance 	: totalbalance,
+			//totalamount 	: totalamount,
+			//noofaccounts	: noofaccounts
 		];
 		branch.each{ k, v->
 			data["branch_"+k] = v;

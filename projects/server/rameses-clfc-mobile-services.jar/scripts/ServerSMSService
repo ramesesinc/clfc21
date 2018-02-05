@@ -1,0 +1,147 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+
+class ServerSMSService
+{
+	
+	@ActiveDB(em='sms', value='server_sms_for_sending')
+	def server_sms_for_sending;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('PDUConverterService')
+	def pduConverterSvc;
+
+
+	private def REGEX = '^[0|\\+63]+(9)+(\\d{9})';
+
+	@ProxyMethod
+	public def sendForSMSSending( params ) {
+
+		def list = params.list;
+
+		list?.each{ o->
+			def mobileno = o.mobileno;
+			if (mobileno.matches(REGEX)) {
+				o.message = createSMSMessage(o);
+
+				def messagelist = convertPduMessage(o.mobileno, o.message);
+				def size = messagelist.size();
+				messagelist?.each{ m->
+					def objid = o.objid + o.branch?.code + m.idx;
+					//def item = server_sms_for_sending.findByRefidAndPart([refid: o.objid, part: m.idx]);
+					def item = server_sms_for_sending.read([objid: objid]);
+					if (!item) {
+						item = [:];
+						item.putAll(o);
+						item.putAll(m);
+						item.objid = objid;
+						item.refid = objid;
+						item.part = m.idx;
+						item.totalpart = size;
+						item.message = 'CLLCI:\n' + m.text;
+						item.pdumessage = m.pdu.message;
+						item.dtfiled = dateSvc.serverDate;
+						server_sms_for_sending.create(item);
+					}
+				}
+				o._created = true;
+				/*
+				def item = server_sms_for_sending.read([objid: o.objid]);
+				if (!item) {
+					item = o;
+					item.dtfiled = dateSvc.serverDate;
+					//item.dtfiled = o.dtpaid;
+					server_sms_for_sending.create(item);
+				}
+				o._created = true;
+				*/
+			}
+		}
+
+		return list;
+	}
+
+
+	private def convertPduMessage( mobileno, message ) {
+
+		def pdumobile = pduConverterSvc.convertMobileNumToPduMessage(mobileno);
+		def list = pduConverterSvc.convertToMultipartMessageWithHeader(message);
+
+		list?.eachWithIndex{ itm, idx-> 
+			itm.idx = (idx + 1);
+			def pdumessage = "004100" + pdumobile + "0000";
+
+			//println 'message ' + m;
+
+			def UD = itm.pdu.header + itm.pdu.data;
+			def length = itm.pdu.headerlength + itm.pdu.length;
+			length = Math.abs(length/2).intValue();
+			def UDL = pduConverterSvc.convertToHexadecimal(length);
+			if (UDL.length() < 2) {
+				UDL = "0" + UDL;
+			}
+
+			pdumessage += UDL.toUpperCase() + UD;
+
+			itm.pdu.message = pdumessage;
+			itm.pdu.messagelength = pdumessage.length();
+		}
+
+		return list;
+	}
+
+	private def createSMSMessage( data ) {
+		def msg = '';
+
+
+		//if (data?.reftype) msg += 'CLLCI:\n';
+
+		if (data?.reftype == 'PAYMENT') {
+			msg += 'Received payment for the loan of ' + data?.borrower?.lastname + ', ' + data?.borrower?.firstname;
+			//msg += ' with Loan No. ' + data?.loanapp?.appno;
+			msg += ' with the amount of ' + data?.amount;
+			msg += ' with Ref. No. ' + data?.refno;
+			msg += ' paid by ' + data?.paidby + ' on ' + data?.dtpaid;
+			msg += ' received by collector ' + data?.collector?.name + '.';
+		} else if (data?.reftype == 'VOID') {
+			msg += 'Voided payment for the loan of ' + data?.borrower?.lastname + ', ' + data?.borrower?.firstname;
+			//msg += ' with Loan No. ' + data?.loanapp?.appno;
+			msg += ' with the amount of ' + data?.amount;
+			msg += ' with Ref. No. ' + data?.refno;
+			msg += ' paid by ' + data?.paidby + ' on ' + data?.dtpaid;
+			msg += ' received by collector ' + data?.collector?.name;
+			msg += ' with the reason of "' + data?.reason + '".';
+		} else if (data?.reftype == 'REMARKS') {
+			/*
+			Received remark "remark-content" from collector Juan dela Cruz
+			for borrower-name dated remark-date.
+			*/
+			msg += 'Received remark "' + data?.remarks + '" from collector ' + data?.collector?.name;
+			msg += ' for ' + data?.borrower?.lastname + ', ' + data?.borrower?.firstname;
+			msg += ' dated ' + data?.dtremarked + '.';
+		}
+
+		return msg;
+	}
+
+	@ProxyMethod
+	public def saveForSMSSending( params ) {
+
+		def list = params.list;
+
+		list?.each{ o->
+			def item = server_sms_for_sending.read([objid: o.objid]);
+			if (!item) {
+				item = o;
+				item.dtfiled = o.dtpaid;
+				server_sms_for_sending.create(item);
+			}
+			o._created = true;
+		}
+
+		return list;
+	}
+
+}

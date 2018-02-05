@@ -125,7 +125,8 @@ class BranchLoanReleaseReportService
 	public def getReportData( params ) {
 		if (!params.startdate) throw new Exception("Please specify start date.");
 		if (!params.enddate) throw new Exception("Please specify end date.");
-		validate(params);
+		//validate(params);
+		generate( params );
 
 		def startdate = parseDate(params.startdate);
 		def enddate = parseDate(params.enddate);

@@ -10,8 +10,7 @@ import java.util.*;
 import com.rameses.util.*;
 import java.math.MathContext;
 
-class LoanLedgerService extends ActiveListService
-{	
+class LoanLedgerService extends ActiveListService {	
 	@Env
 	def env;
 
@@ -80,6 +79,12 @@ class LoanLedgerService extends ActiveListService
 
 	@ActiveDB("loan_exemption")
 	def exemption;
+
+	@ActiveDB("loan_producttype")
+	def loan_producttype;
+
+	@ActiveDB("loan_application")
+	def loan_application;
 
 	@Resource('RuleService')
 	def ruleSvc2;
@@ -212,7 +217,46 @@ class LoanLedgerService extends ActiveListService
 	}
 
 	@ProxyMethod
-	public def resolveEntity( entity ) {
+	public def resolveEntity( data ) {
+		def app = loanapp.read([objid: data.appid]);
+		if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted.");
+
+		data.producttype = app.producttype;
+		data.loanamount = app.loanamount;
+
+		def app_extinfo = loanapp.read([objid: app.objid], "extinfo");
+		if (app_extinfo?.dtreleased) {
+			data.dtreleased = app_extinfo.dtreleased;
+		} else {
+			def ac = loanapp.read([objid: app.objid], "loanapp_capture");
+			data.dtreleased = ac?.dtreleased;
+		}
+
+
+		def pt = loan_producttype.read([code: app.producttype.name]);
+		data.producttype.title = pt?.title;
+		data.producttype.code = pt?.code;
+
+		data.producttypeid = app.producttype.name;
+		data.term = app.producttype.term;
+
+		data.dtstarted = calculateStartDate(data.dtreleased, app.loantype, pt);
+		data.dtmatured = app_extinfo?.dtmatured;
+		/*
+		if (app_extinfo.dtmatured) {
+			data.dtmatured = app_extinfo.dtmatured;
+		} else {
+			def ac = loanapp.read([objid: app.objid], "loanapp_capture");
+			data.dtmatured = ac?.dtmatured;
+		}
+		*/
+
+		return data;
+	}
+
+
+	@ProxyMethod
+	public def xresolveEntity( entity ) {
 		def a = loanapp.read([objid: entity.appid]);
 		if (!a) throw new Exception("Loan Application record does not exist or has already been deleted.");
 
@@ -685,15 +729,36 @@ class LoanLedgerService extends ActiveListService
 	}
 
 	@ProxyMethod 
-	public def create(data) { 
+	public def create( data ) { 
 		if (!data.txnmode) throw new Exception('Please specify txnmode.');
-
 		validate(data);
 
 		def loancount = em.findLoanCountByAcctid([acctid: data.acctid]).loancount; 
 		data.loancount = loancount+1;
 		data.totalprincipal = data.loanamount;
 		data.balance = data.loanamount;
+
+		def extinfo = loanapp.read([objid: data.appid], "extinfo");
+
+		if (extinfo?.producttype?.version > 1) {
+			def app = loan_application.read([objid: data.appid]);
+			data.dailydue = app.amtdue;
+			data.interestamount = app.interest;
+			data.absentpenalty = app.absentpenalty;
+		} else {
+			def result = compute(data);
+			data.dailydue = result.dailydue;//computeDailyDue(data);
+			data.interestamount = result.interest;//computeInterestAmount(data);
+			data.absentpenalty = result.absentpenalty;//computeAbsentPenalty(data);			
+		}
+		data.overpaymentamount = data.overpayment;
+		data.overduepenalty = 0.00;
+		data.totaldue = 0.00;
+		data.state = 'OPEN';
+		data.dtcurrentschedule = data.dtstarted;
+		data.updatetype = (data.txnmode == 'CAPTURE'? 0 : 1);
+		em.create(data);
+		/*
 
 		def result = compute(data);
 		data.dailydue = result.dailydue;//computeDailyDue(data);
@@ -707,6 +772,7 @@ class LoanLedgerService extends ActiveListService
 		data.dtcurrentschedule = data.dtstarted;
 		data.updatetype = (data.txnmode == 'CAPTURE'? 0 : 1);
 		em.create(data);
+		*/
 
 		def item;
 		data.payments.each{

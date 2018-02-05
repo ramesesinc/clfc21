@@ -37,7 +37,7 @@ class SendToRemoteSMSTask
 
 	private def waiter = new LinkedBlockingQueue();
 
-	//@Schedule(interval=5, timeUnit='SECONDS')
+	@Schedule(interval=5, timeUnit='SECONDS')
 	public void sendToRemoteSMSServer( task ) {
 		//println 'sending'
 		def list = sms_for_sending.getList();
@@ -58,7 +58,7 @@ class SendToRemoteSMSTask
 			}
 		}
 
-		xlist = serverSmsSvc.sendForSMSSending([list: xlist]);
+		xlist = serverSmsSvc.sendForSMSSending([list: xlist, allowsend: true]);
 		//list = serverSmsSvc.saveForSMSSending([list: list]);
 
 		xlist?.each{ o->
