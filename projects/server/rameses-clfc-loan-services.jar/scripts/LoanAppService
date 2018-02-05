@@ -43,7 +43,7 @@ class LoanAppService
 	@ProxyMethod 
 	public def open( params ) {
 		def data = findByObjid(params); 
-		if (!data) throw new Exception('\''+params.objid+'\' loan application record not found');
+		if (!data) throw new Exception("'"+params.objid+"' loan application record not found");
 		
 		def route = emRoute.findByCode([code: data.route?.code]); 
 		if (route) data.route = route;
@@ -62,7 +62,6 @@ class LoanAppService
 			}
 			data.nextto = nextto;
 		}
-
 
 		return data;
 	}
@@ -85,7 +84,7 @@ class LoanAppService
 				]
 				loanapp_borrower.create(itm, 'nextto');
 			} else {
-				loanapp_borrower.update(itm, 'nextto');
+				//loanapp_borrower.update(itm, 'nextto');
 			}
 		}
 
@@ -106,7 +105,7 @@ class LoanAppService
 		for (o in list) {
 			o.objid = 'IDX' + new UID();
 			o.appid = data.objid;
-			o.searchtext = o.borrowername; 
+			o.searchtext = (o.borrowername ? o.borrowername : o.name); 
 			loanapp.create(o, 'loanapp_search_borrower_index'); 
 		}
 

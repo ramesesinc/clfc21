@@ -1,0 +1,9 @@
+<schema>
+
+	<element tablename="loanapp_search_index">
+		<field name="objid" primary="true"/> 
+		<field name="appid" required="true"/> 
+		<field name="searchtext" required="true"/> 
+	</element>	
+
+</schema>

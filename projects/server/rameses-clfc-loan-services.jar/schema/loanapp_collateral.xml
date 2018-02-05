@@ -10,6 +10,7 @@
 		<field name="serialno" required="true"/> 
 		<field name="marketvalue" required="true"/> 
 		<field name="remarks" required="true"/> 
+		<complex name="attachments" serializer="default" type="list" required="false"/> 
 	</element>
 
 	<element name="vehicle" tablename="loanapp_collateral_vehicle">

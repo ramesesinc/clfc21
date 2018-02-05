@@ -1,0 +1,10 @@
+<schema>	
+	<element tablename="borrower_bankacct"> 
+		<field name="objid" primary="true" prefix="BACCT"/> 
+		<field name="borrowerid" required="true"/> 
+		<field name="type"/> 
+		<field name="bankname" required="true"/> 
+		<field name="acctno"/> 
+		<field name="remarks"/> 
+	</element>	
+</schema>

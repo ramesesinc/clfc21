@@ -11,20 +11,33 @@ class LoanAppCollateralService
 	@ActiveDB(value='loanapp_collateral')
 	def collateral;
 
+	@DataContext('loanapplication_collateral_appliance')
+	def appliance_db;
+
+	@DataContext('loanapplication_collateral_vehicle')
+	def vehicle_db;
+
+	@DataContext('loanapplication_collateral_property')
+	def property_db;
+
+	@DataContext('loanapplication_collateral_other')
+	def other_db;
+
 	@ProxyMethod 
 	public def open( params ) { 
 		if (!params.objid) throw new Exception('Please specify objid'); 
 
 		def data = loanapp.findByObjid(params);
-		if (!data) throw new Exception('\''+params.objid+'\' loan application record not found'); 
+		if (!data) throw new Exception("'"+ params.objid+ "' loan application record not found"); 
 
 		data.collateral = [:]; 
-		data.collateral.appliances = collateral.getAppliances([parentid: data.objid]);  
-		data.collateral.vehicles = collateral.getVehicles([parentid: data.objid]);  
-		data.collateral.properties = collateral.getProperties([parentid: data.objid]);  
-		data.collateral.other = collateral.findOtherCollateral([objid: data.objid]);  
+		data.collateral.appliances = appliance_db.find([ parentid: data.objid ]).list(); 
+		data.collateral.vehicles = vehicle_db.find([ parentid: data.objid ]).list(); 
+		data.collateral.properties = property_db.find([ parentid: data.objid ]).list(); 
+		data.collateral.other = other_db.find([ objid: data.objid ]).first(); 
 		return data; 
 	} 
+
 
 	@ProxyMethod 
 	public def update( params ) {
@@ -43,6 +56,7 @@ class LoanAppCollateralService
 		for (o in data.collateral.appliances) {
 			o.objid = 'COLLA' + new UID();
 			o.parentid = data.objid;
+			println '>> '+ o;
 			collateral.create(o, 'appliance');
 		}
 
