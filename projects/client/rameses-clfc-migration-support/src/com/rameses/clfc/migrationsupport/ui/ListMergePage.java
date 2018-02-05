@@ -65,9 +65,9 @@ public class ListMergePage extends javax.swing.JPanel {
         xButton1.setDepends(new String[] {"mergetlist"});
         xButton1.setDisableWhen("#{mergelist.size()<=1}");
         xButton1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xButton1.setName("submitForApproval"); // NOI18N
+        xButton1.setName("saveMergeRequest"); // NOI18N
         xButton1.setPreferredSize(new java.awt.Dimension(80, 23));
-        xButton1.setText("Submit");
+        xButton1.setText("Save");
 
         xButton2.setDepends(new String[] {"mergelist", "selectedItem"});
         xButton2.setDisableWhen("#{mergelist.size()==0||selectedItem==null}");

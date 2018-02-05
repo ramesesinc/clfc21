@@ -127,6 +127,7 @@ public class LoanResolverPage extends javax.swing.JPanel {
         xDecimalField4.setCaptionWidth(130);
         xDecimalField4.setDisabledTextColor(new java.awt.Color(0, 0, 0));
         xDecimalField4.setName("entity.producttype.interestrate"); // NOI18N
+        xDecimalField4.setPattern("#,##0.000");
         xFormPanel1.add(xDecimalField4);
 
         xIntegerField1.setCaption("Term");

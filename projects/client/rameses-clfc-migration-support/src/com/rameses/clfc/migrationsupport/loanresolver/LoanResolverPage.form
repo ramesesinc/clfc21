@@ -167,6 +167,7 @@
               <Color blue="0" green="0" red="0" type="rgb"/>
             </Property>
             <Property name="name" type="java.lang.String" value="entity.producttype.interestrate" noResource="true"/>
+            <Property name="pattern" type="java.lang.String" value="#,##0.000"/>
           </Properties>
         </Component>
         <Component class="com.rameses.rcp.control.XIntegerField" name="xIntegerField1">
