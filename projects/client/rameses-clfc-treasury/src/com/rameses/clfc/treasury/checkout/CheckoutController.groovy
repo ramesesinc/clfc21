@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.*;
 
-class CheckoutController extends CRUDController
-{
+class CheckoutController extends CRUDController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -21,8 +24,8 @@ class CheckoutController extends CRUDController
     boolean allowDelete = false;
     boolean allowEdit = true;
     
-    def selectedDepositSlip, rep1, rep2;
-    def prevdepositslip;
+    def selectedDepositSlip;
+    def previtems, preventity;
     
     Map createEntity() {
         return [
@@ -49,7 +52,7 @@ class CheckoutController extends CRUDController
     
     void clearRep1() {
         entity?.representative1 = null;
-        binding?.refresh('rep1');
+        binding?.refresh('entity.representative1');
     }
     
     def getAssignee2Lookup() {
@@ -65,7 +68,7 @@ class CheckoutController extends CRUDController
     
     void clearRep2() {
         entity?.representative2 = null;
-        binding?.refresh('rep2');
+        binding?.refresh('entity.representative2');
     }
     
     def assigneeImpl( handler ) {
@@ -87,24 +90,42 @@ class CheckoutController extends CRUDController
     }
     
     void afterEdit( data ) {
-        prevdepositslip = [];
-        def item;
-        entity.depositslips?.each{ o->
-            item = [:];
-            item.putAll(o);
-            prevdepositslip << item;
+        preventity = [:];
+        if (entity) {
+            preventity.putAll(entity);
         }
-        rep1 = entity?.representative1;
-        rep2 = entity?.representative2;
+        
+        previtems = [];
+        if (entity.depositslips) {
+            entity.depositslips?.each{ o->
+                def i = [:];
+                i.putAll(o);
+                previtems << i;
+            }
+        }
     }
     
-    void beforeCancel() {
-        entity.representative1 = rep1;
-        entity.representative2 = rep2;
-        entity.depositslips = [];
-        entity.depositslips.addAll(prevdepositslip);
-        listHandler?.reload();
-        binding?.refresh('rep1|rep2');
+    void afterCancel() {
+        
+        if (preventity) {
+            entity = preventity;
+        }
+        
+        if (previtems) {
+            entity.depositslips = previtems;
+            listHandler?.reload();
+        }
+        entity?.remove('_addedds');
+        entity?.remove('_removedds');
+    }
+    
+    void afterSave( data ) {
+        data?.remove('_addedds');
+        data?.remove('_removedds');
+        
+        EventQueue.invokeLater({
+             caller?.reload();
+        });
     }
     
     def listHandler = [
@@ -116,7 +137,8 @@ class CheckoutController extends CRUDController
     
     def addDepositSlip() {
         def handler = { o->
-            def item = entity.depositslips.find{ it.depositslip.controlno == o.controlno }
+            def item = entity.depositslips.find{ it.refid==o.objid }
+            //def item = entity.depositslips.find{ it.depositslip.controlno == o.controlno }
             if (item) throw new Exception("This deposit slip has already been selected.");
            
             item = [
@@ -166,6 +188,9 @@ class CheckoutController extends CRUDController
         
         entity = service.confirm(entity);
         checkEditable(entity);
+        
+        EventQueue.invokeLater({
+             caller?.reload();
+        });
     }
-    
 }

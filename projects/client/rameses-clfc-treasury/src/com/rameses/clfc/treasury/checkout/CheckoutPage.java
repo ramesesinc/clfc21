@@ -181,20 +181,20 @@ public class CheckoutPage extends javax.swing.JPanel {
         xLookupField1.setCaption("Representative #1");
         xLookupField1.setDisableWhen("#{mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{entity.representative1.name}");
+        xLookupField1.setExpression("${item.name}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("assigneeLookup");
-        xLookupField1.setName("rep1"); // NOI18N
+        xLookupField1.setName("entity.representative1"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(300, 23));
         xFormPanel1.add(xLookupField1);
 
         xLookupField2.setCaption("Representative #2");
         xLookupField2.setDisableWhen("#{mode=='read'}");
         xLookupField2.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField2.setExpression("#{entity.representative2.name}");
+        xLookupField2.setExpression("${item.name}");
         xLookupField2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField2.setHandler("assignee2Lookup");
-        xLookupField2.setName("rep2"); // NOI18N
+        xLookupField2.setName("entity.representative2"); // NOI18N
         xLookupField2.setPreferredSize(new java.awt.Dimension(300, 23));
         xFormPanel1.add(xLookupField2);
 

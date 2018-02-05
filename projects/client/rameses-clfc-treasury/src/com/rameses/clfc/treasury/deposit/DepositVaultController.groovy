@@ -25,7 +25,8 @@ class DepositVaultController {
         
     def addDepositSlip() {
         def handler = { o->
-            def i = entity.depositslips.find{ it.depositslip.controlno == o.controlno }
+            //def i = entity.depositslips.find{ it.depositslip.controlno == o.controlno }
+            def i = entity.depositslips.find{ it.refid==o.objid }
             if (i) throw new Exception("This deposit slip has already been selected.");
 
             def item = [

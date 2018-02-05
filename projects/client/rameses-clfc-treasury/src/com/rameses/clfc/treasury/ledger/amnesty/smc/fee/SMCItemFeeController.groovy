@@ -20,16 +20,10 @@ class SMCItemFeeController extends ItemController
     }
     
     def lookupDocument = Inv.lookupOpener('smc:fee:lookup', [
-    onselect: { o->
-        entity.putAll(o);
-        binding?.refresh();
-    }]);
-    
-    def listHandler = [
-        getList: {
-            if (!entity.items) entity.items = [];
-            return entity.items;
+        onselect: { o->
+            entity.putAll(o);
+            binding?.refresh();
         }
-    ] as BasicListModel;	
+    ]);
 }
 

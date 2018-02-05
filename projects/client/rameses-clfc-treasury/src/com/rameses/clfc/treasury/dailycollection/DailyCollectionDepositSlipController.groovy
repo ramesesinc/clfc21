@@ -17,8 +17,8 @@ class DailyCollectionDepositSlipController
 
     def add() {
         def handler = { o->
-            def item = entity.depositslips.find{ it.refid == o.objid }
-            if (item) throw new Exception("Deposit Slip with ControlNo " + o.controlno + " already selected.");
+            def item = entity.depositslips.find{ it.refid==o.objid }
+            if (item) throw new Exception("Deposit Slip with Control No. " + o.controlno + " already selected.");
 
             item = [
                 objid       : 'DCDS' + new UID(),

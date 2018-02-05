@@ -1,0 +1,30 @@
+<workunit>
+    <invokers>
+        <invoker type="plugin:otherreceipt" reftype="onlinedeposit" caption="Online Deposit" idx="3" />
+        <invoker type="otherreceipt:onlinedeposit" action="init" />
+    </invokers>
+    
+    <code>
+        <![CDATA[
+            import com.rameses.rcp.common.*;
+            import com.rameses.rcp.annotations.*;
+            import com.rameses.osiris2.client.*;
+            import com.rameses.osiris2.common.*;
+            
+            class OtherReceiptPaymentOnlineDepositController {
+
+                def entity;
+                
+                void init() {
+                    if (!entity) entity = [:];
+                    entity.od = [:];
+                    entity.onlinedeposit = 1;
+                }
+            }
+        ]]>
+    </code>
+    
+    <pages>
+        <page template="com.rameses.clfc.treasury.otherreceipt.OtherReceiptPaymentOnlineDepositPage" />
+    </pages>
+</workunit>

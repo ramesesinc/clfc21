@@ -37,7 +37,6 @@ class ItemController
             previtems << item;
         }
         mode = 'read';
-        println 'open';
     }    
     
     def doOk() {

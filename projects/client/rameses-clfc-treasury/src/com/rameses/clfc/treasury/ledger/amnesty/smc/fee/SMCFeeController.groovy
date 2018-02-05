@@ -8,6 +8,10 @@ import java.rmi.server.UID;
 
 class SMCFeeController extends CRUDController
 {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -28,6 +32,10 @@ class SMCFeeController extends CRUDController
         if (!data._allowedit) data._allowedit = false;
         allowEdit = data._allowedit;
         binding?.refresh('formActions');
+    }
+    
+    void afterSave( data ) {
+        EventQueue.invokeLater({ caller?.reload(); });
     }
 }
 

@@ -71,7 +71,7 @@ class SMCPostingController
         
         prevposting = [];
         if (entity?.postingsequence) {
-            prevposting = copyList(entity?.postingseuence);
+            prevposting = copyList(entity?.postingsequence);
         }
         
         mode = 'edit';
@@ -209,6 +209,59 @@ class SMCPostingController
         entity?.postingheader?.sort{ it.sequence }
         headersHandler?.reload();
         binding?.refresh();
+    }
+    
+    def addHeader() {
+        def handler = { o->
+            def i = entity?.postingheader?.find{ it.code==o.code }
+            if (i) throw new Exception("Posting header already selected.");
+            
+            def last;
+            if (entity?.postingheader) {
+                last = entity.postingheader[entity.postingheader.size() - 1];
+                last.islast = false;
+            }
+            
+            def size = entity?.postingheader?.size();
+            if (!size) size = 0;
+
+            o.index = size;
+            o.sequence = size + 1;
+            o.isfirst = (size == 0)? true : false;
+            o.islast = true;
+            
+            if (!entity?.postingheader) entity.postingheader = [];
+            entity.postingheader << o;
+            
+            def item = [
+                code            : o.code, 
+                title           : o.title, 
+                name            : o.name, 
+                index           : o.index,
+                sequence        : o.sequence,
+                isfirst         : o.isfirst, 
+                islast          : o.islast,
+                postingexpr     : o.postingexpr,
+                datatype        : o.datatype,
+                postonlastitem  : true
+            ];
+            
+            if (entity?.postingsequence) {
+                last = entity.postingsequence[entity.postingsequence.size() - 1];
+                last.islast = false;
+            }
+            if (!entity?.postingsequence) entity.postingsequence = [];
+            entity?.postingsequence << item; 
+            
+            entity?.postingheader?.sort{ it.sequence }
+            entity?.postingsequence?.sort{ it.sequence }
+            binding?.refresh();
+            headersHandler?.reload();
+        }
+        
+        def op = Inv.lookupOpener("postingheader:lookup", [onselect: handler]);
+        if (!op) return null;
+        return op;
     }
     
     void removeHeader() {

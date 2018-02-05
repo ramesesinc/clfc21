@@ -127,10 +127,10 @@ public class AmnestyFixPage extends javax.swing.JPanel {
         xLookupField1.setCaptionWidth(90);
         xLookupField1.setDisableWhen("#{mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{entity.refno}");
+        xLookupField1.setExpression("${item.refno}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("lookupAmnesty");
-        xLookupField1.setName("amnesty"); // NOI18N
+        xLookupField1.setName("entity"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(200, 20));
         xLookupField1.setRequired(true);
         xFormPanel3.add(xLookupField1);

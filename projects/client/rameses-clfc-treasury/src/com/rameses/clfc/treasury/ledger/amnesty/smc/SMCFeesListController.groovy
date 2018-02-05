@@ -20,6 +20,8 @@ class SMCFeesListController extends com.rameses.clfc.treasury.ledger.amnesty.smc
             if (i) throw new Exception(o.title + ' has already been selected.');
             */
             
+            println 'o->' +  o;
+            
             if (o.amount <= 0) throw new Exception('Please specify amount for the fee.');
             
             if (!entity.fees) entity.fees = [];

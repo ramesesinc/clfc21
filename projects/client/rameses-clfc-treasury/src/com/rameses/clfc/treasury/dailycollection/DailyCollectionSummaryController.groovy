@@ -233,7 +233,7 @@ class DailyCollectionSummaryController
         
         if (entity.otherreceipts) {
             html += """
-                <h3>Encashments</h3>
+                <h3>Other Receipts</h3>
                 <table border='1'>
                     <thead>
                         <td><b> Description  </b></td>

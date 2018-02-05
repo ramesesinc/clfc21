@@ -11,38 +11,53 @@ class OtherReceiptPaymentController {
     @Binding
     def binding;
     
-    @Service('BankService')
-    def bankSvc;
-    
     @Service('DateService')
     def dateSvc;
     
     @PropertyChangeListener
     def listener = [
-        'entity.payoption': { o->
+        'payoption': { o->
+            entity.payoption = o.reftype;
+            /*
             if (o == 'cash') {
                 entity.check = [:];
                 entity.bank = [:];
             }
             binding?.refresh('entity.(check|bank).*');
+            */
         }
     ];
     
-    def entity, handler;
-    def optionList = ['cash', 'check'];
+    def entity, handler, payoption;
+    //def optionList = ['cash', 'check'];
+    def getOptionList() {
+        def ops = Inv.lookupOpeners('plugin:otherreceipt');
+        //println 'ops ' + ops;
+        def props, list = [];
+        ops?.each{ o->
+            props = o.properties;
+            list << [reftype: props.reftype, caption: o.caption, idx: props.idx]
+        }
+        list.sort{ it.idx }
+        
+        //pritln 'list ' + list;
+        return list;
+    }
     
     void init() {
         entity = [
             objid       : 'ORD' + new UID(), 
-            txndate     : dateSvc.getServerDateAsString().split(' ')[0],
-            check       : [:],
-            bank        : [:],
-            onlindeposit: 0
+            txndate     : dateSvc.getServerDateAsString().split(' ')[0]
         ];
     }
     
-    def getBankList() {
-        return bankSvc.getList([state: 'ACTIVE']);
+    def getOpener() {
+        if (!payoption) return null;
+        
+        def invtype = "otherreceipt:" + payoption.reftype;
+        def op = Inv.lookupOpener(invtype, [entity: entity]);
+        if (!op) return null;
+        return op;
     }
     
     def doCancel() {

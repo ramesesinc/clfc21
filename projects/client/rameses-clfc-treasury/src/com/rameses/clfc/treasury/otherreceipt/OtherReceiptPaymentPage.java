@@ -39,10 +39,7 @@ public class OtherReceiptPaymentPage extends javax.swing.JPanel {
         jScrollPane1 = new javax.swing.JScrollPane();
         xTextArea1 = new com.rameses.rcp.control.XTextArea();
         xComboBox1 = new com.rameses.rcp.control.XComboBox();
-        xTextField1 = new com.rameses.rcp.control.XTextField();
-        xDateField2 = new com.rameses.rcp.control.XDateField();
-        xComboBox2 = new com.rameses.rcp.control.XComboBox();
-        xCheckBox1 = new com.rameses.rcp.control.XCheckBox();
+        xSubFormPanel1 = new com.rameses.rcp.control.XSubFormPanel();
 
         xFormPanel1.setCaptionWidth(100);
 
@@ -72,68 +69,58 @@ public class OtherReceiptPaymentPage extends javax.swing.JPanel {
 
         xComboBox1.setAllowNull(false);
         xComboBox1.setCaption("Option");
+        xComboBox1.setExpression("${item.caption}");
         xComboBox1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xComboBox1.setImmediate(true);
         xComboBox1.setItems("optionList");
-        xComboBox1.setName("entity.payoption"); // NOI18N
-        xComboBox1.setPreferredSize(new java.awt.Dimension(100, 20));
+        xComboBox1.setName("payoption"); // NOI18N
+        xComboBox1.setPreferredSize(new java.awt.Dimension(200, 23));
         xComboBox1.setRequired(true);
         xFormPanel1.add(xComboBox1);
 
-        xTextField1.setCaption("Check No.");
-        xTextField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xTextField1.setName("entity.check.no"); // NOI18N
-        xTextField1.setRequired(true);
-        xFormPanel1.add(xTextField1);
+        xSubFormPanel1.setDepends(new String[] {"payoption"});
+        xSubFormPanel1.setDynamic(true);
+        xSubFormPanel1.setHandler("opener");
 
-        xDateField2.setCaption("Check Date");
-        xDateField2.setName("entity.check.date"); // NOI18N
-        xDateField2.setOutputFormat("MMM-dd-yyyy");
-        xDateField2.setRequired(true);
-        xFormPanel1.add(xDateField2);
-
-        xComboBox2.setCaption("Bank");
-        xComboBox2.setExpression("${item.name}");
-        xComboBox2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xComboBox2.setItems("bankList");
-        xComboBox2.setName("entity.bank"); // NOI18N
-        xComboBox2.setPreferredSize(new java.awt.Dimension(150, 20));
-        xComboBox2.setRequired(true);
-        xFormPanel1.add(xComboBox2);
-
-        xCheckBox1.setCaption("Online Deposit?");
-        xCheckBox1.setCheckValue(1);
-        xCheckBox1.setName("entity.onlinedeposit"); // NOI18N
-        xCheckBox1.setUncheckValue(0);
-        xFormPanel1.add(xCheckBox1);
+        javax.swing.GroupLayout xSubFormPanel1Layout = new javax.swing.GroupLayout(xSubFormPanel1);
+        xSubFormPanel1.setLayout(xSubFormPanel1Layout);
+        xSubFormPanel1Layout.setHorizontalGroup(
+            xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+        xSubFormPanel1Layout.setVerticalGroup(
+            xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 122, Short.MAX_VALUE)
+        );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 388, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(xSubFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 388, Short.MAX_VALUE)
+                    .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 388, Short.MAX_VALUE))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 246, Short.MAX_VALUE)
+                .addComponent(xFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(xSubFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 122, Short.MAX_VALUE)
                 .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JScrollPane jScrollPane1;
-    private com.rameses.rcp.control.XCheckBox xCheckBox1;
     private com.rameses.rcp.control.XComboBox xComboBox1;
-    private com.rameses.rcp.control.XComboBox xComboBox2;
     private com.rameses.rcp.control.XDateField xDateField1;
-    private com.rameses.rcp.control.XDateField xDateField2;
     private com.rameses.rcp.control.XDecimalField xDecimalField1;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
+    private com.rameses.rcp.control.XSubFormPanel xSubFormPanel1;
     private com.rameses.rcp.control.XTextArea xTextArea1;
-    private com.rameses.rcp.control.XTextField xTextField1;
     // End of variables declaration//GEN-END:variables
 }

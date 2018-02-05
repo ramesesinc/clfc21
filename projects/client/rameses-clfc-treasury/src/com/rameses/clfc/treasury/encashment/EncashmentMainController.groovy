@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class EncashmentMainController extends CRUDController
-{
+class EncashmentMainController extends CRUDController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -75,6 +78,9 @@ class EncashmentMainController extends CRUDController
 
     void afterSave( data ) {
         checkEditable(data);
+        EventQueue.invokeLater({
+             caller?.reload();
+        });
     }
     
     void afterEdit( data ) {

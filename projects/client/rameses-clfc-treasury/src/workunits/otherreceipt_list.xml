@@ -28,7 +28,7 @@
             visibleWhen="${action=='posting' &amp;&amp; mode!='read'}" />
         
         <invoker type='formActions' action='postCollection' caption='Post' mnemonic='p' shortcut='ctrl p'
-            visibleWhen="${action=='posting' &amp;&amp; mode=='read' &amp;&amp; entity.txnstate=='REMITTED' &amp;&amp; (totalcollection==totalbreakdown || entity.hascash==false)}" />
+            visibleWhen="${action=='posting' &amp;&amp; mode=='read' &amp;&amp; entity.txnstate=='REMITTED' &amp;&amp; (totalcash==totalbreakdown || entity.hascash==false)}" />
         
     </invokers>
     

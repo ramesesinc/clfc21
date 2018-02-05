@@ -36,7 +36,7 @@ class CheckPluginController
             if (m) throw new Exception('This check has already been selected.');
             
             def item = [
-                objid       : o.objid,
+                objid       : 'DSCHK' + new UID(),
                 parentid    : entity?.objid,
                 refid       : o.objid,
                 checkno     : o.checkno,

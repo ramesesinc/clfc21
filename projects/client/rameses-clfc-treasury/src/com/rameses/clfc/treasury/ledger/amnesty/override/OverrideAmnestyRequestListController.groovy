@@ -6,8 +6,8 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.text.*;
 
-class OverrideAmnestyRequestListController 
-{
+class OverrideAmnestyRequestListController {
+    
     @Binding
     def binding;
     
@@ -34,6 +34,10 @@ class OverrideAmnestyRequestListController
 //        entity.overriderequest = fetchList([ledgerid: entity?.ledgerid])
         entity.overriderequest = fetchList([refid: entity?.objid]);
         listHandler?.reload();
+    }
+    
+    void reload() {
+        refreshList();
     }
     
     def fetchList( params ) {

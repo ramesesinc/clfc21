@@ -20,16 +20,10 @@ class SMCFilingDocumentController extends ItemController
     }
     
     def lookupDocument = Inv.lookupOpener('smc:document:lookup', [
-    onselect: { o->
-        entity.putAll(o);
-        binding?.refresh();
-    }]);
-    
-    def listHandler = [
-        getList: {
-            if (!entity.items) entity.items = [];
-            return entity.items;
+        onselect: { o->
+            entity.putAll(o);
+            binding?.refresh();
         }
-    ] as BasicListModel;
+    ]);
 }
 

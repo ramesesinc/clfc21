@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class DepositController extends CRUDController
-{
+class DepositController extends CRUDController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -17,9 +20,9 @@ class DepositController extends CRUDController
     @PropertyChangeListener
     def listener = [
         'entity.txntype': { o->
-            entity?.representative1 = null;
-            entity?.representative2 = null;
-            binding?.refresh('rep1|rep2|opener');
+            if (entity?.representative1) entity.remove("representative1");
+            if (entity?.representative2) entity.remove("representative2");
+            binding?.refresh('entity.(representative1|representative2)|opener');
         }
     ]
     
@@ -32,7 +35,7 @@ class DepositController extends CRUDController
     boolean allowDelete = false;
     boolean allowEdit = true;
     
-    def selectedDepositSlip, rep1, rep2;
+    def selectedDepositSlip;
     def depositToList = [
         [caption: 'To Vault', value: 'vault'],
         [caption: 'To Bank', value: 'bank']
@@ -77,7 +80,7 @@ class DepositController extends CRUDController
     
     void clearRep1() {
         entity?.representative1 = null;
-        binding?.refresh('rep1');
+        binding?.refresh('entity.representative1');
     }
     
     def getAssignee2Lookup() {
@@ -93,11 +96,10 @@ class DepositController extends CRUDController
     
     void clearRep2() {
         entity?.representative2 = null;
-        binding?.refresh('rep2');
+        binding?.refresh('entity.representative2');
     }
     
     def assigneeImpl( handler ) {        
-        println 'txntype ' + entity.txntype;
         def op;
         if (entity.txntype == 'bank') {
             op = Inv.lookupOpener('teller:lookup', [onselect: handler]);
@@ -133,13 +135,20 @@ class DepositController extends CRUDController
         
         if (previtems) {
             entity.depositslips = previtems;
+            //listHandler?.reload();
         }
+        entity?.remove('_addedds');
+        entity?.remove('_removedds');
         
     }
     
     void afterSave( data ) {
         data?.remove('_addedds');
         data?.remove('_removedds');
+        
+        EventQueue.invokeLater({
+             caller?.reload();
+        });
     }
     
     def getOpener() {
@@ -204,6 +213,10 @@ class DepositController extends CRUDController
         
         entity = service.confirm(entity);
         checkEditable(entity);
+        
+        EventQueue.invokeLater({
+             caller?.reload();
+        });
     }
     
 }

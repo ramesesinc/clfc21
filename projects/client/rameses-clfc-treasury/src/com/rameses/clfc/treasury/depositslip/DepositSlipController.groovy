@@ -38,37 +38,41 @@ class DepositSlipController extends CRUDController
     Map editPermission = [domain: 'TREASURY', role: 'CASHIER'];
 
     def typeList = ["cash", "check"];
-    def passbook, currencytype, accounttype, deposittype, items = [];
+    def items = [], totalbreakdown;
+    def passbookLookup = Inv.lookupOpener("passbook:lookup", [state: 'ACTIVE']);
+    def currencyTypeLookup = Inv.lookupOpener("currencytype:lookup", [state: 'ACTIVATED']);
+    def accountTypeLookup = Inv.lookupOpener("accounttype:lookup", [state: 'ACTIVATED']);
+    def depositTypeLookup = Inv.lookupOpener("deposittype:lookup", [state: 'ACTIVATED']);
+    /*
     def passbookLookup = Inv.lookupOpener("passbook:lookup", [
         onselect: { o->
             entity.passbook = o;
-            binding.refresh("passbook");
+            binding.refresh("entity.passbook");
         },
         state   : 'ACTIVE'
-    ]);    
+    ]);  
     def currencyTypeLookup = Inv.lookupOpener("currencytype:lookup", [
         onselect: { o->
             entity.currencytype = o;
-            binding.refresh('currencytype');
+            binding.refresh('entity.currencytype');
         },
         state   : 'ACTIVATED'
     ]);
     def accountTypeLookup = Inv.lookupOpener("accounttype:lookup", [
         onselect: { o->
             entity.accounttype = o;
-            binding.refresh('accounttype');
+            binding.refresh('entity.accounttype');
         },
         state   : 'ACTIVATED'
     ]);
     def depositTypeLookup = Inv.lookupOpener("deposittype:lookup", [
         onselect: { o->
             entity.deposittype = o;
-            binding.refresh('deposittype');
+            binding.refresh('entity.deposittype');
         },
         state   : 'ACTIVATED'
-    ]);
-
-    def totalbreakdown;
+    ]);  
+    */
 
     Map createEntity() {
         totalbreakdown = 0;
@@ -89,6 +93,10 @@ class DepositSlipController extends CRUDController
             items   : []
         ];
     }
+    
+    void afterCreate( data ) {
+        checkEditable(data);
+    }
 
     void afterOpen( data ) {
         /*if (!data.cashbreakdown) {
@@ -104,10 +112,10 @@ class DepositSlipController extends CRUDController
     }
     
     void afterSave( data ) {
-        data._addedcbs = [];
-        data._removedcbs = [];
-        data._addedcheck = [];
-        data._removedcheck = [];
+        if (data._addedcbs) data.remove('_addedcbs');
+        if (data._removedcbs) data.remove('_removedcbs');
+        if (data._addedcheck) data.remove('_addedcheck');
+        if (data._removedcheck) data.remove('_removedcheck');
     }
     
     void checkEditable( data ) {

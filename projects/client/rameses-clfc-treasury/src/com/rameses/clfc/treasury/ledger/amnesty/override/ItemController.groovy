@@ -6,10 +6,13 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class ItemController 
-{
+class ItemController {
+    
     @Service('OverrideAmnestyRequestService')
     def service;
+    
+    @Caller
+    def caller;
     
     @Binding
     def binding;
@@ -33,7 +36,6 @@ class ItemController
     ];
     
     def getAmnestyLookup() {
-        println 'entity ' + entity;
         def handler = { o->
             //println 'selected amnesty ' + o;
             def data = service.getAmnestyInfo(o);
@@ -121,6 +123,7 @@ class ItemController
         if (data) {
             entity.putAll(data);
         }
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     /*

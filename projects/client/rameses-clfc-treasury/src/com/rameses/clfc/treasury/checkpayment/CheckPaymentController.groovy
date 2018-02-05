@@ -66,6 +66,7 @@ class CheckPaymentController extends FormController
         if (!MsgBox.confirm("You are about to clear this check. Continue?")) return;
         
         entity = service.cleared(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
         
     }
     

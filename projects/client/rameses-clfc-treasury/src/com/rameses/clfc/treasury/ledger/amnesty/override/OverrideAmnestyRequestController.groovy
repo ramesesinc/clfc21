@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class OverrideAmnestyRequestController extends CRUDController
-{
+class OverrideAmnestyRequestController extends CRUDController  {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -81,6 +84,7 @@ class OverrideAmnestyRequestController extends CRUDController
         
         entity = service.submitForApproval(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void approveDocument() {
@@ -88,6 +92,7 @@ class OverrideAmnestyRequestController extends CRUDController
         
         entity = service.approveDocument(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void disapprove() {
@@ -95,6 +100,7 @@ class OverrideAmnestyRequestController extends CRUDController
         
         entity = service.disapprove(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
 }
 

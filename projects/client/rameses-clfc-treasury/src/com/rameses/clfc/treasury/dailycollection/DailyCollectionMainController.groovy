@@ -194,7 +194,7 @@ class DailyCollectionMainController extends CRUDController
                 allowEdit = entity.allowEdit;            
                 EventQueue.invokeLater({
                      caller?.reload();
-                     binding?.refresh();
+                     binding?.refresh('formActions');
                 });
             } catch (Throwable t) {
                 MsgBox.err(t.message);

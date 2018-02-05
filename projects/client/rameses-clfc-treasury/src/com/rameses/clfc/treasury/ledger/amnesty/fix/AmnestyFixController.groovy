@@ -5,16 +5,19 @@ import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 
-class AmnestyFixController 
-{
-    @Service('LedgerAmnestyFixService')
-    def service;
+class AmnestyFixController {
+    
+    @Caller
+    def caller;
     
     @Binding
     def binding;
     
+    @Service('LedgerAmnestyFixService')
+    def service;
+    
     def entity, mode = 'read';
-    def preventity, amnesty;
+    def preventity;
     
     void open() {
         entity = service.open(entity);
@@ -36,7 +39,10 @@ class AmnestyFixController
         }
         
         mode = 'read';
-        binding?.refresh();
+        EventQueue.invokeLater({ 
+             caller?.reload();
+             binding?.refresh();
+        });
     }
     
     def cancel() {
@@ -60,7 +66,7 @@ class AmnestyFixController
                 def params = [objid: o.objid, txndate: entity?.txndate];
                 def item = service.getAmnestyRecommendationInfo(params);
                 if (item) {
-                    amnesty = item;
+                    //amnesty = item;
                     entity.refid = item.objid;
                     entity.refno = item.refno;
                     entity.description = item.description;
@@ -93,7 +99,6 @@ class AmnestyFixController
         entity.dtstarted = null;
         entity.dtended = null;
         entity.description = null;
-        amnesty = null;
         
         binding?.refresh();
     }
@@ -102,7 +107,10 @@ class AmnestyFixController
         if (!MsgBox.confirm('You are about to submit this document for verification. Continue?')) return;
         
         entity = service.submitForVerification(entity);
-        binding?.refresh();
+        EventQueue.invokeLater({
+            caller?.reload();
+            binding?.refresh();
+        });
     }
     
     def sendBack() {
@@ -114,8 +122,11 @@ class AmnestyFixController
                 try {
                     entity.sendbackremarks = remarks;
                     entity = service.sendBack(entity);
-                    
-                    binding?.refresh();
+                        
+                    EventQueue.invokeLater({
+                        caller?.reload();
+                        binding?.refresh();
+                    });
                 } catch (Throwable t) {
                     MsgBox.err(t.message);
                 }
@@ -141,7 +152,10 @@ class AmnestyFixController
         if (!MsgBox.confirm('You are about to verify this document. Continue?')) return;
         
         entity = service.verify(entity);
-        binding?.refresh();
+        EventQueue.invokeLater({
+            caller?.reload();
+            binding?.refresh();
+        });
     }
     
     def getStatus() {

@@ -87,23 +87,23 @@ public class DepositSlipPage extends javax.swing.JPanel {
         xLookupField1.setCaption("Passbook No.");
         xLookupField1.setDisableWhen("#{mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{entity.passbook.passbookno}");
+        xLookupField1.setExpression("#{item.passbookno}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("passbookLookup");
-        xLookupField1.setName("passbook"); // NOI18N
+        xLookupField1.setName("entity.passbook"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(200, 20));
         xLookupField1.setRequired(true);
         xFormPanel1.add(xLookupField1);
 
         xLabel1.setCaption("Account No.");
-        xLabel1.setDepends(new String[] {"passbook"});
+        xLabel1.setDepends(new String[] {"entity.passbook"});
         xLabel1.setExpression("#{entity.passbook.acctno}");
         xLabel1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLabel1.setPreferredSize(new java.awt.Dimension(0, 20));
         xFormPanel1.add(xLabel1);
 
         xLabel2.setCaption("Account Name");
-        xLabel2.setDepends(new String[] {"passbook"});
+        xLabel2.setDepends(new String[] {"entity.passbook"});
         xLabel2.setExpression("#{entity.passbook.acctname}");
         xLabel2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLabel2.setPreferredSize(new java.awt.Dimension(0, 20));
@@ -112,30 +112,30 @@ public class DepositSlipPage extends javax.swing.JPanel {
         xLookupField2.setCaption("Currency Type");
         xLookupField2.setDisableWhen("#{mode=='read'}");
         xLookupField2.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField2.setExpression("#{entity.currencytype.name}");
+        xLookupField2.setExpression("${item.name}");
         xLookupField2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField2.setHandler("currencyTypeLookup");
-        xLookupField2.setName("currencytype"); // NOI18N
+        xLookupField2.setName("entity.currencytype"); // NOI18N
         xLookupField2.setPreferredSize(new java.awt.Dimension(250, 20));
         xFormPanel1.add(xLookupField2);
 
         xLookupField3.setCaption("Account Type");
         xLookupField3.setDisableWhen("#{mode=='read'}");
         xLookupField3.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField3.setExpression("#{entity.accounttype.name}");
+        xLookupField3.setExpression("${item.name}");
         xLookupField3.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField3.setHandler("accountTypeLookup");
-        xLookupField3.setName("accounttype"); // NOI18N
+        xLookupField3.setName("entity.accounttype"); // NOI18N
         xLookupField3.setPreferredSize(new java.awt.Dimension(250, 20));
         xFormPanel1.add(xLookupField3);
 
         xLookupField4.setCaption("Deposit Type");
         xLookupField4.setDisableWhen("#{mode=='read'}");
         xLookupField4.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField4.setExpression("#{entity.deposittype.name}");
+        xLookupField4.setExpression("${item.name}");
         xLookupField4.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField4.setHandler("depositTypeLookup");
-        xLookupField4.setName("deposittype"); // NOI18N
+        xLookupField4.setName("entity.deposittype"); // NOI18N
         xLookupField4.setPreferredSize(new java.awt.Dimension(250, 20));
         xFormPanel1.add(xLookupField4);
 
