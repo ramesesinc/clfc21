@@ -1,0 +1,8 @@
+{
+  caption: 'YEARADD',
+  description: 'adds number of years to date',
+  code: 'com.rameses.clfc.functions.ModifiedDateFunc.yearAdd',
+  title: '@YEARADD( date, interval )',
+  signature: '@YEARADD( |, )',
+  group: 'date'  
+}

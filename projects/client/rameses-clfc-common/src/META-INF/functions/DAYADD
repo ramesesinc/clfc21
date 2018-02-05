@@ -1,0 +1,8 @@
+{
+  caption: 'DAYADD',
+  description: 'adds number of days to date',
+  code: 'com.rameses.clfc.functions.ModifiedDateFunc.dayAdd',
+  title: '@DAYADD( date, numeric )',
+  signature: '@DAYADD( |, )',
+  group: 'date'  
+}

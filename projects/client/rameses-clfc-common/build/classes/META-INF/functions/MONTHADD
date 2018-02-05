@@ -1,0 +1,8 @@
+{
+  caption: 'MONTHADD',
+  description: 'adds number of months to date',
+  code: 'com.rameses.clfc.functions.ModifiedDateFunc.monthAdd',
+  title: '@MONTHADD( date, numeric )',
+  signature: '@MONTHADD( |, )',
+  group: 'date'  
+}
