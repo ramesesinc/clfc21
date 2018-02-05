@@ -1,0 +1,9 @@
+"entity.*" [mode != 'read'] {
+    enabled: true;
+}
+"entity.courtinfo.dtended" [1==1] {
+    enabled: false;
+}
+"entity.*" [mode == 'read'] {
+    enabled: false;
+}

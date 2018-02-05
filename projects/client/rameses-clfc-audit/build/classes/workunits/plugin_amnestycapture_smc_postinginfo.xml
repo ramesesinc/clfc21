@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='capture:amnesty:smc:plugin' reftype='postinginfo' caption='Posting Information' index='3' />
+        <invoker type='capture:amnesty:smc:postinginfo' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.smc.posting.PostingInfoController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.smc.posting.PostingInfoPage' />
+    </pages>
+</workunit>

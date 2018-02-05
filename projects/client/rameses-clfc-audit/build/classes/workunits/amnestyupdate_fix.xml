@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='amnesty:update:plugin' reftype='fix' caption='Fix' index='1' />
+        <invoker type='amnesty:update:fix' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.update.fix.AmnestyUpdateFixController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.update.fix.AmnestyUpdateFixPage' />
+    </pages>
+</workunit>

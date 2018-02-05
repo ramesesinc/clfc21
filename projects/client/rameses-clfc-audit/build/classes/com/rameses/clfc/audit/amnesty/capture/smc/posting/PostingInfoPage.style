@@ -1,0 +1,6 @@
+"entity.postinginfo.*" [postingmode!='read'] {
+    enabled: true;
+}
+"entity.postinginfo.*" [postingmode=='read'] {
+    enabled: false;
+}

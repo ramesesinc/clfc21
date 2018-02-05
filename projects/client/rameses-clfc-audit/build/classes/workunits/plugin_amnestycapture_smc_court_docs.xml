@@ -1,0 +1,12 @@
+<workunit extends='wtemplates/SMCListController.xml'>
+    <invokers>
+        <invoker type='capture:amnesty:smc:court:plugin' reftype='docs' caption='Docs' index='2' />
+        <invoker type='capture:amnesty:smc:court:docs' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.audit.amnesty.capture.smc.SMCDocsListController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.audit.amnesty.capture.smc.SMCDocsListPage' />
+    </pages>
+</workunit>

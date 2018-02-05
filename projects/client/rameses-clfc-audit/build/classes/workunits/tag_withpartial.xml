@@ -1,0 +1,13 @@
+<workunit>
+    <invokers>
+        <invoker folderid="/home/capture/audit" caption="Payment With Partial Tag" role="AUDIT_OFFICER" />
+        
+        <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl c" immediate="true" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.audit.tag.withpartial.WithPartialTagPaymentController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.audit.tag.withpartial.WithPartialTagPaymentPage" />
+    </pages>
+</workunit>

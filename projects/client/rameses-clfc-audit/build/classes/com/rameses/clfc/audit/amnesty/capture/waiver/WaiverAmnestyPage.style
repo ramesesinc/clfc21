@@ -1,0 +1,15 @@
+"entity.(loanapp|ledger).*" [1==1] {
+    enabled: false;
+}
+"entity.interest" [entity.overrideinterest==1] {
+    enabled: true;
+}
+"entity.interest" [entity.overrideinterest==0 || mode=='read'] {
+    enabled: false;
+}
+"entity.penalty" [entity.overridepenalty==1] {
+    enabled: true;
+}
+"entity.penalty" [entity.overridepenalty==0 || mode=='read'] {
+    enabled: false;
+}
