@@ -1,0 +1,44 @@
+import com.rameses.rcp.common.*;
+import com.rameses.rcp.annotations.*;
+import com.rameses.osiris2.client.*;
+import com.rameses.osiris2.common.*;
+import com.rameses.osiris2.reports.*;
+import java.util.*;
+import java.io.*;
+
+public class ILSReportUtil {
+
+    public void generatePDFFile( path, filename, rptname, 
+            rptdata, params, subreports) {
+           
+        def model = [
+            getReportName: {
+                return rptname;
+            },
+            getReportData: {
+                return rptdata;
+            },
+            getParameters: {
+                if (!params) params = [:];
+                return params;
+            },
+            getSubReports: {
+                if (!subreports) subreports = [];
+                return subreports;
+            }
+        ] as ReportModel;
+
+        Properties props = new Properties();
+        try {
+             File f1 = new File("client.conf");
+             props.load(new FileInputStream(f1));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        if (props.path) path = props.path;
+
+        File f = new File(path, filename);
+        model.exportToPDF(f);
+    }
+}
