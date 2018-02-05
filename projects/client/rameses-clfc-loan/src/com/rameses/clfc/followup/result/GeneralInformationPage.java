@@ -66,10 +66,10 @@ public class GeneralInformationPage extends javax.swing.JPanel {
         xLookupField1.setCaption("Borrower");
         xLookupField1.setDisableWhen("#{mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{entity.borrower.name}");
+        xLookupField1.setExpression("${item.name}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("borrowerLookup");
-        xLookupField1.setName("borrower"); // NOI18N
+        xLookupField1.setName("entity.borrower"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(0, 20));
         xLookupField1.setRequired(true);
         xFormPanel1.add(xLookupField1);

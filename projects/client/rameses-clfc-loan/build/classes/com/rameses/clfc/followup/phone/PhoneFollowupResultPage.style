@@ -1,0 +1,8 @@
+"entity.remarks" [mode=='read'] {
+    enabled: true;
+    readonly: true;
+}
+"entity.remarks" [mode!='read'] {
+    enabled: true;
+    readonly: false;
+}

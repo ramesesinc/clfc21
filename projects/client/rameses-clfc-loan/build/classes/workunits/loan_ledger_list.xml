@@ -1,0 +1,135 @@
+<workunit extends='wtemplates/ExplorerViewController.xml' defaultFileType='loanledger' >
+    <invokers>
+        <invoker folderid='/home/online/loan' caption='Ledgers' role='ACCT_OFFICER' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.ledger.LoanLedgerExplorerViewController' />
+</workunit>
+
+<!--
+<workunit extends='wtemplates/ListController.xml'>
+    <invokers>
+        <invoker folderid='/home/online/loan' caption='Ledgers' role='ACCT_OFFICER' />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        
+        class LoanLedgerListController extends ListController
+        {        
+            @Service('LoanLedgerService')
+            def svc;
+        
+            String serviceName = 'LoanLedgerService';
+            String entityName = 'loanledger';
+        
+            def title2;
+        
+            String getTitle() {
+                if (!title2) return this.invoker.caption;
+                return title2;
+            }
+        
+            /*
+            String getTitle() {
+                def str = 'Ledger ';
+                def total = svc.getTotalAccounts(query);
+                if (!total) total = 0;
+                str += total + ' Accounts';
+                return str;
+            }
+            */
+                
+            boolean allowCreate = false;
+            def selectedOption;
+
+            def optionsModel = [
+                getItems: {
+                    return svc.getOptions();
+                }, 
+                onselect: { o->
+                    query.rootid = o.rootid;
+                    query.typeid = o.typeid;
+                    //query.state = o.state;
+                    reloadAll();
+                }
+            ] as ListPaneModel;
+        
+            void afterFetchList(List list) {
+                title2 = 'Ledgers ';
+                def total = svc.getTotalAccounts(query);
+                if (!total) total = 0;
+                title2 += total + ' Accounts';
+                binding?.refresh();
+                println 'passing after fetchList';
+            }
+        }
+    </code>
+    
+    <pages>
+        <page template='com.rameses.clfc.ui.ListPage' />
+    </pages>
+</workunit>
+-->
+<!-- <workunit extends="wtemplates/ExplorerViewController.xml" 
+        serviceName="LoanLedgerService" defaultFileType="loanledger"> -->
+        <!-- context="usergroup" autoSelect="true" -->
+    <!--
+    <invokers>
+        <invoker folderid="/explorer/admin" caption="User Groups" role="SYSADMIN" permission="system" index="2" action="init"/>
+        <invoker folderid="/home/admin" caption="User Groups" action="init" role="SYSADMIN" 
+            permission="system" index="0" icon="home/icons/admin-usergroup.png"/> 
+   </invokers>
+   -->
+        <!--
+    <invokers>
+        <invoker folderid="/explorer/txn/loan" caption="Ledger Listing" role="ACCT_OFFICER" />
+        <invoker folderid="/home/online/loan" caption="Ledger Listing" role="ACCT_OFFICER" />
+    </invokers>
+        -->
+    
+<!-- </workunit> -->
+<!--
+<workunit extends="wtemplates/ListController.xml">
+    <invokers>
+        <invoker folderid="/explorer/txn/loan" caption="Ledger Listing" role="ACCT_OFFICER" />
+        <invoker folderid="/home/loan" caption="Ledger Listing" role="ACCT_OFFICER" />
+    </invokers>
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+
+        class LoanLedgerListController extends ListController
+        {
+            @Service("LoanLedgerService")
+            def svc;
+        
+            String serviceName = "LoanLedgerService";
+            String entityName = "loanledger";
+
+            boolean allowCreate = false;
+            def selectedOption;
+
+            def optionsModel = [
+                getItems: {
+                    return svc.getSegregationTypes();
+                }, 
+                onselect: { o->
+                    query.type = o.type
+                    reload();
+                }
+            ] as ListPaneModel;
+        }
+    </code>
+    
+    <pages>
+        <page template="com.rameses.clfc.ui.ListPage" />
+    </pages>
+</workunit>
+-->

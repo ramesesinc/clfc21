@@ -1,0 +1,18 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.marketedby" [entity.clienttype != 'MARKETED'] {
+    enabled:false;
+}
+"entity.marketedby" [entity.clienttype == 'MARKETED'] {
+    enabled:true;
+}
+"selectedPreviousLoan" [entity.apptype != 'NEW'] {
+    enabled: true;
+}
+"selectedPreviousLoan" [entity.apptype == 'NEW'] {
+    enabled: false;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}

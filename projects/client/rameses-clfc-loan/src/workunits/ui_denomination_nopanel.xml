@@ -1,0 +1,9 @@
+<workunit extends="workunits/ui_denomination.xml">
+    <invokers>
+        <invoker type="clfc:denomination:nopanel" action="init"/>
+    </invokers>
+    
+    <pages>
+        <page template="com.rameses.clfc.ui.CashBreakdownNoPanelPage"/>
+    </pages>
+</workunit>

@@ -35,26 +35,26 @@ public class CaptureAppInfoPage extends javax.swing.JPanel {
         xLookupField1 = new com.rameses.rcp.control.XLookupField();
         xLabel1 = new com.rameses.rcp.control.XLabel();
         jPanel2 = new javax.swing.JPanel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        xTextArea3 = new com.rameses.rcp.control.XTextArea();
+        xLabel12 = new com.rameses.rcp.control.XLabel();
         xFormPanel4 = new com.rameses.rcp.control.XFormPanel();
         xLabel3 = new com.rameses.rcp.control.XLabel();
         xTextField3 = new com.rameses.rcp.control.XTextField();
         xComboBox4 = new com.rameses.rcp.control.XComboBox();
-        xComboBox3 = new com.rameses.rcp.control.XComboBox();
         xComboBox1 = new com.rameses.rcp.control.XComboBox();
         xTextField1 = new com.rameses.rcp.control.XTextField();
         xFormPanel5 = new com.rameses.rcp.control.XFormPanel();
+        xComboBox3 = new com.rameses.rcp.control.XComboBox();
         xComboBox2 = new com.rameses.rcp.control.XComboBox();
-        xNumberField1 = new com.rameses.rcp.control.XNumberField();
         xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
         xDateField1 = new com.rameses.rcp.control.XDateField();
         xLookupField2 = new com.rameses.rcp.control.XLookupField();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        xTextArea3 = new com.rameses.rcp.control.XTextArea();
-        xLabel12 = new com.rameses.rcp.control.XLabel();
 
         com.rameses.rcp.control.border.XTitledBorder xTitledBorder1 = new com.rameses.rcp.control.border.XTitledBorder();
         xTitledBorder1.setTitle("Principal Borrower Information");
         jPanel1.setBorder(xTitledBorder1);
+        jPanel1.setPreferredSize(new java.awt.Dimension(669, 110));
 
         xFormPanel1.setCellspacing(1);
         xFormPanel1.setPadding(new java.awt.Insets(5, 3, 0, 20));
@@ -90,144 +90,20 @@ public class CaptureAppInfoPage extends javax.swing.JPanel {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 645, Short.MAX_VALUE)
+                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 68, Short.MAX_VALUE)
+                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 64, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
         com.rameses.rcp.control.border.XTitledBorder xTitledBorder2 = new com.rameses.rcp.control.border.XTitledBorder();
         xTitledBorder2.setTitle("Loan Details");
         jPanel2.setBorder(xTitledBorder2);
-
-        xFormPanel4.setCellspacing(1);
-        xFormPanel4.setPadding(new java.awt.Insets(5, 3, 0, 20));
-
-        xLabel3.setAntiAliasOn(true);
-        xLabel3.setBackground(new java.awt.Color(0, 153, 204));
-        xLabel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        xLabel3.setCaption("Mode");
-        xLabel3.setCaptionWidth(100);
-        xLabel3.setExpression("#{entity.appmode}");
-        xLabel3.setFontStyle("font-weight:bold;font-size:14;");
-        xLabel3.setForeground(new java.awt.Color(255, 255, 255));
-        xLabel3.setOpaque(true);
-        xLabel3.setPreferredSize(new java.awt.Dimension(0, 23));
-        xFormPanel4.add(xLabel3);
-
-        xTextField3.setCaption("Loan No.");
-        xTextField3.setCaptionWidth(100);
-        xTextField3.setFontStyle("font-size:12;");
-        xTextField3.setName("entity.appno"); // NOI18N
-        xTextField3.setPreferredSize(new java.awt.Dimension(0, 23));
-        xTextField3.setRequired(true);
-        xFormPanel4.add(xTextField3);
-
-        xComboBox4.setCaption("Loan Type");
-        xComboBox4.setCaptionWidth(100);
-        xComboBox4.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xComboBox4.setFontStyle("font-size:12");
-        xComboBox4.setItems("loanTypes");
-        xComboBox4.setName("entity.loantype"); // NOI18N
-        xComboBox4.setPreferredSize(new java.awt.Dimension(0, 23));
-        xComboBox4.setRequired(true);
-        xFormPanel4.add(xComboBox4);
-
-        xComboBox3.setAllowNull(false);
-        xComboBox3.setCaption("App. Type");
-        xComboBox3.setCaptionWidth(100);
-        xComboBox3.setExpression("#{item.value}");
-        xComboBox3.setFontStyle("font-size:12");
-        xComboBox3.setItemKey("value");
-        xComboBox3.setItems("appTypes");
-        xComboBox3.setName("entity.apptype"); // NOI18N
-        xComboBox3.setPreferredSize(new java.awt.Dimension(0, 23));
-        xComboBox3.setRequired(true);
-        xFormPanel4.add(xComboBox3);
-
-        xComboBox1.setAllowNull(false);
-        xComboBox1.setCaption("Client Type");
-        xComboBox1.setCaptionWidth(100);
-        xComboBox1.setExpression("#{item.value}");
-        xComboBox1.setFontStyle("font-size:12");
-        xComboBox1.setImmediate(true);
-        xComboBox1.setItemKey("value");
-        xComboBox1.setItems("clientTypes");
-        xComboBox1.setName("entity.clienttype"); // NOI18N
-        xComboBox1.setPreferredSize(new java.awt.Dimension(0, 23));
-        xComboBox1.setRequired(true);
-        xComboBox1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                xComboBox1ActionPerformed(evt);
-            }
-        });
-        xFormPanel4.add(xComboBox1);
-
-        xTextField1.setCaption("Interviewed By");
-        xTextField1.setCaptionWidth(100);
-        xTextField1.setDepends(new String[] {"entity.clienttype"});
-        xTextField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xTextField1.setName("entity.marketedby"); // NOI18N
-        xTextField1.setPreferredSize(new java.awt.Dimension(0, 23));
-        xFormPanel4.add(xTextField1);
-
-        xFormPanel5.setCellspacing(1);
-        xFormPanel5.setPadding(new java.awt.Insets(5, 5, 0, 10));
-
-        xComboBox2.setCaption("Product Type");
-        xComboBox2.setCaptionWidth(110);
-        xComboBox2.setExpression("#{item.name}");
-        xComboBox2.setFontStyle("font-size:12");
-        xComboBox2.setItems("productTypes");
-        xComboBox2.setName("entity.producttype"); // NOI18N
-        xComboBox2.setPreferredSize(new java.awt.Dimension(0, 23));
-        xComboBox2.setRequired(true);
-        xFormPanel5.add(xComboBox2);
-
-        xNumberField1.setCaption("Term");
-        xNumberField1.setCaptionWidth(110);
-        xNumberField1.setDepends(new String[] {"entity.producttype"});
-        xNumberField1.setFieldType(Integer.class);
-        xNumberField1.setFontStyle("font-size:12");
-        xNumberField1.setName("entity.producttype.term"); // NOI18N
-        xNumberField1.setPattern("#,##0");
-        xNumberField1.setPreferredSize(new java.awt.Dimension(0, 23));
-        xNumberField1.setReadonly(true);
-        xFormPanel5.add(xNumberField1);
-
-        xDecimalField1.setCaption("Amount Released");
-        xDecimalField1.setCaptionWidth(110);
-        xDecimalField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xDecimalField1.setFontStyle("font-size:14");
-        xDecimalField1.setName("entity.amount"); // NOI18N
-        xDecimalField1.setPreferredSize(new java.awt.Dimension(0, 23));
-        xDecimalField1.setRequired(true);
-        xFormPanel5.add(xDecimalField1);
-
-        xDateField1.setCaption("Release Date");
-        xDateField1.setCaptionWidth(110);
-        xDateField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xDateField1.setFontStyle("font-size:12");
-        xDateField1.setName("entity.dtreleased"); // NOI18N
-        xDateField1.setPreferredSize(new java.awt.Dimension(0, 23));
-        xDateField1.setRequired(true);
-        xFormPanel5.add(xDateField1);
-
-        xLookupField2.setCaption("Route");
-        xLookupField2.setCaptionWidth(110);
-        xLookupField2.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField2.setExpression("#{item? item.description + ' - ' + item.area : ''}");
-        xLookupField2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xLookupField2.setHandler("routeLookupHandler");
-        xLookupField2.setName("entity.route"); // NOI18N
-        xLookupField2.setPreferredSize(new java.awt.Dimension(0, 23));
-        xLookupField2.setRequired(true);
-        xFormPanel5.add(xLookupField2);
 
         jScrollPane3.setPreferredSize(new java.awt.Dimension(0, 50));
 
@@ -251,6 +127,113 @@ public class CaptureAppInfoPage extends javax.swing.JPanel {
         xLabel12.setForeground(new java.awt.Color(80, 80, 80));
         xLabel12.setText("Purpose of Loan");
 
+        xFormPanel4.setCaptionWidth(100);
+        xFormPanel4.setCellspacing(1);
+        xFormPanel4.setPadding(new java.awt.Insets(5, 3, 0, 20));
+
+        xLabel3.setAntiAliasOn(true);
+        xLabel3.setBackground(new java.awt.Color(0, 153, 204));
+        xLabel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        xLabel3.setCaption("Mode");
+        xLabel3.setCaptionWidth(100);
+        xLabel3.setExpression("#{entity.appmode}");
+        xLabel3.setFontStyle("font-weight:bold;font-size:14;");
+        xLabel3.setForeground(new java.awt.Color(255, 255, 255));
+        xLabel3.setOpaque(true);
+        xLabel3.setPreferredSize(new java.awt.Dimension(0, 23));
+        xFormPanel4.add(xLabel3);
+
+        xTextField3.setCaption("Loan No.");
+        xTextField3.setFontStyle("font-size:12;");
+        xTextField3.setName("entity.appno"); // NOI18N
+        xTextField3.setPreferredSize(new java.awt.Dimension(0, 23));
+        xTextField3.setRequired(true);
+        xFormPanel4.add(xTextField3);
+
+        xComboBox4.setCaption("Loan Type");
+        xComboBox4.setCaptionWidth(100);
+        xComboBox4.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        xComboBox4.setFontStyle("font-size:12");
+        xComboBox4.setItems("loanTypes");
+        xComboBox4.setName("entity.loantype"); // NOI18N
+        xComboBox4.setPreferredSize(new java.awt.Dimension(0, 23));
+        xComboBox4.setRequired(true);
+        xFormPanel4.add(xComboBox4);
+
+        xComboBox1.setAllowNull(false);
+        xComboBox1.setCaption("Client Type");
+        xComboBox1.setExpression("#{item.value}");
+        xComboBox1.setFontStyle("font-size:12");
+        xComboBox1.setImmediate(true);
+        xComboBox1.setItemKey("value");
+        xComboBox1.setItems("clientTypes");
+        xComboBox1.setName("entity.clienttype"); // NOI18N
+        xComboBox1.setPreferredSize(new java.awt.Dimension(0, 23));
+        xComboBox1.setRequired(true);
+        xComboBox1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                xComboBox1ActionPerformed(evt);
+            }
+        });
+        xFormPanel4.add(xComboBox1);
+
+        xTextField1.setCaption("Interviewed By");
+        xTextField1.setDepends(new String[] {"entity.clienttype"});
+        xTextField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        xTextField1.setName("entity.marketedby"); // NOI18N
+        xTextField1.setPreferredSize(new java.awt.Dimension(0, 23));
+        xFormPanel4.add(xTextField1);
+
+        xFormPanel5.setCaptionWidth(110);
+        xFormPanel5.setCellspacing(1);
+        xFormPanel5.setPadding(new java.awt.Insets(5, 5, 0, 10));
+
+        xComboBox3.setAllowNull(false);
+        xComboBox3.setCaption("App. Type");
+        xComboBox3.setExpression("#{item.value}");
+        xComboBox3.setFontStyle("font-size:12");
+        xComboBox3.setItemKey("value");
+        xComboBox3.setItems("appTypes");
+        xComboBox3.setName("entity.apptype"); // NOI18N
+        xComboBox3.setPreferredSize(new java.awt.Dimension(0, 23));
+        xComboBox3.setRequired(true);
+        xFormPanel5.add(xComboBox3);
+
+        xComboBox2.setCaption("Product Type");
+        xComboBox2.setExpression("${item.title}");
+        xComboBox2.setFontStyle("font-size:12");
+        xComboBox2.setItems("productTypes");
+        xComboBox2.setName("producttype"); // NOI18N
+        xComboBox2.setPreferredSize(new java.awt.Dimension(210, 23));
+        xComboBox2.setRequired(true);
+        xFormPanel5.add(xComboBox2);
+
+        xDecimalField1.setCaption("Amount Released");
+        xDecimalField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
+        xDecimalField1.setFontStyle("font-size:14");
+        xDecimalField1.setName("entity.amount"); // NOI18N
+        xDecimalField1.setPreferredSize(new java.awt.Dimension(0, 23));
+        xDecimalField1.setRequired(true);
+        xFormPanel5.add(xDecimalField1);
+
+        xDateField1.setCaption("Release Date");
+        xDateField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
+        xDateField1.setFontStyle("font-size:12");
+        xDateField1.setName("entity.dtreleased"); // NOI18N
+        xDateField1.setPreferredSize(new java.awt.Dimension(0, 23));
+        xDateField1.setRequired(true);
+        xFormPanel5.add(xDateField1);
+
+        xLookupField2.setCaption("Route");
+        xLookupField2.setDisabledTextColor(new java.awt.Color(0, 0, 0));
+        xLookupField2.setExpression("#{item.description}");
+        xLookupField2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        xLookupField2.setHandler("routeLookupHandler");
+        xLookupField2.setName("entity.route"); // NOI18N
+        xLookupField2.setPreferredSize(new java.awt.Dimension(0, 23));
+        xLookupField2.setRequired(true);
+        xFormPanel5.add(xLookupField2);
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -260,7 +243,7 @@ public class CaptureAppInfoPage extends javax.swing.JPanel {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
                         .addComponent(xFormPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 336, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(xFormPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, 303, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 0, Short.MAX_VALUE))
                     .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -271,13 +254,13 @@ public class CaptureAppInfoPage extends javax.swing.JPanel {
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(xFormPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, 158, Short.MAX_VALUE)
-                    .addComponent(xFormPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(xFormPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, 146, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(xFormPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 146, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(1, 1, 1)
                 .addComponent(xLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 97, Short.MAX_VALUE)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 134, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -285,19 +268,15 @@ public class CaptureAppInfoPage extends javax.swing.JPanel {
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap())
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 673, Short.MAX_VALUE)
+            .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+                .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -324,7 +303,6 @@ public class CaptureAppInfoPage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XLabel xLabel3;
     private com.rameses.rcp.control.XLookupField xLookupField1;
     private com.rameses.rcp.control.XLookupField xLookupField2;
-    private com.rameses.rcp.control.XNumberField xNumberField1;
     private com.rameses.rcp.control.XTextArea xTextArea3;
     private com.rameses.rcp.control.XTextField xTextField1;
     private com.rameses.rcp.control.XTextField xTextField3;

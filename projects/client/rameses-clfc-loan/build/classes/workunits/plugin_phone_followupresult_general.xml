@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='phone:followup:result:plugin' reftype='generalinformation' caption='General Information' index='1' />
+        <invoker type='phone:followup:result:generalinformation' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.followup.phone.GeneralInformationController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.followup.phone.GeneralInformationPage' />
+    </pages>
+</workunit>

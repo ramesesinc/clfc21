@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type='phone:followup:result:amnesty:plugin' reftype='avail' caption='Avail' index='0' />
+        <invoker type='phone:followup:result:amnesty:avail' action='init' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.followup.phone.AmnestyAvailController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.followup.phone.AmnestyAvailPage' />
+    </pages>
+</workunit>

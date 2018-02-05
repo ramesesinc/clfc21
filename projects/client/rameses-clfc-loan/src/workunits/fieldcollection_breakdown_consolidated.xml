@@ -1,0 +1,11 @@
+<workunit extends="workunits/fieldcollection_breakdown.xml" >
+    <invokers>
+        <invoker type="fieldcollection:breakdown:plugin" action="init" reftype="consolidated" caption="Consolidated Cash Breakdown" index="1" />
+        <!--
+        <invoker type="fieldcollection:breakdown:consolidated" action="init" />
+        -->
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.fieldcollection.FieldCollectionConsolidatedCashBreakdownController" />
+    
+</workunit>

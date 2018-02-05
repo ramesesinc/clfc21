@@ -1,0 +1,5 @@
+<workunit> 
+    <pages>
+        <page template="com.rameses.clfc.loan.fieldcollection.FieldCollectionCashBreakdownPage" />
+    </pages>
+</workunit>

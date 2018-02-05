@@ -1,0 +1,9 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}
+"entity.txndate" [1==1] {
+    enabled: false;
+}

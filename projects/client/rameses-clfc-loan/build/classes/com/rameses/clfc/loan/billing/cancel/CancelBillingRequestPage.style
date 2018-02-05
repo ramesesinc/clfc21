@@ -1,0 +1,7 @@
+"entity.*" [1==1] {
+    enabled: false;
+}
+"entity.remarks" [1==1] {
+    enabled: true;
+    readonly: true;
+}

@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapp:capture:application:othercharge" action="init" caption="Other Charges" target="popup" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.capture.AssessmentOtherChargeController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.capture.AssessmentOtherChargePage" />
+    </pages>
+</workunit>

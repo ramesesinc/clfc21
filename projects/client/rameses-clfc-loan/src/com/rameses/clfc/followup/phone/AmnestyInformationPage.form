@@ -76,7 +76,7 @@
           <SubComponents>
             <Component class="com.rameses.rcp.control.XDateField" name="xDateField1">
               <Properties>
-                <Property name="caption" type="java.lang.String" value="Start Date"/>
+                <Property name="caption" type="java.lang.String" value="Effectivity Date"/>
                 <Property name="captionWidth" type="int" value="90"/>
                 <Property name="disabledTextColor" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                   <Color blue="0" green="0" red="0" type="rgb"/>

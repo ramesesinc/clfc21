@@ -1,0 +1,35 @@
+<workunit>
+    <invokers>
+        <!--
+        <invoker folderid="/menu/txn/collection" caption="New Sub Collection Sheet" action="create" role="ACCT_OFFICER" index="7"/>
+        <invoker type="quick_launcher" code="NSCS" caption="New Sub Collection Sheet" action="create" role="ACCT_OFFICER"/>
+        <invoker type="home.action" caption="New Sub Collection Sheet" action="create" role="ACCT_OFFICER"/>
+        -->
+        
+        <invoker type='ledger:subbilling:create' action='create' caption='Sub Collection Sheet' 
+            target='popup' resizable='false' />
+        <invoker type='ledger:subbilling:open' action='open' caption='Sub Collection Sheet'
+            target='popup' resizable='false' />
+        
+        <!--
+        <invoker type='ledgerbilling:formActions' caption='Sub Collection Sheet' action='create' target='popup' resizable='false'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.forsubbilling &amp;&amp; entity.subbillingid == null}" role='ACCT_ASSISTANT' />
+        <invoker type='ledgerbilling:formActions' caption='Sub Collection Sheet' action='open' target='popup' resizable='false'
+            visibleWhen="#{mode=='read' &amp;&amp; entity.subbillingid != null}" />
+        -->        
+        <!--
+        <invoker type="formActions" action="edit" caption="Edit" mnemonic="e" shortcut="ctrl E"
+            visibleWhen="#{editable}"/>
+        -->
+        <!--
+        <invoker type="formActions" action="edit" mnemonic="e" visibleWhen="#{mode == 'read' &amp;&amp; entity.state == 'FOR_DOWNLOAD'}"/>
+        <invoker type="formActions" action="reset" caption="Reset" mnemonic="r" visibleWhen="#{mode == 'read' &amp;&amp; entity.state == 'FOR_DOWNLOAD'}"/>
+        -->
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.subbilling.LoanLedgerSubBillingController"/>
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.subbilling.LoanLedgerSubBillingPage"/>
+    </pages>
+</workunit>

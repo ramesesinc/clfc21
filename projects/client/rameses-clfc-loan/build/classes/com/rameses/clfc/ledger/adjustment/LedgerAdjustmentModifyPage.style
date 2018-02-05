@@ -1,0 +1,9 @@
+"entity.modify.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.modify.credit.amount" [1==1] {
+    enabled: false;
+}
+"entity.modify.*" [mode=='read'] {
+    enabled: false;
+}

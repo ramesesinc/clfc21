@@ -1,0 +1,34 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}
+"entity.remarks" [1==1] {
+    enabled: true;
+}
+"entity.remarks" [mode!='read'] {
+    readonly: false;
+}
+"entity.remarks" [mode=='read'] {
+    readonly: true;
+}
+"entity.txndate" [1==1] {
+    enabled: false;
+}
+
+"xentity.txndate" [ 1 == 1] {
+    enabled: false;
+    disabledTextColor: #000;
+    readonly: true;
+}
+
+"xentity.remarks" [ mode == 'read' ] {
+    enabled: false;
+    disabledTextColor: #000;
+    readonly: true;
+}
+
+"xentity.remarks" [ mode != 'read' ] {
+    enabled: true;
+}

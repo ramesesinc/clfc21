@@ -1,0 +1,19 @@
+<workunit>
+    <invokers>
+        <invoker type="billing:cancel:request:open" action="open" caption="Cancel Billing Request" target="popup" />
+        
+        <invoker type="formActions" action="forceSubmitForApproval" caption="Force Submit for Approval" mnemonic="s" shortcut="ctrl a"
+            visibleWhen="${mode=='read' &amp;&amp; entity.txnstate=='PENDING'}" domain="ADMIN" role="ADMIN_SUPPORT" />
+        
+        <invoker type="formActions" action="approveDocument" caption="Approve" mnemonic="a" shortcut="ctrl a"
+            visibleWhen="${entity.txnstate=='FOR_APPROVAL'}" role="APPROVER" />
+        <invoker type="formActions" action="disapproveDocument" caption="Disapprove" mnemonic="d" shortcut="ctrl d"
+            visibleWhen="${entity.txnstate=='FOR_APPROVAL'}" role="APPROVER" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.billing.cancel.CancelBillingRequestController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.billing.cancel.CancelBillingRequestPage" />
+    </pages>
+</workunit>

@@ -51,33 +51,33 @@ public class AmnestyAvailPage extends javax.swing.JPanel {
         xLookupField1.setCaptionWidth(90);
         xLookupField1.setDisableWhen("#{mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{availedamnesty.refno}");
+        xLookupField1.setExpression("${item.refno}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("lookupAmnesty");
-        xLookupField1.setName("amnesty"); // NOI18N
+        xLookupField1.setName("entity.availedamnesty"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(200, 20));
         xLookupField1.setRequired(true);
         xFormPanel2.add(xLookupField1);
 
         xFormPanel3.setCellspacing(5);
 
-        xDateField3.setCaption("Start Date");
+        xDateField3.setCaption("Effectivity Date");
         xDateField3.setCaptionWidth(90);
         xDateField3.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xDateField3.setName("availedamnesty.dtstarted"); // NOI18N
+        xDateField3.setName("entity.availedamnesty.dtstarted"); // NOI18N
         xDateField3.setOutputFormat("MMM-dd-yyyy");
         xFormPanel3.add(xDateField3);
 
         xDateField4.setCaption("Maturity Date");
         xDateField4.setCaptionWidth(90);
         xDateField4.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xDateField4.setName("availedamnesty.dtended"); // NOI18N
+        xDateField4.setName("entity.availedamnesty.dtended"); // NOI18N
         xDateField4.setOutputFormat("MMM-dd-yyyy");
         xFormPanel3.add(xDateField4);
 
         xLabel2.setCaption("Description");
         xLabel2.setCaptionWidth(90);
-        xLabel2.setExpression("#{availedamnesty.description}");
+        xLabel2.setExpression("#{entity.availedamnesty.description}");
         xLabel2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLabel2.setPreferredSize(new java.awt.Dimension(0, 20));
         xFormPanel3.add(xLabel2);
@@ -111,7 +111,7 @@ public class AmnestyAvailPage extends javax.swing.JPanel {
                     .addComponent(xFormPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(xButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(xFormPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, 92, Short.MAX_VALUE)
+                .addComponent(xFormPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, 92, Short.MAX_VALUE)
                 .addGap(14, 14, 14))
         );
 

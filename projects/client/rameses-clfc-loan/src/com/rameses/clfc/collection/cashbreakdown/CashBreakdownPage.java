@@ -78,11 +78,12 @@ public class CashBreakdownPage extends javax.swing.JPanel {
         xFormPanel1.add(xDateField1);
 
         xLookupField1.setCaption("Collector");
+        xLookupField1.setDisableWhen("${mode!='create'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{entity.collector.name}");
+        xLookupField1.setExpression("${item.name}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("collectorLookup");
-        xLookupField1.setName("collector"); // NOI18N
+        xLookupField1.setName("entity.collector"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(300, 20));
         xLookupField1.setRequired(true);
         xFormPanel1.add(xLookupField1);

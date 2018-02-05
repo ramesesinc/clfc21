@@ -1,0 +1,9 @@
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.credit.amount" [1==1] {
+    enabled: false;
+}
+"entity.*" [mode=='read' || entity.requesttype!='ADJUSTMENT'] {
+    enabled: false;
+}

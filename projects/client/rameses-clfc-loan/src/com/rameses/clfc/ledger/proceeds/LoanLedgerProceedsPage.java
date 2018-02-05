@@ -52,17 +52,17 @@ public class LoanLedgerProceedsPage extends javax.swing.JPanel {
         xLookupField1.setCaption("Borrower");
         xLookupField1.setDisableWhen("#{mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{entity.borrower.name}");
+        xLookupField1.setExpression("${item.name}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("borrowerLookupHandler");
-        xLookupField1.setName("borrower"); // NOI18N
+        xLookupField1.setName("entity.borrower"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(200, 20));
         xLookupField1.setRequired(true);
         xFormPanel1.add(xLookupField1);
 
         xLabel1.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(153, 153, 153)), javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1)));
         xLabel1.setCaption("Address");
-        xLabel1.setDepends(new String[] {"borrower"});
+        xLabel1.setDepends(new String[] {"entity.borrower"});
         xLabel1.setExpression("#{entity.borrower.address}");
         xLabel1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLabel1.setPreferredSize(new java.awt.Dimension(0, 20));

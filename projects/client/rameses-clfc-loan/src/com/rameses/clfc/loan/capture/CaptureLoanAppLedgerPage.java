@@ -35,10 +35,7 @@ public class CaptureLoanAppLedgerPage extends javax.swing.JPanel {
         xDataTable1 = new com.rameses.rcp.control.XDataTable();
         jPanel2 = new javax.swing.JPanel();
         xFormPanel1 = new com.rameses.rcp.control.XFormPanel();
-        xDecimalField3 = new com.rameses.rcp.control.XDecimalField();
-        xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
-        xDecimalField5 = new com.rameses.rcp.control.XDecimalField();
-        xDecimalField4 = new com.rameses.rcp.control.XDecimalField();
+        xLabel3 = new com.rameses.rcp.control.XLabel();
         xComboBox1 = new com.rameses.rcp.control.XComboBox();
         xDecimalField6 = new com.rameses.rcp.control.XDecimalField();
         xFormPanel2 = new com.rameses.rcp.control.XFormPanel();
@@ -47,7 +44,6 @@ public class CaptureLoanAppLedgerPage extends javax.swing.JPanel {
         xDecimalField2 = new com.rameses.rcp.control.XDecimalField();
         xDateField3 = new com.rameses.rcp.control.XDateField();
         xDateField4 = new com.rameses.rcp.control.XDateField();
-        xIntegerField1 = new com.rameses.rcp.control.XIntegerField();
 
         com.rameses.rcp.control.border.XTitledBorder xTitledBorder1 = new com.rameses.rcp.control.border.XTitledBorder();
         xTitledBorder1.setTitle("Payments");
@@ -56,7 +52,7 @@ public class CaptureLoanAppLedgerPage extends javax.swing.JPanel {
         xDataTable1.setColumns(new com.rameses.rcp.common.Column[]{
             new com.rameses.rcp.common.Column(new Object[]{
                 new Object[]{"name", "refno"}
-                , new Object[]{"caption", "Txn No."}
+                , new Object[]{"caption", "Ref. No."}
                 , new Object[]{"width", 200}
                 , new Object[]{"minWidth", 0}
                 , new Object[]{"maxWidth", 0}
@@ -70,7 +66,7 @@ public class CaptureLoanAppLedgerPage extends javax.swing.JPanel {
             }),
             new com.rameses.rcp.common.Column(new Object[]{
                 new Object[]{"name", "txndate"}
-                , new Object[]{"caption", "Txn Date"}
+                , new Object[]{"caption", "Date"}
                 , new Object[]{"width", 200}
                 , new Object[]{"minWidth", 0}
                 , new Object[]{"maxWidth", 0}
@@ -117,38 +113,15 @@ public class CaptureLoanAppLedgerPage extends javax.swing.JPanel {
         xTitledBorder2.setTitle(" General Information ");
         jPanel2.setBorder(xTitledBorder2);
 
+        xFormPanel1.setCaptionWidth(110);
         xFormPanel1.setPadding(new java.awt.Insets(5, 0, 0, 0));
 
-        xDecimalField3.setCaption("Interest Rate");
-        xDecimalField3.setCaptionWidth(160);
-        xDecimalField3.setEnabled(false);
-        xDecimalField3.setFontStyle("font-size:14;");
-        xDecimalField3.setName("entity.interestrate"); // NOI18N
-        xFormPanel1.add(xDecimalField3);
-
-        xDecimalField1.setCaption("Absent Penalty Rate");
-        xDecimalField1.setCaptionWidth(160);
-        xDecimalField1.setEnabled(false);
-        xDecimalField1.setFontStyle("font-size:14;");
-        xDecimalField1.setName("entity.absentrate"); // NOI18N
-        xFormPanel1.add(xDecimalField1);
-
-        xDecimalField5.setCaption("Underpayment Penalty Rate");
-        xDecimalField5.setCaptionWidth(160);
-        xDecimalField5.setEnabled(false);
-        xDecimalField5.setFontStyle("font-size:14;");
-        xDecimalField5.setName("entity.underpaymentrate"); // NOI18N
-        xFormPanel1.add(xDecimalField5);
-
-        xDecimalField4.setCaption("Overdue Penalty Rate");
-        xDecimalField4.setCaptionWidth(160);
-        xDecimalField4.setEnabled(false);
-        xDecimalField4.setFontStyle("font-size:14;");
-        xDecimalField4.setName("entity.overduerate"); // NOI18N
-        xFormPanel1.add(xDecimalField4);
+        xLabel3.setCaption("Product Type");
+        xLabel3.setExpression("${entity.producttype.title}");
+        xLabel3.setPreferredSize(new java.awt.Dimension(0, 20));
+        xFormPanel1.add(xLabel3);
 
         xComboBox1.setCaption("Payment Method");
-        xComboBox1.setCaptionWidth(160);
         xComboBox1.setExpression("#{item.name}");
         xComboBox1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xComboBox1.setItemKey("value");
@@ -159,7 +132,6 @@ public class CaptureLoanAppLedgerPage extends javax.swing.JPanel {
         xFormPanel1.add(xComboBox1);
 
         xDecimalField6.setCaption("Overpayment");
-        xDecimalField6.setCaptionWidth(160);
         xDecimalField6.setDepends(new String[] {"entity.paymentmethod"});
         xDecimalField6.setDisabledTextColor(new java.awt.Color(0, 0, 0));
         xDecimalField6.setName("entity.overpayment"); // NOI18N
@@ -219,13 +191,6 @@ public class CaptureLoanAppLedgerPage extends javax.swing.JPanel {
         xDateField4.setPreferredSize(new java.awt.Dimension(150, 20));
         xFormPanel2.add(xDateField4);
 
-        xIntegerField1.setCaption("Term");
-        xIntegerField1.setCaptionWidth(90);
-        xIntegerField1.setEnabled(false);
-        xIntegerField1.setFontStyle("font-size:14");
-        xIntegerField1.setName("entity.term"); // NOI18N
-        xFormPanel2.add(xIntegerField1);
-
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -276,17 +241,13 @@ public class CaptureLoanAppLedgerPage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XDataTable xDataTable1;
     private com.rameses.rcp.control.XDateField xDateField3;
     private com.rameses.rcp.control.XDateField xDateField4;
-    private com.rameses.rcp.control.XDecimalField xDecimalField1;
     private com.rameses.rcp.control.XDecimalField xDecimalField2;
-    private com.rameses.rcp.control.XDecimalField xDecimalField3;
-    private com.rameses.rcp.control.XDecimalField xDecimalField4;
-    private com.rameses.rcp.control.XDecimalField xDecimalField5;
     private com.rameses.rcp.control.XDecimalField xDecimalField6;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
     private com.rameses.rcp.control.XFormPanel xFormPanel2;
-    private com.rameses.rcp.control.XIntegerField xIntegerField1;
     private com.rameses.rcp.control.XLabel xLabel1;
     private com.rameses.rcp.control.XLabel xLabel2;
+    private com.rameses.rcp.control.XLabel xLabel3;
     // End of variables declaration//GEN-END:variables
     
 }

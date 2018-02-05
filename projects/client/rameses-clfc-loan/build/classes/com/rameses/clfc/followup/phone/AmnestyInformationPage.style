@@ -1,0 +1,9 @@
+"(currentamnesty|availedamnesty).*" [1==1] {
+    enabled: false;
+}
+"entity.*" [mode!='read'] {
+    enabled: true;
+}
+"entity.*" [mode=='read'] {
+    enabled: false;
+}

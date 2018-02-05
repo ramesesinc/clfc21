@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="ledger:adjustment:tab" reftype="modify" action="init" caption="Modify" index="2" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.ledger.adjustment.LedgerAdjustmentModifyController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.ledger.adjustment.LedgerAdjustmentModifyPage" />
+    </pages>
+</workunit>

@@ -45,7 +45,7 @@ public class AmnestyInformationPage extends javax.swing.JPanel {
 
         xFormPanel1.setCellspacing(5);
 
-        xDateField1.setCaption("Start Date");
+        xDateField1.setCaption("Effectivity Date");
         xDateField1.setCaptionWidth(90);
         xDateField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
         xDateField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N

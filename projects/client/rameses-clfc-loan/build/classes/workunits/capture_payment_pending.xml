@@ -1,0 +1,23 @@
+<workunit>
+    <invokers>
+        <invoker folderid="/home/online/collection" action="init" caption="Pending Captured Payments" 
+            role="FIELD_COLLECTOR" />
+        
+        <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl w"
+            visibleWhen="${mode=='init'}" immediate="true" />
+        <invoker type="formActions" action="next" caption="Next" mnemonic="n" shortcut="ctrl n"
+            visibleWhen="${mode=='init'}" role="FIELD_COLLECTOR" />
+        
+        <invoker type="formActions" action="back" caption="Back" mnemonic="b" shortcut="ctrl b"
+            visibleWhen="${mode!='init'}" immediate="true" />
+        <invoker type="formActions" action="submitForMapping" caption="Submit for Payment Mapping" mnemonic="s" shortcut="ctrl s"
+            visibleWhen="${mode!='init'}" role="FIELD_COLLECTOR" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.payment.capture.CapturePaymentPendingController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.payment.capture.CapturePaymentPendingInitPage" />
+        <page template="com.rameses.clfc.loan.payment.capture.CapturePaymentPendingPage" name="list" />
+    </pages>
+</workunit>

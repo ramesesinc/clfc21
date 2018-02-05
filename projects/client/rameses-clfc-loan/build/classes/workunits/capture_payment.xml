@@ -1,0 +1,38 @@
+<workunit>
+    <invokers>
+        <invoker type="capture:payment:open" action="open" caption="Capture Payment" target="popup" /> 
+        
+        <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl c" 
+            visibleWhen="${mode=='read'}" immediate="true" />
+        <invoker type="formActions" action="cancel" caption="Cancel" mnemonic="c" shortcut="ctrl c"
+            visibleWhen="${mode!='read'}" immediate="true" />
+        
+        <invoker type="formActions" action="edit" caption="Edit" mnemonic="e" shortcut="ctrl e"
+            visibleWhen="${mode=='read' &amp;&amp; entity.state=='FOR_MAPPING'}" 
+            role="FIELD_COLLECTOR,LEGAL_COLLECTOR" immediate="true" />
+        <invoker type="formActions" action="save" caption="Save" mnemonic="s" shortcut="ctrl s"
+            visibleWhen="${mode!='read'}" />
+        
+        <invoker type="formActions" action="submitForVerfication" caption="Submit for Verification" mnemonic="s" shortcut="ctrl s"
+            visibleWhen="${mode=='read' &amp;&amp; entity.state=='FOR_MAPPING'}" 
+            role="FIELD_COLLECTOR,LEGAL_COLLECTOR" />
+            
+        <invoker type="formActions" action="returnForMapping" caption="Return" mnemonic="r" shortcut="ctrl r"
+            visibleWhen="${mode=='read' &amp;&amp; entity.state=='FOR_VERIFICATION'}" icon="images/toolbars/arrow_left.png" 
+            role="APPROVER" />
+        <invoker type="formActions" action="verify" caption="Verify" mnemonic="v" shortcut="ctrl v"
+            visibleWhen="${mode=='read' &amp;&amp; entity.state=='FOR_VERIFICATION'}" 
+            role="APPROVER" />
+            
+        <invoker type="formActions" action="remit" caption="Remit" mnemonic="r" shortcut="ctrl r" 
+            visibleWhen="${mode=='read' &amp;&amp; entity.state=='VERIFIED'}" 
+            role="FIELD_COLLECTOR,LEGAL_COLLECTOR" />
+            
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.payment.capture.CapturePaymentController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.payment.capture.CapturePaymentMappingPage" />
+    </pages>
+</workunit>

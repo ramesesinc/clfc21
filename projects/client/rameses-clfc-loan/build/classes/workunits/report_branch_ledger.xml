@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type='branch-ledger:report' action='preview' caption='Ledger' target='popup' />
+    </invokers>
+    
+    <code class='com.rameses.clfc.report.ledger.branch.BorrowerBranchLedgerReportController' />
+    
+    <pages>
+        <page template='com.rameses.osiris2.common.ui.ReportPreviewPage' />
+    </pages>
+</workunit>

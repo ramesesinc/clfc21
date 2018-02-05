@@ -1,0 +1,18 @@
+"entity.draft" [1==1] {
+    enabled: true;
+    readonly: true;
+}
+"entity.remarks" [mode=='read'] {
+    enabled: true;
+    readonly: true;
+}
+"entity.remarks" [mode!='read'] {
+    enabled: true;
+    readonly: false;
+}
+"entity.txndate" [mode=='read'] {
+    enabled: false;
+}
+"entity.txndate" [mode!='read'] {
+    enabled: true;
+}
