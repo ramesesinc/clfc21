@@ -1,7 +1,8 @@
 <%
 def svc = SERVICE.lookup("MobileTrackerService", "admin");
 def data = svc.openLog([objid: PARAMS.objid]); 
-def info = (data.info? data.info: [:]); 
+if (!data) data = [:];
+//def info = (data.info? data.info: [:]); 
 %>
 <style>
 #markerinfo { font-family:'opensans',Tahoma,Arial; }
@@ -19,18 +20,18 @@ def info = (data.info? data.info: [:]);
 	<table cellpadding="0" cellspacing="0" style="white-space:nowrap;border-collapse:collapse;margin-top:5px;">
 	<tr class="data-row">
 		<td class="label">App. No.</td>
-		<td class="value">${data.info.loanapp?.appno? data.info.loanapp?.appno: '&nbsp;'}</td>
+		<td class="value">${data.loanapp?.appno? data.loanapp?.appno: '&nbsp;'}</td>
 	</tr>	
 	<tr class="data-row">
 		<td class="label">Borrower</td>
-		<td class="value">${data.info.borrower?.name? data.info.borrower?.name: '&nbsp;'}</td>
+		<td class="value">${data.borrower?.name? data.borrower?.name: '&nbsp;'}</td>
 	</tr> 
 	<tr class="data-row">
 		<td class="label">Address</td>
-		<td class="value">${data.info.borrower?.address? data.info.borrower?.address: '&nbsp;'}</td>
+		<td class="value">${data.borrower?.address? data.borrower?.address: '&nbsp;'}</td>
 	</tr>		
 	<tr class="data-row">
-		<td class="label">Txn Date</td>
+		<td class="label">Date</td>
 		<td class="value">${data.txndate}</td>
 	</tr>	
 	<tr class="data-row">
@@ -40,6 +41,7 @@ def info = (data.info? data.info: [:]);
 		<td class="label">Remarks</td>
 		<td class="value">${data.remarks? data.remarks: '&nbsp;'}</td>
 	</tr> 
+	<!--
 	<tr class="data-row">
 		<td class="label">Longitude</td>
 		<td class="value">${data.lng? data.lng: '&nbsp;'}</td>
@@ -47,6 +49,7 @@ def info = (data.info? data.info: [:]);
 	<tr class="data-row">
 		<td class="label">Latitude</td>
 		<td class="value">${data.lat? data.lat: '&nbsp;'}</td>
-	</tr> 	
+	</tr>
+	--> 	
 	</table>
 </div> 

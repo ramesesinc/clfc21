@@ -2,7 +2,10 @@
 var trackerid = ${PARAMS.trackerid? '"'+PARAMS.trackerid+'"': null}; 
 var trackerSvc = Service.lookup("MobileTrackerService", "main"); 
 var gmapsock = Socket.create('gmap');
-var workspace = {} 
+var workspace = {} ;
+var prevlocation = {lat: 0, lng: 0};
+var startlocation = {lat: 0, lng: 0};
+var endlocation = {lat: 0, lng: 0};
 
 var TrackerLogFetcher = new function() {
 
@@ -27,20 +30,50 @@ var TrackerLogFetcher = new function() {
 			} 
 		} 
 
-		if (hasMoreResults) {
+		//if (_page > 4) {
+		//	hasMoreResults = false;
+		//}
+
+		hasMoreResults = true;
+		if (hasMoreResults == true) {
 			_page++; 
 			fetch_0(); 
 		} else {
 			_processing = false;
+			markLine(prevlocation, endlocation);
 
+			\$("#loader-box").hide();
+			\$("#error-box").hide();
+			\$("#info-box").hide(); 
+			/*
 			var loaderbox = RUI.find('#loader-box'); 
-			loaderbox.toggle('slide');
-			loaderbox.remove(); 
+			window.console.log(loaderbox);;
+			if (loaderbox) {
+				loaderbox.toggle('slide');
+				loaderbox.hide();
+				loaderbox.remove(); 
+			}
+
+			var errorbox = RUI.find("#error-box");
+			window.console.log(errorbox);
+			if (errorbox) {
+				errorbox.hide();
+				errorbox.remove();
+			}
+
+			var infobox = RUI.find("#info-box");
+			window.console.log(infobox);
+			if (infobox) {
+				infobox.hide();
+				infobox.remove();
+			}
+			*/
 		}
 	} 
 
 	var fetch_0 = function() {
 		var _start = (_page*_limit)-_limit;
+		//window.console.log("page " + _page + " limit " + _limit);
 		trackerSvc.getLogs({trackerid: trackerid, _limit:_limit+1, _start:_start}, resulthandler); 
 	}
 
@@ -88,16 +121,22 @@ function createMapObject(params) {
 
 	var mapOptions = { 
 		zoom      : params.zoom, 
-		center    : new google.maps.LatLng(params.lat, params.lng), 
-		mapTypeId : google.maps.MapTypeId.ROADMAP 
+		center    : new google.maps.LatLng(params.lat, params.lng)
+		//mapTypeId : google.maps.MapTypeId.HYBRID  
 	} 
+	window.console.log("passing");
 
 	workspace.map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
 	workspace.markers = []; 
 	workspace.logs = []; 		
 	if (workspace.tracker) { 
 		var tracker = workspace.tracker;
+
 		if (tracker.startlng && tracker.startlat && tracker.startlng != 0 && tracker.startlat != 0) { 
+			//coor.push({lat: tracker.startlat, lng: tracker.startlng});
+			startlocation.lat = tracker.startlat;
+			startlocation.lng = tracker.startlng;
+			prevlocation = startlocation;
 			var startMarker = new google.maps.Marker({
 				position: new google.maps.LatLng(tracker.startlat, tracker.startlng), 
 				map 	: workspace.map, 
@@ -110,6 +149,9 @@ function createMapObject(params) {
 			new HeadWindowHandler(workspace, startMarker, workspace.startlog);
 		} 
 		if (tracker.state == 'CLOSED' && tracker.closedlat && tracker.closedlng && tracker.closedlat != 0 && tracker.closedlng != 0) { 
+			//coor.push({lat: tracker.closedlat, lng: tracker.closedlng});
+			endlocation.lat = tracker.closedlat;
+			endlocation.lng = tracker.closedlng;
 			var endMarker = new google.maps.Marker({ 
 				position: new google.maps.LatLng(tracker.closedlat, tracker.closedlng), 
 				map 	: workspace.map, 
@@ -121,16 +163,54 @@ function createMapObject(params) {
 			workspace.endlog = {lat: tracker.closedlat, lng: tracker.closedlng, objid: tracker.objid, type:'end'}
 			new HeadWindowHandler(workspace, endMarker, workspace.endlog);
 		}
+
+		//markLine(startlocation, endlocation);
+
 		var htmlstring = 	'<table cellpadding="0" cellspacing="0" style="white-space:nowrap;width:250px;">'+
-							'<tr> <td style="width:115px"> <input id="displaypayment" type="checkbox" r:context="tracker" r:immediate="true" r:name="displaypayment" r:checkedValue=true r:uncheckedValue=false > &nbsp; Payment </td>'+
-							'<td> <input id="displayremarks" type="checkbox" r:context="tracker" r:immediate="true" r:name="displayremarks" r:checkedValue=true r:uncheckedValue=false /> &nbsp; Remarks </td>' +
-							'</tr><tr> <td> <input id="displaytracker" type="checkbox" r:context="tracker" r:immediate="true" r:name="displaytracker" r:checkedValue=true r:uncheckedValue=false /> &nbsp; Tracking </td>' +
+							'<tr> <td style="width:115px"> <input id="displaypayment" type="checkbox" r:context="tracker" r:immediate="true" r:name="displaypayment" r:checkedValue=true r:uncheckedValue=false > &nbsp; Payment &nbsp; </td>'+
+							'<td> <input id="displayremarks" type="checkbox" r:context="tracker" r:immediate="true" r:name="displayremarks" r:checkedValue=true r:uncheckedValue=false /> &nbsp; Remarks &nbsp; </td>' +
+							'</tr><tr> <td> <input id="displaytracker" type="checkbox" r:context="tracker" r:immediate="true" r:name="displaystatus" r:checkedValue=true r:uncheckedValue=false /> &nbsp; Mobile Status &nbsp; </td>' + 
+							'<td> <input id="displaytracker" type="checkbox" r:context="tracker" r:immediate="true" r:name="displaytracker" r:checkedValue=true r:uncheckedValue=false /> &nbsp; Tracking &nbsp; </td>' +
 							'</tr></table>';
 		setOptions(htmlstring);
 		gmapsock.start(); 
 		TrackerLogFetcher.fetch(); 
 	} 
 } 
+
+function markLine( start, end ) {
+	if (!start && !end) return;
+
+	var coor = [];
+	if (start.lat == null) start.lat = 0;
+	if (start.lng == null) start.lng = 0;
+	if (start.lat != 0 && start.lng != 0) coor.push(start);
+
+	if (end.lat == null) end.lat = 0;
+	if (end.lng == null) end.lng = 0;
+	if (end.lat != 0 && end.lng != 0) coor.push(end);
+
+	if (coor.length < 2) return;
+	//window.console.log("start-> " + start.lat + " " + start.lng + " end-> " + end.lat + " " + end.lng);
+	var lineSymbol = {
+		path: google.maps.SymbolPath.FORWARD_OPEN_ARROW
+	};
+
+	var linePath = new google.maps.Polyline({
+		path: coor,
+		geodesic: true,
+		strokeColor: '#000000',
+		strokeOpacity: 1.0,
+		strokeWeight: 2,
+		map: workspace.map,
+		icons: [{
+			icon: lineSymbol,
+			offset: '100%'
+		}]
+	});
+
+	//linePath.setMap(workspace.map);
+}
 
 function initialize() {
 	createMapObject({});
@@ -145,7 +225,8 @@ function initialize() {
 function loadScript() {
 	var script = document.createElement("script");
 	script.type = "text/javascript";
-	script.src = "http://maps.googleapis.com/maps/api/js?v=3.expr&key=${PROJECT.apikey}&sensor=true&callback=initialize"; 
+	//script.src = "http://maps.googleapis.com/maps/api/js?v=3.expr&key=${PROJECT.apikey}&sensor=true&callback=initialize"; 
+	script.src = "http://maps.googleapis.com/maps/api/js?key=${PROJECT.apikey}&callback=initialize"; 
 	document.body.appendChild(script); 
 } 
 
@@ -179,6 +260,8 @@ function GmapInfoWindowHandler(workspace, gmarker, data, url) {
 	} 
 
 	var opencallback = function() {
+		window.console.log("click");
+
 		if (workspace.infowindow) workspace.infowindow.close(); 
 		infowindow.open(workspace.map, gmarker); 
 		workspace.infowindow = infowindow; 
@@ -261,7 +344,7 @@ function MessageHandler(item) {
 }
 function addPaymentLog(item) {
 	if (!isGoogleMapReady()) return; 
-	if (!item.lng || !item.lat || item.lng==0 || item.lat==0) return; 
+	//if (!item.lng || !item.lat || item.lng==0 || item.lat==0) return; 
 	if (!workspace.logs) workspace.logs = []; 
 	if (!workspace.paymentcount) workspace.paymentcount=0;
 
@@ -269,31 +352,206 @@ function addPaymentLog(item) {
 	var logitem = logs.find(function(o){ return (o.objid==item.objid? o: null); });  
 	if (logitem) return; 
 
+	//window.console.log(item);
+
 	updateCurrentLocation(item); 
 	logs.push(item); 
+
+	if (!workspace.paymentcount) workspace.paymentcount = 0;
 	workspace.paymentcount++;
 
 	var logcount = workspace.paymentcount; 
-	var remarks = (item.remarks? item.remarks: '');
-	var txntype = (item.txntype? item.txntype: 'NORMAL');
-	var iconpath = '/images/mapicons/payment-'+txntype+'.png';
-	var marker = new google.maps.Marker({ 
-		position 	: new google.maps.LatLng(item.lat, item.lng), 
-		title 		: txntype+' Payment (#'+ (logcount) +') '+remarks, 
-		icon 		: iconpath.toLowerCase(), 				
-		animation 	: google.maps.Animation.DROP, 
-		map 		: workspace.map, 
-		draggable 	: false, 
-		zIndex 		: 500
-	});	
-	item.marker = marker; 
-	new GmapInfoWindowHandler(workspace, marker, item, '/tracker/marker?objid='+item.objid);  
+	/*
+	switch (fl.toLowerCase()) {
+		case "u": fl = "w"; break;
+		case "v": fl = "w"; break;
+	}
+	*/
+	if (item.lng && item.lng != 0 && item.lat && item.lat != 0) {
+
+		var remarks = (item.remarks? item.remarks: '');
+		var txntype = (item.txntype? item.txntype: 'NORMAL');
+		var fl = item.borrower.name.charAt(0);
+
+		var iconpath = '/images/mapicons/payment-' + txntype.toLowerCase() + '/' + fl.toLowerCase() + '.png';
+		var marker = new google.maps.Marker({ 
+			position 	: new google.maps.LatLng(item.lat, item.lng), 
+			title 		: txntype+' Payment (#'+ (logcount) +') '+remarks, 
+			icon 		: iconpath.toLowerCase(), 				
+			animation 	: google.maps.Animation.DROP, 
+			map 		: workspace.map, 
+			draggable 	: false, 
+			zIndex 		: 500
+		});	
+		item.marker = marker; 
+		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/marker?objid='+item.objid);  
+
+	}
 
 	if (tracker_controller.displaypayment == true) {
-		var htmlstring = '<p class="postedtitle">Payment #'+ logcount +'</p> RECEIVED PAYMENT OF '+ item.borrower.name + '<p class="postedon">transacted on <span class="txndate">'+ item.txndate +'</span></p>';
-		addMessage(htmlstring, new MessageHandler(item)); 
+		addPaymentMessage(item, logcount);
 	}
 } 
+
+function addPaymentMessage( item, logcount ) {
+	var htmlstring = '<p class="postedtitle">Payment #'+ logcount +'</p> RECEIVED PAYMENT OF '+ item.borrower.name + '<p class="postedon">transacted on <span class="txndate">'+ item.txndate +'</span></p>';
+	addMessage(htmlstring, new MessageHandler(item)); 
+}
+
+function addRemarksLog( item ) {
+	if (!isGoogleMapReady()) return; 
+	//if (!item.lng || !item.lat || item.lng==0 || item.lat==0) return; 
+	if (!workspace.logs) workspace.logs = [];
+	if (!workspace.remarklogs) workspace.remarklogs = [];
+
+	var logs = workspace.logs;
+	var logitem = logs.find(function(o){ return (o.objid==item.objid? o: null); });  
+	if (logitem) return; 
+
+	updateCurrentLocation(item); 
+
+	logs.push(item); 
+
+	if (!workspace.remarkscount) workspace.remarkscount = 0;
+	workspace.remarkscount++;
+
+	var logcount = workspace.remarkscount;
+
+	if (item.lng && item.lng != 0 && item.lat && item.lat != 0) {
+
+		var title    = item.txntype+' Remarks: '+item.remarks; 
+		var iconname = item.reftype + '_' + item.txntype;
+
+		var iconpath = '/images/mapicons/' + iconname + '.png';	
+		var marker = new google.maps.Marker({ 
+			position 	: new google.maps.LatLng(item.lat, item.lng), 
+			title 		: title, 
+			icon 		: iconpath.toLowerCase(), 				
+			map 		: workspace.map, 
+			draggable 	: false, 
+			zIndex 		: 250 
+		});	
+
+		item.marker = marker; 
+		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/remark_marker?objid='+item.objid); 
+	}
+
+	if (tracker_controller.displayremarks == true) {
+		addRemarksMessage(item);
+	}
+}
+
+function addRemarksMessage( item ) {
+	var htmlstring = '<p class="postedtitle">No Payment</p>' + item.borrower.name + '<br/>' + item.remarks + '<br/> <p class="postedon">transacted on <span class="txndate">'+ item.txndate +'</span></p>';
+	addMessage(htmlstring, new MessageHandler(item)); 
+}
+
+function addTrackerLog( item ) {
+
+	if (!isGoogleMapReady()) return; 
+	//if (!item.lng || !item.lat || item.lng==0 || item.lat==0) return; 
+	if (!workspace.logs) workspace.logs = [];
+	if (!workspace.remarklogs) workspace.remarklogs = [];
+
+	var logs = workspace.logs;
+	var logitem = logs.find(function(o){ return (o.objid==item.objid? o: null); });  
+	if (logitem) return; 
+
+	updateCurrentLocation(item); 
+
+	logs.push(item); 
+
+	if (!workspace.trackercount) workspace.trackercount = 0;
+	workspace.trackercount++;
+
+	var logcount = workspace.trackercount;
+
+	if (item.lng && item.lng != 0 && item.lat && item.lat != 0) {
+
+		var title    = 'Tracked #'+ logcount +' on '+item.txndate; 
+		var iconname = "pin";
+
+		//var iconpath = '/images/mapicons/map/' + iconname + '.png';	
+		var iconpath = '/images/mapicons/' + iconname + '.png';	
+		window.console.log(iconpath);
+		var marker = new google.maps.Marker({ 
+			position 	: new google.maps.LatLng(item.lat, item.lng), 
+			title 		: title, 
+			icon 		: iconpath.toLowerCase(), 				
+			map 		: workspace.map, 
+			draggable 	: false, 
+			zIndex 		: 250 
+		});	
+
+		var prevlnglat = workspace.previoustracklnglat; 
+		var newlnglat = item.lng + ':' + item.lat;
+		if (prevlnglat == newlnglat) return;
+
+		item.marker = marker;
+		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/track_marker?objid='+item.objid+'&&trackercount='+logcount); 
+		
+		workspace.previoustracklnglat = newlnglat;
+	}
+
+	
+	if (tracker_controller.displaytracker == true ) {
+		addTrackerMessage(item);
+	}
+}
+
+function addTrackerMessage( item ) {
+	var htmlstring = '<p class="postedtitle">Tracking...</p>';
+	htmlstring += 'lng: '+ item.lng +', lat:'+ item.lat;
+	htmlstring += '<p class="postedon">tracked on <span class="txndate">'+ item.txndate +'</span></p>';
+	addMessage(htmlstring, new MessageHandler(item)); 
+}
+
+function addStatusLog( item ) {
+	if (!isGoogleMapReady()) return; 
+	if (!workspace.logs) workspace.logs = [];
+	if (!workspace.statuslogs) workspace.statuslogs = [];
+
+	var logs = workspace.logs;
+	var logitem = logs.find(function(o){ return (o.objid==item.objid? o: null); });  
+	if (logitem) return; 
+
+	logs.push(item);
+	if (!workspace.statuscount) workspace.statuscount = 0;
+	workspace.statuscount++;
+
+	var logcount = workspace.statuscount;
+
+	if (item.lat && item.lat != 0 && item.lng && item.lng != 0) {
+		var marker = new google.maps.Marker({ 
+			position 	: new google.maps.LatLng(item.lat, item.lng), 
+			title 		: "Status", 
+			icon 		: '/images/mapicons/phone-icon.png', 				
+			map 		: workspace.map, 
+			draggable 	: false, 
+			zIndex 		: 250 
+		});	
+
+		item.marker = marker;
+		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/mobile_status_marker?objid='+item.objid+'&&trackercount='+logcount); 	
+	}
+
+	if (tracker_controller.displaystatus == true) {
+		addStatusMessage(item);
+	}
+
+
+}
+
+function addStatusMessage( item ) {
+	var htmlstring = '<p class="postedtitle">Tracking...</p>';
+	htmlstring += 'WIFI: <b>'+ (item.wifi==1? 'enabled' : 'disabled') + '</b><br/>';
+	htmlstring += 'Mobile Data: <b>'+ (item.mobiledata==1? 'enabled' : 'disabled') + '</b><br/>';
+	htmlstring += 'GPS: <b>' + (item.gps==1? 'enabled' : 'disabled') + '</b></br>';
+	htmlstring += 'Network: <b>' + (item.network==1? 'enabled' : 'disabled') + '</b>';
+	htmlstring += '<p class="postedon">tracked on <span class="txndate">'+ item.txndate +'</span></p>';
+	addMessage(htmlstring, new MessageHandler(item)); 
+}
+
 function addNormalLog(item) {
 	if (!isGoogleMapReady()) return; 
 	if (!item.lng || !item.lat || item.lng==0 || item.lat==0) return; 
@@ -350,26 +608,45 @@ function addNormalLog(item) {
 	}
 }
 function addLog(item) {
+	//if (!isGoogleMapReady() || !item || (item.lat == 0 && item.lng == 0)) return; 
 	if (!isGoogleMapReady() || !item) return; 
 	if (!workspace.logs) workspace.logs = []; 
 	if (!workspace.paymentcount) workspace.paymentcount = 0;
 	if (!workspace.remarkscount) workspace.remarkscount = 0;
 	if (!workspace.trackercount) workspace.trackercount = 0;
+	if (!workspace.statuscount) workspace.statuscount = 0;
 
+	var currentlocation = {lat: item.lat, lng: item.lng};
+	if (!(currentlocation.lat == prevlocation.lat && currentlocation.lng == prevlocation.lng)) {
+		markLine(prevlocation, currentlocation);
+		prevlocation = currentlocation;
+	}
+
+	switch (item.reftype.toLowerCase()) {
+		case "payment": addPaymentLog(item); break;
+		case "remarks": addRemarksLog(item); break;
+		case "track": addTrackerLog(item); break;
+		case "status": addStatusLog(item); break;
+		//default: addNormalLog(item); break;
+	}
+
+	/*
 	if (item.reftype == 'PAYMENT' ) { 
 		addPaymentLog( item ); 
 	} else { 
 		addNormalLog( item ); 
 	} 
+	*/
 
-	var paymentcount = 0; 
-	if (tracker_controller.displaypayment == true) paymentcount += workspace.paymentcount;
-	if (tracker_controller.displayremarks == true) paymentcount += workspace.remarkscount;
-	if (tracker_controller.displaytracker == true) paymentcount += workspace.trackercount;
+	var counter = 0; 
+	if (tracker_controller.displaystatus == true) counter += workspace.statuscount;
+	if (tracker_controller.displaypayment == true) counter += workspace.paymentcount;
+	if (tracker_controller.displayremarks == true) counter += workspace.remarkscount;
+	if (tracker_controller.displaytracker == true) counter += workspace.trackercount;
 
-	if (paymentcount > 0) {  
+	if (counter > 0) {  
 		\$('.notification-icon').removeClass('button-icon-notification-bell').addClass('button-icon-notification-bell-on');
-		\$('.notification-count').html(paymentcount).show(); 
+		\$('.notification-count').html(counter).show(); 
 	} 
 }
 
@@ -395,6 +672,7 @@ var tracker_controller = new function() {
 	this.data = {}
 	this.displaypayment = true;
 	this.displayremarks = true;
+	this.displaystatus = true
 	this.displaytracker = false;
 	
 	this.onload = function() {	
@@ -478,6 +756,7 @@ var tracker_controller = new function() {
 		var counter = 0, logcount = 0;
 		for (var i=0; i<logs.length; i++) {
 			item = logs[i];
+			/*
 			if (item.reftype == 'TRACK' && self.displaytracker == true) {
 				counter++;
 				var prevlnglat = previoustracklnglat; 
@@ -499,6 +778,34 @@ var tracker_controller = new function() {
 				counter++;
 
 			}
+			*/
+			switch (item.reftype.toLowerCase()) {
+				case 'status': 
+					if (self.displaystatus == true) {
+						addStatusMessage(item);
+						counter++;
+					}
+					break;
+				case 'track':
+					if (self.displaytracker == true) {
+						addTrackerMessage(item);
+						counter++;
+					}
+					break;
+				case 'remarks': 
+					if (self.displayremarks == true) {
+						addRemarksMessage(item);
+						counter++;
+					}
+					break;
+				case 'payment':
+					if (self.displaypayment == true) {
+						logcount++;
+						addPaymentMessage(item, logcount);
+						counter++;
+					}
+					break;
+			}
 		}
 		if (counter > 0) {
 			\$('.notification-icon').removeClass('button-icon-notification-bell').addClass('button-icon-notification-bell-on');
@@ -518,6 +825,11 @@ var tracker_controller = new function() {
 		"displayremarks": function (o) { 
 			var val = ((o==true || o=="true")? 1 : 0);
 			self.displayremarks = new Boolean(val).valueOf();
+			self.reloadLogs(); 
+		},
+		"displaystatus": function(o) { 
+			var val = ((o==true || o=="true")? 1 : 0);
+			self.displaystatus = new Boolean(val).valueOf();
 			self.reloadLogs(); 
 		},
 		"displaytracker": function (o) { 
@@ -571,12 +883,12 @@ function resizeMapCanvas() {
 	}
 </style>
 
+<div id="map-canvas"></div> 
 <div id="loader-box">
 	<img src="/images/loading.gif" border="0" height="16"/>
 	Loading tracker logs please wait...
 </div>
 <div id="error-box" style="display:none;"></div>
-<div id="map-canvas"></div> 
 
 <div r:dockto="header-action">
 	<table class="mainmenu">

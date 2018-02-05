@@ -15,8 +15,32 @@ def info = (data.info? data.info: [:]);
 </style>
 
 <div id="markerinfo">
-	<span id="title">Tracking Information</span>
+	<span id="title">Mobile Status Information</span>
 	<table cellpadding="0" cellspacing="0" style="white-space:nowrap;border-collapse:collapse;margin-top:5px;">
+	<tr class="data-row">
+		<td class="label">Tracking #</td>
+		<td class="value">${PARAMS.trackercount? PARAMS.trackercount: '&nbsp;'}</td>
+	</tr>	
+	<tr class="data-row">
+		<td class="label">Date</td>
+		<td class="value">${data.txndate? data.txndate: '&nbsp;'}</td>
+	</tr>	
+	<tr class="data-row">
+		<td class="label">WIFI</td>
+		<td class="value">${data.wifi==1? 'enabled': 'disabled'}</td>
+	</tr>	
+	<tr class="data-row">
+		<td class="label">Mobile Data</td>
+		<td class="value">${data.mobiledata==1? 'enabled': 'disabled'}</td>
+	</tr>	
+	<tr class="data-row">
+		<td class="label">GPS</td>
+		<td class="value">${data.gps==1? 'enabled': 'disabled'}</td>
+	</tr>	
+	<tr class="data-row">
+		<td class="label">Network</td>
+		<td class="value">${data.network==1? 'enabled': 'disabled'}</td>
+	</tr>
 	<!--
 	<tr class="data-row">
 		<td class="label">Longitude</td>
@@ -27,13 +51,5 @@ def info = (data.info? data.info: [:]);
 		<td class="value">${data.lat? data.lat: '&nbsp;'}</td>
 	</tr>
 	-->
-	<tr class="data-row">
-		<td class="label">Tracking #</td>
-		<td class="value">${PARAMS.trackercount? PARAMS.trackercount: '&nbsp;'}</td>
-	</tr>	
-	<tr class="data-row">
-		<td class="label">Date</td>
-		<td class="value">${data.txndate? data.txndate: '&nbsp;'}</td>
-	</tr>
 	</table>
 </div> 

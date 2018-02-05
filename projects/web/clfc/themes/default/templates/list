@@ -44,7 +44,12 @@
 					<button r:context="${PAGE.context}" r:name="fragmentlist_refresh" icon="refresh">Refresh</button>
 				</div> 
 			</td>
-			<td id="formActions" valign="top" style="white-space:nowrap;">&nbsp;</td> 
+			<td id="formActions" valign="top" style="white-space:nowrap;">
+				<div>
+					<button r:context="${PAGE.context}" r:name="sync" icon="refresh">Sync</button>
+					<select id="selectedRoute" r:context="${PAGE.context}" r:name="selectedRoute" r:items="routeList" r:itemLabel="description" r:allowNull="true" r:immediate="true" />
+				</div>
+			</td> 
 			<td id="queryform" align="right" style="white-space:nowrap;width:1px;"> 
 				<span class="search-label">Search</span> 
 				<input type="text" r:context="${PAGE.context}" r:name="${listModel}.query.searchtext" r:control="actionfield" r:action="${listModel}.search"/> 
