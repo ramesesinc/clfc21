@@ -9,7 +9,11 @@ import com.rameses.clfc.util.*;
 class LoanAppCoMakerController 
 {
     //feed by the caller
-    def loanapp, caller, selectedMenu;
+    def caller, loanapp, menuitem;
+    
+    def mode;
+    def snapshot;
+    def base64;
     
     private def beforeSaveHandlers = [:];
     private def dataChangeHandlers = [:];
@@ -20,8 +24,11 @@ class LoanAppCoMakerController
     def borrowers = [];
     def selectedCoMaker;
     
-    void init() {
-        selectedMenu.saveHandler = { save(); }  
+    void init() { 
+        mode = 'read';
+        menuitem.saveHandler = { save(); }  
+        base64 = new com.rameses.util.Base64Cipher();  
+        
         def data = service.open([objid: loanapp.objid]);
         loanapp.clear();
         loanapp.putAll(data);
@@ -33,8 +40,24 @@ class LoanAppCoMakerController
         service.update(data); 
         borrowers.each { 
             it.remove('_isnew'); 
-        }        
+        } 
+        mode = 'read'; 
+        snapshot = null; 
     }
+    void edit() {
+        snapshot = (borrowers ? base64.encode( borrowers ) : null ); 
+        mode = 'edit'; 
+    }
+    void cancelEdit() { 
+        if (MsgBox.confirm('Are you sure you want to cancel any changes made?')) { 
+            def o = ( snapshot ? base64.decode( snapshot ) : null ); 
+            if ( o ) {
+                borrowers = o; 
+                coMakerHandler?.reload();
+            }
+            mode = 'read'; 
+        }
+    } 
 
     def addCoMaker() {
         def params = createOpenerParams()
@@ -48,12 +71,11 @@ class LoanAppCoMakerController
     
     def createOpenerParams() {
         return [
-                loanapp: [:],
-                caller: caller, 
-                service: service, 
-                beforeSaveHandlers: beforeSaveHandlers,
-                dataChangeHandlers: dataChangeHandlers
-        ]
+            loanapp: [:],
+            caller: this, service: service, 
+            beforeSaveHandlers: beforeSaveHandlers,
+            dataChangeHandlers: dataChangeHandlers
+        ]; 
     }
     
     def coMakerHandler = [
@@ -77,7 +99,7 @@ class LoanAppCoMakerController
     }
             
     boolean removeCoMakerImpl(o) {
-        if (caller.mode == 'read') return false;
+        if (mode == 'read') return false;
         if (MsgBox.confirm("You are about to remove this co-maker. Continue?")) {
             borrowers.remove(o);
             return true;

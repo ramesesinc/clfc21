@@ -39,5 +39,9 @@ _dev
 /**/nbproject/build-impl.xml~
 /**/nbproject/genfiles.properties
 /**/nbproject/groovy-build.xml
-/**/.terminal
 /**/Thumbs.db
+/**/.terminal
+/projects/client/rameses-clfc2-loan/nbproject/private/
+/projects/client/rameses-clfc2-loan/dist/
+/projects/client/rameses-clfc2-loan/build/
+/projects/client/rameses-clfc-loan/dist/

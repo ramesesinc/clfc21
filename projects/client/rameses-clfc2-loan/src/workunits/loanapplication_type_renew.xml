@@ -1,0 +1,31 @@
+<workunit>
+    <invokers>
+        <invoker folderid="/home/app" caption="Renewal" action="init" target="window" />
+        
+        <invoker type="formActions" caption="Cancel" action="doCancel" mnemonic="C" 
+                 visibleWhen="#{mode.toString().matches('init|info') == true}" immediate="true"/>
+        <invoker type="formActions" caption="Next" action="doNextToInfo" mnemonic="N" 
+                 visibleWhen="#{mode == 'init'}"/>
+
+        <invoker type="formActions" caption="Back" action="doBackToInitial" mnemonic="B" 
+                 visibleWhen="#{mode == 'info'}" immediate="true"/>
+        <invoker type="formActions" caption="Submit" action="doSubmit" mnemonic="S" 
+                 visibleWhen="#{mode == 'info'}"/>
+        
+        <invoker type="formActions" caption="Close" action="doClose" mnemonic="C" 
+                 visibleWhen="#{mode == 'success'}" immediate="true"/>
+        <invoker type="formActions" caption="Add Another" action="doAddAnother" 
+                 visibleWhen="#{mode == 'success'}" immediate="true" mnemonic="A"/>
+        <invoker type="formActions" caption="Open Application" action="doOpen" 
+                 visibleWhen="#{mode == 'success'}" immediate="true" mnemonic="O"/>
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.models.RenewLoanApplicationModel" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.views.LoanAppRenewInitialPage"/>
+        <page name="info" template="com.rameses.clfc.loan.views.LoanAppRenewInfoPage"/>
+        <page name="success" template="com.rameses.clfc.loan.views.LoanAppSuccessPage"/>
+    </pages>
+    
+</workunit>

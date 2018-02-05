@@ -7,4 +7,9 @@ import com.rameses.clfc.loan.controller.*;
 
 class ApplianceFormController extends PopupMasterController
 {
+    public void afterCreate( data ) { 
+        if ( data.attachments == null ) {
+            data.attachments = []; 
+        }
+    }
 }

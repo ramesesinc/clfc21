@@ -16,6 +16,7 @@ class BorrowerGeneralInfoController
     def entity = [:];
     def occupancyTypes = LoanUtil.borrowerOccupancyTypes;
     def rentTypes = LoanUtil.rentTypes;
+    def borrower;
     
     @ChangeLog
     def changeLog;
@@ -49,13 +50,19 @@ class BorrowerGeneralInfoController
             }
         });
     }
+    
+    def getBorrower() {
+        return entity;
+    }
         
     def getLookupBorrower() {  
         def params = [
             'query.loanappid': borrowerContext.loanappid, 
             onselect: {o-> 
                 def borrower = null; 
-                try { borrower = borrowerContext.openBorrower([objid: o.objid]); } catch(Throwable t){;} 
+                try { 
+                    borrower = borrowerContext.openBorrower([objid: o.objid]); 
+                } catch(Throwable t){;} 
                 
                 if (borrower == null) { 
                     entity.putAll(o); 
@@ -68,13 +75,7 @@ class BorrowerGeneralInfoController
                     def addresstext = entity.address.text;
                     entity.address = addresstext; 
                 }
-                /*
-                println 'address ' + entity.address;
-                if (entity.address) {
-                    def addresstext = entity.address.text;
-                    entity.address = addresstext; 
-                } 
-                */
+
                 borrowerContext.dataChangeHandlers.each{k,v-> 
                     if (v != null) v(); 
                 }

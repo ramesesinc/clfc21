@@ -10,9 +10,18 @@ class CollateralVehicleController
 {
     @Binding
     def binding;
-    def loanappid, collateral, mode, beforeSaveHandlers;
+    def loanappid, collateral, caller, beforeSaveHandlers;
     
-    def htmlbuilder=new CollateralHtmlBuilder();
+    def htmlbuilder = new CollateralHtmlBuilder();
+    
+    def getMode() {
+        try { 
+            return caller.mode; 
+        } catch(Throwable t) {
+            return null; 
+        }
+    }
+    
     def selectedVehicle;
     def vehicleHandler = [
         fetchList: {o->

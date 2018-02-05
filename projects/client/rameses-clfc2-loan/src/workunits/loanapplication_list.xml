@@ -1,0 +1,10 @@
+<workunit extends="com/rameses/seti2/templates/CrudNodeList.xml" 
+          schemaName="loanapplication" 
+          allowDelete="false" 
+          allowCreate="false">
+    <invokers>
+        <invoker folderid="/home/app" caption="Loan Applications" 
+                 action="init" index="-1" 
+                 cols="appno,apptype,dtcreated,borrower.name,loanamount,loantype,route.code,producttype.name"/>
+    </invokers>
+</workunit>

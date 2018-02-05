@@ -28,7 +28,7 @@ class BorrowerContext
     public def getCaller() { return codeBean; }
     public def getService() { return service; } 
     public def getLoanapp() { return loanapp; } 
-    public def getMode() { return parentCodeBean.mode; } 
+    public def getMode() { return codeBean.mode; } 
     public def getBorrower() { return loanapp.borrower; } 
     
     public def getLoanappid() { 
@@ -42,4 +42,12 @@ class BorrowerContext
     public void refresh() {
         caller.tabHandler.refresh(); 
     } 
+    
+    public def getMenuItemName() {
+        try {
+            return codeBean.menuitem.name;
+        } catch(Throwable t) {
+            return null; 
+        }
+    }
 }

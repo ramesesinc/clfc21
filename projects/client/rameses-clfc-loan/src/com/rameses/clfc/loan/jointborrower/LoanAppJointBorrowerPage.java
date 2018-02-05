@@ -6,13 +6,16 @@
 
 package com.rameses.clfc.loan.jointborrower;
 
+import com.rameses.osiris2.themes.FormPage;
 import com.rameses.rcp.ui.annotations.StyleSheet;
+import com.rameses.rcp.ui.annotations.Template;
 
 /**
  *
  * @author  wflores
  */
 @StyleSheet
+@Template(FormPage.class)
 public class LoanAppJointBorrowerPage extends javax.swing.JPanel {
     
     public LoanAppJointBorrowerPage() {
@@ -58,6 +61,8 @@ public class LoanAppJointBorrowerPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.UPPER}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             }),
@@ -71,6 +76,8 @@ public class LoanAppJointBorrowerPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.UPPER}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             }),
@@ -84,6 +91,8 @@ public class LoanAppJointBorrowerPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.UPPER}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             })
@@ -98,6 +107,7 @@ public class LoanAppJointBorrowerPage extends javax.swing.JPanel {
         xButton1.setName("addJointBorrower"); // NOI18N
         xButton1.setText("Add");
 
+        xButton2.setDepends(new String[] {"selectedJointBorrower"});
         xButton2.setName("removeJointBorrower"); // NOI18N
         xButton2.setText("Remove");
 

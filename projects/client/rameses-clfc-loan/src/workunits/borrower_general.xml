@@ -1,10 +1,6 @@
 <workunit>
     <invokers>
-        <!--
         <invoker type="loanapp-borrower:plugin" action="init" caption=" General Information  " index="-100"/>
-        -->
-        <invoker type="loanapp-borrowerindividual:plugin" action="init" caption=" General Information  " index="-100"/>
-        <invoker type="loanapp-borrowerjuridical:plugin" action="init" caption=" General Information  " index="-100"/>
         <invoker type="loanapp-jointborrower:plugin" action="init" caption=" General Information  " index="-100"/>
         <invoker type="loanapp-comaker:plugin" action="init" caption=" General Information  " index="-100"/>
     </invokers>
