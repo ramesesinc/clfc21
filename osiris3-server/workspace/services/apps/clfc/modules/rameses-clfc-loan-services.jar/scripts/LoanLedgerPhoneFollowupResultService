@@ -56,6 +56,9 @@ class LoanLedgerPhoneFollowupResultService extends ActiveCrudListService
 	@Service('InboxService')
 	def inboxSvc;
 
+	@Service("CLFCUtilService")
+	def clfcUtilSvc;
+
 	@ProxyMethod
 	public def getColumns( params ) {
 		def cols = [];
@@ -156,14 +159,21 @@ class LoanLedgerPhoneFollowupResultService extends ActiveCrudListService
 			o = overrideAmnestySvc.create(o);
 		}
 
-		list = data?._request?.findAll{ it._edit == true }
+		list = data?.overriderequest?.findAll{ it._edit == true }
 		list?.each{ o->
 			if (!o.refid) o.refid = data.objid;
 			o = overrideAmnestySvc.update(o);
 		}
 
-		data?.overriderequest = data?.remove('_request');
-		data?.remove('_removerequest');
+		//data?.overriderequest = data?.remove('_request');
+
+		//println 'override request';
+		//data?.overriderequest?.each{ println it }
+		//data?.remove('_removerequest');
+		data.remove('_request');
+		data.remove('_removerequest');
+		data.overriderequest = getOverrideAmnestyList(data);
+
 	}
 
 	void afterOpen( data ) {
@@ -194,7 +204,8 @@ class LoanLedgerPhoneFollowupResultService extends ActiveCrudListService
 		list?.each{ o->
 			def info = o.remove('info');
 			info = em.serializer.read(info);
-			o.putAll(info);
+			//o.putAll(info);
+			o = clfcUtilSvc.resolveMapMerging( o, info );
 		}
 
 		return list;

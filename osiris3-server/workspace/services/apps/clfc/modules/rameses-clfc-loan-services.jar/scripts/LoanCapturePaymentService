@@ -89,6 +89,9 @@ class LoanCapturePaymentService {
 	@Service("RuleExecutorService")
 	def ruleSvc;
 
+	@Service("CLFCUtilService")
+	def clfcUtilSvc;
+
 	@ProxyMethod
 	public def getPendingCollectors( params ) {
 		if (!params.date) throw new RuntimeException("Please specify date.");
@@ -139,10 +142,14 @@ class LoanCapturePaymentService {
 
 		def list = em.getCapturedPaymentCollectionsByDateAndCollector( params );
 		list.eachWithIndex{ itm, idx-> 
-			def info = itm.remove("info");
-			if (info) {
-				info = em.serializer.read(info);
-				itm.putAll(info);
+			if (itm.info) {
+				def info = itm.remove("info");
+				if (info) {
+					info = em.serializer.read(info);
+					//itm.putAll(info);
+
+					itm = clfcUtilSvc.resolveMapMerging( itm, info );
+				}
 			}
 			if (!itm.scdetailid) itm.scdetailid = "SCD" + new UID();
 			if (!itm.name) {

@@ -23,6 +23,9 @@ class CaptureLoanLedgerProceedsService extends ActiveCrudService
 	@Service("LoanLedgerPaymentService")
 	def ledgerPaymentSvc;
 
+	@Service("CLFCUtilService")
+	def clfcUtilSvc;
+
 	private void validate( data ) {
 		def currentdate = dateSvc.getServerDateAsString().split(" ")[0];
 		def txndate = data.txndate+"";
@@ -79,9 +82,16 @@ class CaptureLoanLedgerProceedsService extends ActiveCrudService
 		l.payments = ledger_payment.getList(l);
 		def info;
 		l.payments.each{ o->
+			if (o.info) {
+				def info = o.remove("info");
+				info = ledger_payment.serializer.read( info );
+				o = clfcUtilSvc.resolveMapMerging( o, info );
+			}
+			/*
 			info = null;
 			if (o.info) info = ledger_payment.serializer.read(o.info);
 			if (info) o.putAll(info);
+			*/
 		}
 		ledgerPaymentSvc.rebuild(l);
 

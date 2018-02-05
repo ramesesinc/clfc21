@@ -26,6 +26,9 @@ class OverrideAmnestyRequestService extends ActiveCrudListService
 	@Service('InboxService')
 	def inboxSvc;
 
+	@Service('CLFCUtilService')
+	def clfcUtilSvc;
+
 	@ProxyMethod
 	public def getColumns( params ) {
 		def cols = [];
@@ -63,13 +66,24 @@ class OverrideAmnestyRequestService extends ActiveCrudListService
 		if (params.followupid) {
 			params._listMethod = 'getListFollowupid';
 		}
+
+		if (params.refid) {
+			params._listMethod = 'getListByRefid';
+		}
 	}
 
 	void afterList( params, list ) {
 		list?.each{ o->
+			if (o.info) {
+				def info = o.remove('info');
+				info = em.serializer.read( info );
+				o = clfcUtilSvc.resolveMapMerging( o, info );
+			}
+			/*
 			def info = o.remove('info');
 			info = em.serializer.read(info);
 			o.putAll(info);
+			*/
 		}
 	}
 

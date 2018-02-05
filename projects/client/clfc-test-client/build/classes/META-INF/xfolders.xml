@@ -1,0 +1,11 @@
+<folders>
+    <folder id="menu">
+        <folder id="test" caption="Test"></folder>
+    </folder>
+    
+    <folder id="home">
+        <folder id="business" caption="Business" icon="home/icons/sample.png"> 
+            <folder id="billing" caption="Billing"/> 
+        </folder> 
+    </folder>
+</folders>

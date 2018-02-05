@@ -125,14 +125,16 @@ class LoanLedgerFollowupResultService extends ActiveCrudListService
 			o = overrideAmnestySvc.create(o);
 		}
 
-		list = data?._request?.findAll{ it._edit == true }
+		list = data?.overriderequest?.findAll{ it._edit == true }
 		list?.each{ o->
 			if (!o.refid) o.refid = data.objid;
 			o = overrideAmnestySvc.update(o);
 		}
 
-		data?.overriderequest = data?.remove('_request');
+		data?.remove('_request');
 		data?.remove('_removerequest');
+
+		data?.overriderequest = getOverrideAmnestyList(data);
 	}
 
 	void afterOpen( data ) {
@@ -234,6 +236,9 @@ class LoanLedgerFollowupResultService extends ActiveCrudListService
 		if (hasenddate == true) {
 			data.dtended = cal.getTime();
 		}
+
+		println 'data';
+		data.each{ println it }
 
 		return data;
 	}
