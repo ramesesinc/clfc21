@@ -25,7 +25,7 @@ class SMCFeeController extends CRUDController
     Map editPermission = [role: 'LEGAL_OFFICER', domain: 'LOAN'];
     
     Map createEntity() {
-        return [objid: 'SMCF' + new UID(), type: 'USER', _allowedit: true];
+        return [objid: 'SMCF' + new UID(), code: 'F' + new UID(), type: 'USER', _allowedit: true];
     }
     
     void afterOpen( data ) {

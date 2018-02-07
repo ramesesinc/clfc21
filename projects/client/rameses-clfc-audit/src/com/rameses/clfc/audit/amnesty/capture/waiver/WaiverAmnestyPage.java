@@ -97,10 +97,10 @@ public class WaiverAmnestyPage extends javax.swing.JPanel {
         xLookupField1.setCaptionWidth(90);
         xLookupField1.setDisableWhen("#{mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{entity.loanapp.appno}");
+        xLookupField1.setExpression("${item.appno}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("ledgerLookup");
-        xLookupField1.setName("loanapp"); // NOI18N
+        xLookupField1.setName("entity.loanapp"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(150, 20));
         xLookupField1.setRequired(true);
         xFormPanel1.add(xLookupField1);

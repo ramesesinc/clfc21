@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class SMCAmnestyController 
-{
+class SMCAmnestyController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -189,6 +192,7 @@ class SMCAmnestyController
             entity = service.update(entity);
         }
         mode = 'read';
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void savePosting() {
@@ -196,36 +200,42 @@ class SMCAmnestyController
         
         entity = service.savePosting(entity);
         postingmode = 'read';
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void submitForApproval() {
         if (!MsgBox.confirm('You are about to submit this document for approval. Continue?')) return;
         
         entity = service.submitForApproval(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void disapprove() {
         if (!MsgBox.confirm('You are about to disapprove this document. Continue?')) return;
         
         entity = service.disapprove(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void approveDocument() {
         if (!MsgBox.confirm('You are about to approve this document. Continue?')) return;
         
         entity = service.approveDocument(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void submitForVerification() {
         if (!MsgBox.confirm('You are about to submit this document for verification. Continue?')) return;
         
         entity = service.submitForVerification(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void verifyDocument() {
         if (!MsgBox.confirm('You are about to verify this document. Continue?')) return;
         
         entity = service.verifyDocument(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     def getStatus() {

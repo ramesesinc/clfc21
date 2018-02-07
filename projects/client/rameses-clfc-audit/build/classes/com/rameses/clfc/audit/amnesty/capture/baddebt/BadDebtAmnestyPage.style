@@ -1,13 +1,4 @@
-"entity.(ledger|loanapp).*" [1==1] {
-    enabled: false;
-}
-"entity.payment.(txndate|amount)" [1==1] {
-    enabled: false;
-}
-"entity.payment.refno" [mode!='read'] {
-    enabled: true;
-}
-"entity.payment.refno" [mode=='read'] {
+"entity.(ledger|loanapp).*|entity.payment.(txndate|amount)" [1==1] {
     enabled: false;
 }
 "entity.remarks" [mode=='read'] {

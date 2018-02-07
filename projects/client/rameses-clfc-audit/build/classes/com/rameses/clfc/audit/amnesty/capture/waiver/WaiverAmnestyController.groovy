@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class WaiverAmnestyController extends CRUDController
-{
+class WaiverAmnestyController extends CRUDController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -56,7 +59,6 @@ class WaiverAmnestyController extends CRUDController
     boolean allowDelete = false;
     boolean allowEdit = true;
     
-    def loanapp;
     def ledgerLookup = Inv.lookupOpener('amnestycapture:ledger:lookup', [
         onselect: { o->
             def item =  service.getLedgerInfo([ledgerid: o.objid]);
@@ -85,6 +87,10 @@ class WaiverAmnestyController extends CRUDController
         checkEditable(data);
     }
     
+    void afterSave( data ) {
+        EventQueue.invokeLater({ caller?.reload(); });
+    }
+    
     void checkEditable( data ) {
         allowEdit = false;
         if (data.txnstate == 'DRAFT') {
@@ -98,6 +104,7 @@ class WaiverAmnestyController extends CRUDController
         
         entity = service.submitForApproval(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void approveDocument() {
@@ -105,6 +112,7 @@ class WaiverAmnestyController extends CRUDController
         
         entity = service.approveDocument(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void disapprove() {
@@ -112,6 +120,7 @@ class WaiverAmnestyController extends CRUDController
         
         entity = service.disapprove(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     def getStatus() {

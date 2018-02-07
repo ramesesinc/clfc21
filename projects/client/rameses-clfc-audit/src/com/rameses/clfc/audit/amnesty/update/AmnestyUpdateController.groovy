@@ -8,6 +8,9 @@ import java.rmi.server.UID;
 
 class AmnestyOnlineUpdateController extends CRUDController {
     
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -51,6 +54,7 @@ class AmnestyOnlineUpdateController extends CRUDController {
     void afterSave( data ) {
         checkEditable(data);
         setTypeValue(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void checkEditable( data ) {
@@ -94,6 +98,7 @@ class AmnestyOnlineUpdateController extends CRUDController {
         entity = service.submitForApproval(entity);
         checkEditable(entity);
         setTypeValue(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void approveDocument() {
@@ -102,6 +107,7 @@ class AmnestyOnlineUpdateController extends CRUDController {
         entity = service.approveDocument(entity);
         checkEditable(entity);
         setTypeValue(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void disapprove() {
@@ -110,6 +116,7 @@ class AmnestyOnlineUpdateController extends CRUDController {
         entity = service.disapprove(entity);
         checkEditable(entity);
         setTypeValue(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
 }

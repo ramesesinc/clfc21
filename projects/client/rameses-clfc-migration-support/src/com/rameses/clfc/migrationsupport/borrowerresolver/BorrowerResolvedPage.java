@@ -218,9 +218,9 @@ public class BorrowerResolvedPage extends javax.swing.JPanel {
         xLookupField1.setCaptionWidth(130);
         xLookupField1.setDisableWhen("#{mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("#{loan.producttype.name}");
+        xLookupField1.setExpression("${item.name}");
         xLookupField1.setHandler("productTypeLookup");
-        xLookupField1.setName("producttype"); // NOI18N
+        xLookupField1.setName("loan.producttype"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(150, 20));
         xLookupField1.setRequired(true);
         xFormPanel2.add(xLookupField1);
@@ -264,10 +264,10 @@ public class BorrowerResolvedPage extends javax.swing.JPanel {
         xLookupField2.setCaptionWidth(130);
         xLookupField2.setDisableWhen("#{mode=='read'}");
         xLookupField2.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField2.setExpression("#{loan.route.description}");
+        xLookupField2.setExpression("${item.description}");
         xLookupField2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField2.setHandler("routeLookup");
-        xLookupField2.setName("route"); // NOI18N
+        xLookupField2.setName("loan.route"); // NOI18N
         xLookupField2.setPreferredSize(new java.awt.Dimension(200, 20));
         xLookupField2.setRequired(true);
         xFormPanel2.add(xLookupField2);

@@ -101,7 +101,7 @@ public class AppInfoPage extends javax.swing.JPanel {
         xDecimalField2.setName("entity.ledger.balance"); // NOI18N
         xFormPanel2.add(xDecimalField2);
 
-        xDateField1.setCaption("Date Granted");
+        xDateField1.setCaption("Release Date");
         xDateField1.setCaptionWidth(110);
         xDateField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xDateField1.setName("entity.ledger.dtreleased"); // NOI18N

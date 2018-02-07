@@ -22,7 +22,8 @@ class ItemAccountController extends CRUDController {
     boolean allowEdit = true;
     
     Map createEntity() {
-        return [objid: "ITMACCT" + new UID(), txnstate: "DRAFT"];
+        def uid = new UID().toString();
+        return [objid: "ITMACCT" + uid, code: 'IA' + uid.hashCode(), txnstate: "DRAFT"];
     }
     
     def getTypeList() {

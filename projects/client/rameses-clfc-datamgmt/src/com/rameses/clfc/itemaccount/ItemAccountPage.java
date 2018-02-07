@@ -57,7 +57,6 @@ public class ItemAccountPage extends javax.swing.JPanel {
         xTextField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xTextField1.setName("entity.code"); // NOI18N
         xTextField1.setPreferredSize(new java.awt.Dimension(0, 23));
-        xTextField1.setRequired(true);
         xFormPanel1.add(xTextField1);
 
         xTextField2.setCaption("Acct. Title");

@@ -15,12 +15,8 @@ class SMCFeesListController extends com.rameses.clfc.treasury.ledger.amnesty.smc
     
     def getCreateParams() {
         def handler = { o->
-            /*
             def i = entity?.docs?.find{ it.code == o.code && it.objid != o.objid }
             if (i) throw new Exception(o.title + ' has already been selected.');
-            */
-            
-            println 'o->' +  o;
             
             if (o.amount <= 0) throw new Exception('Please specify amount for the fee.');
             

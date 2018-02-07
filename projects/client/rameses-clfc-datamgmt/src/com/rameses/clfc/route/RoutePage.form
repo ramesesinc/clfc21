@@ -18,7 +18,7 @@
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="0" attributes="0">
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="xFormPanel1" pref="522" max="32767" attributes="0"/>
+              <Component id="xFormPanel1" pref="425" max="32767" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
           </Group>
       </Group>
@@ -26,9 +26,9 @@
     <DimensionLayout dim="1">
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="0" attributes="0">
-              <EmptySpace max="-2" attributes="0"/>
-              <Component id="xFormPanel1" min="-2" pref="185" max="-2" attributes="0"/>
-              <EmptySpace max="32767" attributes="0"/>
+              <EmptySpace min="-2" max="-2" attributes="0"/>
+              <Component id="xFormPanel1" pref="124" max="32767" attributes="0"/>
+              <EmptySpace min="-2" max="-2" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -67,7 +67,7 @@
             <Property name="caption" type="java.lang.String" value="Description"/>
             <Property name="name" type="java.lang.String" value="entity.description" noResource="true"/>
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-              <Dimension value="[400, 20]"/>
+              <Dimension value="[0, 20]"/>
             </Property>
             <Property name="required" type="boolean" value="true"/>
           </Properties>
@@ -77,33 +77,9 @@
             <Property name="caption" type="java.lang.String" value="Area"/>
             <Property name="name" type="java.lang.String" value="entity.area" noResource="true"/>
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-              <Dimension value="[400, 20]"/>
+              <Dimension value="[0, 20]"/>
             </Property>
             <Property name="required" type="boolean" value="true"/>
-          </Properties>
-        </Component>
-        <Component class="com.rameses.rcp.control.XComboBox" name="xComboBox1">
-          <Properties>
-            <Property name="caption" type="java.lang.String" value="Day Period"/>
-            <Property name="expression" type="java.lang.String" value="#{item.value}"/>
-            <Property name="itemKey" type="java.lang.String" value="value"/>
-            <Property name="items" type="java.lang.String" value="dayPeriodList"/>
-            <Property name="name" type="java.lang.String" value="entity.dayperiod" noResource="true"/>
-            <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-              <Dimension value="[100, 20]"/>
-            </Property>
-            <Property name="required" type="boolean" value="true"/>
-          </Properties>
-        </Component>
-        <Component class="com.rameses.rcp.control.XIntegerField" name="xIntegerField1">
-          <Properties>
-            <Property name="caption" type="java.lang.String" value="Prefix"/>
-            <Property name="disabledTextColor" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-              <Color blue="0" green="0" red="0" type="rgb"/>
-            </Property>
-            <Property name="maxValue" type="double" value="99.0"/>
-            <Property name="minValue" type="double" value="0.0"/>
-            <Property name="name" type="java.lang.String" value="entity.prefix" noResource="true"/>
           </Properties>
         </Component>
       </SubComponents>

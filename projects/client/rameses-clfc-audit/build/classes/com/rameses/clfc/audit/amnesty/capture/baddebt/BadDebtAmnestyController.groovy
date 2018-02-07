@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class BadDebtAmnestyController extends CRUDController
-{
+class BadDebtAmnestyController extends CRUDController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -31,7 +34,7 @@ class BadDebtAmnestyController extends CRUDController
     boolean allowApprove = false;
     boolean allowEdit = true;
     
-    def preventity, loanapp;
+    def preventity;
     def ledgerLookup = Inv.lookupOpener('amnestycapture:ledger:lookup', [
         onselect: { o->
             def item =  service.getLedgerInfo([ledgerid: o.objid]);
@@ -56,6 +59,14 @@ class BadDebtAmnestyController extends CRUDController
         return data;
     }
     
+    void checkEditable( data ) {
+        allowEdit = false;
+        if (data.txnstate == 'DRAFT') {
+            allowEdit = true;
+        }
+        binding?.refresh('formActions');
+    }
+    
     void afterCreate( data ) {
         checkEditable(data);
     }
@@ -64,12 +75,8 @@ class BadDebtAmnestyController extends CRUDController
         checkEditable(data);
     }
     
-    void checkEditable( data ) {
-        allowEdit = false;
-        if (data.txnstate == 'DRAFT') {
-            allowEdit = true;
-        }
-        binding?.refresh('formActions');
+    void afterSave( data ) {
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void afterEdit( data ) {
@@ -89,6 +96,7 @@ class BadDebtAmnestyController extends CRUDController
         
         entity = service.submitForApproval(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void approveDocument() {
@@ -96,6 +104,7 @@ class BadDebtAmnestyController extends CRUDController
         
         entity = service.approveDocument(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void disapprove() {
@@ -103,6 +112,7 @@ class BadDebtAmnestyController extends CRUDController
         
         entity = service.disapprove(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     def getStatus() {

@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class FixAmnestyController
-{
+class FixAmnestyController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -90,7 +93,10 @@ class FixAmnestyController
             entity = service.update(entity);
         }
         mode = 'read';
-        binding?.refresh();
+        EventQueue.invokeLater({
+             caller?.reload();
+             binding?.refresh();
+        });
     }
     
     def close() {
@@ -169,12 +175,14 @@ class FixAmnestyController
         if (!MsgBox.confirm('You are about to submit this document for verification. Continue?')) return;
         
         entity = service.submitForVerification(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void verify() {
         if (!MsgBox.confirm('You are about to verify this document. Continue?')) return;
         
         entity = service.verify(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     def sendBack() {
@@ -184,8 +192,12 @@ class FixAmnestyController
             try {
                 entity.sendbackremarks = remarks;
                 entity = service.sendBack(entity);
-
-                binding?.refresh();
+                
+                
+                EventQueue.invokeLater({ 
+                    caller?.reload(); 
+                    binding?.refresh();
+                });
             } catch (Throwable t) {
                 MsgBox.err(t.message);
             }
