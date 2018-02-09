@@ -21,11 +21,16 @@ class LoanRouteService extends ActiveCrudListService
 	public def getColumns( params ) {
 		return [
 			[name:'code', caption:'Code', maxWidth:150, width:150],
-			[name:'dayperiod', caption: 'Day Period', maxWidth:100, width:100],
 			[name:'description', caption:'Description', maxWidth:200, width:200],
 			[name:'area', caption:'Area']
 		]; 
 	} 
+
+	void beforeCreate( data ) {
+		if (!data.dayperiod) data.dayperiod = 'AM';
+		def list = em.getList();
+		data.prefix = (list.size() + 1).toString().padLeft(2, "0");
+	}
 
 	void afterCreate( data ) {
 		def loginfo = [

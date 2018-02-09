@@ -34,8 +34,6 @@ public class RoutePage extends javax.swing.JPanel
         xLabel1 = new com.rameses.rcp.control.XLabel();
         xTextField2 = new com.rameses.rcp.control.XTextField();
         xTextField3 = new com.rameses.rcp.control.XTextField();
-        xComboBox1 = new com.rameses.rcp.control.XComboBox();
-        xIntegerField1 = new com.rameses.rcp.control.XIntegerField();
 
         xFormPanel1.setPadding(new java.awt.Insets(10, 15, 10, 20));
 
@@ -52,31 +50,15 @@ public class RoutePage extends javax.swing.JPanel
 
         xTextField2.setCaption("Description");
         xTextField2.setName("entity.description"); // NOI18N
-        xTextField2.setPreferredSize(new java.awt.Dimension(400, 20));
+        xTextField2.setPreferredSize(new java.awt.Dimension(0, 20));
         xTextField2.setRequired(true);
         xFormPanel1.add(xTextField2);
 
         xTextField3.setCaption("Area");
         xTextField3.setName("entity.area"); // NOI18N
-        xTextField3.setPreferredSize(new java.awt.Dimension(400, 20));
+        xTextField3.setPreferredSize(new java.awt.Dimension(0, 20));
         xTextField3.setRequired(true);
         xFormPanel1.add(xTextField3);
-
-        xComboBox1.setCaption("Day Period");
-        xComboBox1.setExpression("#{item.value}");
-        xComboBox1.setItemKey("value");
-        xComboBox1.setItems("dayPeriodList");
-        xComboBox1.setName("entity.dayperiod"); // NOI18N
-        xComboBox1.setPreferredSize(new java.awt.Dimension(100, 20));
-        xComboBox1.setRequired(true);
-        xFormPanel1.add(xComboBox1);
-
-        xIntegerField1.setCaption("Prefix");
-        xIntegerField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xIntegerField1.setMaxValue(99.0);
-        xIntegerField1.setMinValue(0.0);
-        xIntegerField1.setName("entity.prefix"); // NOI18N
-        xFormPanel1.add(xIntegerField1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -84,23 +66,21 @@ public class RoutePage extends javax.swing.JPanel
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 522, Short.MAX_VALUE)
+                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 425, Short.MAX_VALUE)
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(xFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 185, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 124, Short.MAX_VALUE)
+                .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private com.rameses.rcp.control.XComboBox xComboBox1;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
-    private com.rameses.rcp.control.XIntegerField xIntegerField1;
     private com.rameses.rcp.control.XLabel xLabel1;
     private com.rameses.rcp.control.XTextField xTextField2;
     private com.rameses.rcp.control.XTextField xTextField3;

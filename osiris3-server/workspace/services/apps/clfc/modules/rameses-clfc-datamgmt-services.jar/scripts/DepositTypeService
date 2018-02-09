@@ -81,6 +81,18 @@ class DepositTypeService extends ActiveCrudListService
 		}
 	} 
 
+	@ProxyMethod
+	public def activate( params ) {
+		def data = changeState([objid: params.objid, txnstate:'ACTIVATED']);
+		return data;
+	}
+
+	@ProxyMethod
+	public def deactivate( params ) {
+		def data = changeState([objid: params.objid, txnstate:'DEACTIVATED']);
+		return data;
+	}
+
 	@ProxyMethod 
 	public def changeState( params ) {
 		if (!params.objid) throw new Exception('Please specify objid'); 

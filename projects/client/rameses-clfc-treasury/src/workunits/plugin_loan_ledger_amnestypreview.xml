@@ -7,6 +7,7 @@
         <invoker type='loanledger:amnestypreview' action='init' caption='Fix' />
         <invoker type='loanledger:amnestypreview:fix' action='init' caption='Fix' />
         <invoker type='loanledger:amnestypreview:waiver' action='init' caption='Waiver' />
+        <invoker type='loanledger:amnestypreview:bad_debt' action='init' caption='Bad Debt' />
         
         <invoker type="formActions" caption="Refresh" action="refresh" icon="images/toolbars/refresh.png" immediate="true"
             mnemonic="r" shortcut="ctrl R" />

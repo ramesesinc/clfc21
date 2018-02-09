@@ -123,6 +123,16 @@ class ServerSMSService
 			msg += ' dated ' + data?.dtremarked + '.';
 		}
 
+		/*
+		FOR PAYMENTS:
+		Thank you [client name] we received your payment amounting [currency] [amount] Ref no [reference no] on [datetime paid] Loan no [loan no]
+		
+		FOR VOID
+		Sir/Madam [client name] your payment with ref no has been voided for the reason/s "[remarks]".
+	
+		*/
+
+
 		return msg;
 	}
 

@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class AmnestySMCController 
-{
+class AmnestySMCController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     

@@ -21,7 +21,7 @@ class SMCDocumentController extends CRUDController
     Map editPermission = [role: 'LEGAL_OFFICER', domain: 'LOAN'];
     
     Map createEntity() {
-        return [objid: 'SMCD' + new UID(), type: 'USER', _allowedit: true];
+        return [objid: 'SMCD' + new UID(), code: 'D' + new UID(), type: 'USER', _allowedit: true];
     }
     
     void afterOpen( data ) {

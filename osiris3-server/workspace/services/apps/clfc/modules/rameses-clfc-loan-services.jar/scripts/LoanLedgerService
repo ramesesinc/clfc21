@@ -646,11 +646,12 @@ class LoanLedgerService extends ActiveListService
 	}
 
 	private def buildAmnestyBadDebtFact( am ) {
+
 		def data = [type: 'BAD_DEBT'];
 
 		data.ledgerid = am?.ledgerid;
 
-		def ac = ledgeramnesty_baddebt([objid: am?.refid]);
+		def ac = ledgeramnesty_baddebt.read([objid: am?.refid]);
 		if (!ac) throw new Exception('Bad debt record does not exist or has already been deleted.');
 
 		data.balance = ac?.amount;

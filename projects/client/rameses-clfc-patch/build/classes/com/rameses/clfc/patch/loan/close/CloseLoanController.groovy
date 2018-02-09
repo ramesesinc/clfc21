@@ -6,8 +6,11 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import java.rmi.server.UID;
 
-class CloseLoanController extends CRUDController
-{
+class CloseLoanController extends CRUDController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
@@ -26,6 +29,14 @@ class CloseLoanController extends CRUDController
     
     void afterOpen( data ) {
         checkEditable(data);
+    }
+    
+    void afterCreate( data ) {
+        listHandler?.reload();
+    }
+    
+    void afterSave( data ) {
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void checkEditable( data ) {
@@ -104,6 +115,7 @@ class CloseLoanController extends CRUDController
         
         entity = service.submitForApproval(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void approveDocument() {
@@ -111,6 +123,7 @@ class CloseLoanController extends CRUDController
         
         entity = service.approveDocument(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     void disapprove() {
@@ -118,6 +131,7 @@ class CloseLoanController extends CRUDController
         
         entity = service.disapprove(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
 }
 
