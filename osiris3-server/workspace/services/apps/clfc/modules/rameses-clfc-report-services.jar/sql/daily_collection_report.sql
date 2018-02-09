@@ -135,7 +135,8 @@ select d.check_no as slipno, d.description, d.amount
 From otherreceipt o
 inner join otherreceipt_detail d on o.objid = d.parentid
 where o.txndate = $P{date}
-	and d.payoption = 'onlinedeposit'
+	and d.onlinedeposit=1
+	and o.txnstate='posted'
 order by d.dtcollected
 
 [getUndepositedOtherReceipt]
@@ -150,6 +151,7 @@ inner join otherreceipt_detail otrd on otr.objid=otrd.parentid
 where d.txndate=$P{date}
 	and otrd.payoption='cash'
 	and otrd.onlinedeposit=0
+	and otr.txnstate='posted'
 union
 select ds.controlno as slipno, otrd.description, otrd.amount
 from dailycollection d
@@ -158,5 +160,7 @@ inner join depositslip ds on dds.refid=ds.objid
 inner join depositslip_check dchk on ds.objid=dchk.parentid
 inner join checkaccount ca on dchk.refid=ca.objid
 inner join otherreceipt_detail otrd on ca.refid=otrd.objid
+inner join otherreceipt otr on otrd.parentid=otr.objid
 where d.txndate=$P{date}
 	and otrd.onlinedeposit=0
+	and otr.txnstate='posted'

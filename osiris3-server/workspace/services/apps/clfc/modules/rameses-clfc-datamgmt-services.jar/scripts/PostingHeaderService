@@ -13,6 +13,19 @@ class PostingHeaderService extends ActiveCrudListService
 	@Service('DateService')
 	def dateSvc;
 
+	private final def DEFAULT_VAR_LIST = [
+		[code: "AMOUNT", datatype: "decimal", handler: "decimal"], 
+		[code: "BALANCE", datatype: "decimal", handler: "decimal"], 
+		[code: "DATE_PAID", datatype: "date", handler: "date"],
+		[code: "LACKINGINTEREST", datatype: "decimal", handler: "decimal"],
+		[code: "INTEREST", datatype: "decimal", handler: "decimal"],
+		[code: "REFNO", datatype: "string", handler: ""],
+		[code: "PENALTY", datatype: "decimal", handler: "decimal"],
+		[code: "REMARKS", datatype: "string", handler: ""],
+		[code: "CURRENT_SCHEDULE", datatype: "date", handler: "date"],
+		[code: "AMOUNTPAID", datatype: "decimal", handler: "decimal"]
+	];
+
 	@ProxyMethod
 	public def getColumns( params ) {
 		def cols = [];
@@ -43,13 +56,14 @@ class PostingHeaderService extends ActiveCrudListService
 	}
 
 	void afterCreate( data ) {
-		updateInfo(data);
+		//updateInfo(data);
 	}
 
 	void afterUpdate( data ) {
-		updateInfo(data);
+		//updateInfo(data);
 	}
 
+	/*
 	void updateInfo( data ) {
 		def item, item2;
 		data?._removedgroupwith?.each{ o->
@@ -84,6 +98,28 @@ class PostingHeaderService extends ActiveCrudListService
 				}
 			}
 		}
+	}
+	*/
+
+	@ProxyMethod
+	public def getDefaultVarList() {
+		def list = [];
+		DEFAULT_VAR_LIST.each{ o->
+			def item = [
+				caption 	: o.code,
+				title		: o.code,
+				signature	: o.code,
+				handler 	: o.handler
+			];
+			if (o.datatype) {
+				item.description = '(' + o.datatype + ')';
+			} else if (o.handler == 'expression') {
+				item.description = '(decimal)';
+			}
+			list << item;
+
+		}
+		return list;
 	}
 
 }

@@ -1,0 +1,86 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+import com.rameses.rules.common.*;
+import smc.actions.*;
+
+class SMCRuleTestService
+{
+	@Service('LedgerAmnestySMCService')
+	def smcSvc;
+
+	@Service('NumberService')
+	def numSvc;
+	
+	@Resource('RuleService')
+	def ruleSvc;
+
+	@ProxyMethod
+	public def getSMCAmnestyInfo( params ) {
+		def data = smcSvc.open(params);
+		return data;
+	}
+
+	@ProxyMethod
+	public def executeRule( params ) {
+		def conditions = params.conditions;
+		if (!conditions) conditions = [];
+
+
+		def list = conditions?.findAll{ it.expr != null } 
+		def referenceFact = [isComputeAmount: true];
+
+
+		def bindings = [:];
+
+		def varlist =  smcSvc.getDefaultVarList()
+		varlist?.each{ o->
+			bindings.put(o.signature, 0);
+		}
+
+		varlist = list?.findAll{ it.varname != null }
+		varlist?.each{ o->
+			bindings.put(o.varname, 0);
+		}
+
+
+		def data = [:];
+
+		def expr, actions;
+		list?.each{ o->
+			data = [:]
+
+			def req = new RuleRequest("smc");
+			req.addFact("smc", "Reference", referenceFact); 
+
+			req.addGlobal("bindings", bindings);
+			actions = new RuleAction(); 
+			actions.addCommand( "calcAmount", new  CalcAmount(NS: numSvc, data: data) );
+			req.addGlobal('action', actions);
+
+
+			expr = o.expr;
+			if (!expr) expr = '';
+			req.addGlobal('expr', expr);
+
+			try {
+				ruleSvc.execute(req);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			if (o.varname && bindings?.containsKey(o.varname)) {
+				bindings.put(o.varname, data?.amount);
+			} else if (o.conditionid && bindings?.containsKey(o.conditionid)) {
+				bindings.put(o.conditionid, data?.amount);
+			}
+
+			if (o.conditionid == 'AMOUNT') {
+				bindings.put("BALANCE", data?.amount);
+			}
+
+			println '\nbindings';
+			bindings?.each{ println it }
+		}
+
+	}
+}

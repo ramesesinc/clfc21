@@ -1,0 +1,85 @@
+package testing_rules;
+
+import java.util.*;
+
+declare References
+	executingBase	: Boolean
+	executingRuleset: Boolean
+end
+
+declare Base
+	index	: int
+	sequence: List
+end
+
+declare Ruleset
+	index	: int
+	sequence: List
+end
+
+function void println( Object msg ) {
+	System.out.println(msg.toString());
+}
+
+rule "execute base"
+	salience 50
+	when
+		r: References( executingBase == true )
+		Base( idx: index, list: sequence )
+		rs: Ruleset()
+		eval( idx < list.size() )
+	then
+		Map item = (Map) list.get( idx );
+		println("base item-> " + item);
+
+		r.setExecutingBase( false );
+		r.setExecutingRuleset( true );
+		update( r );
+
+		rs.setIndex( 0 );
+		update( rs );
+end
+
+rule "check if execute ruleset or proceed"
+	salience 50
+	when
+		r: References( executingBase == true )
+		Base( idx: index, list: sequence )
+		eval( idx >= list.size() )
+	then
+		println("stop posting");
+
+		r.setExecutingBase( false );
+		r.setExecutingRuleset( false );
+		update( r );
+end
+
+rule "execute ruleset"
+	salience 40
+	when
+		r: References( executingRuleset == true )
+		rs: Ruleset( idx: index, list: sequence )
+		eval( idx < list.size() )
+	then
+		Map item = (Map) list.get( idx );
+		println("ruleset item-> " + item);
+
+		rs.setIndex( idx + 1);
+		update( rs );
+end
+
+rule "execute to base"
+	salience 40
+	when
+		r: References( executingRuleset == true )
+		Ruleset( idx: index, list: sequence )
+		b: Base( bidx: index )
+		eval( idx >= list.size() )
+	then
+
+		r.setExecutingBase( true );
+		update( r );
+
+		b.setIndex( bidx + 1);
+		update( b );
+end

@@ -1,0 +1,11 @@
+<schema>
+
+	<element tablename='server_sms_log'>
+		<field name='objid' primary='true' />
+		<field name='dtfiled' required='true' />
+		<field name='type' required='true' />
+		<field name='remarks' required='true' />
+		<complex name='info' required='false' merge='true' serializer='default' />
+	</element>
+
+</schema>

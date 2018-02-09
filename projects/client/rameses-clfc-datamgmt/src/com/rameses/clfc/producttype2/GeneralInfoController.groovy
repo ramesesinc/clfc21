@@ -16,7 +16,6 @@ class GeneralInfoController {
          }
     ]);
 
-    
     void init() {
         if (!entity) entity = [:];
         if (!entity.generalinfo) entity.generalinfo = [title: "GENERALINFO"]

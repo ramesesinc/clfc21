@@ -80,10 +80,6 @@ class DepositService extends ActiveCrudListService
 	void beforeUpdate( data ) {
 		validate(data);
 		data?.remove('depositslips');
-
-
-		println 'data';
-		data.each{ println it }
 	}
 
 
@@ -148,10 +144,6 @@ class DepositService extends ActiveCrudListService
 	*/
 
 	void afterOpen( data ) {
-
-		println 'after open data';
-		data.each{ println it }
-
 		data.depositslips = [];
 		def list = em.getDetails(data);
 		list?.each{ o->
@@ -260,5 +252,4 @@ class DepositService extends ActiveCrudListService
 
 		return  open(data);
 	}
-
 }

@@ -21,6 +21,7 @@ class LegalOverdueReportService
 	@Service("BranchService")
 	def branchSvc;
 
+	@Async
 	@ProxyMethod
 	public def getReportData( params ) {
 		def currdate = dateSvc.serverDate;
@@ -34,29 +35,40 @@ class LegalOverdueReportService
 		def usr = sys_user.read([objid: params.notedby?.objid]);
 		if (usr) {
 			notedby = [objid: usr.objid, title: usr.jobtitle];
-			notedby.name = usr.lastname + ', ' + usr.firstname;
-			if (usr.middlename) notedby.name += ' ' + usr.middlename;
+			notedby.name = usr.firstname + ' ' + usr.lastname;
+			if (usr.middlename) notedby.name = usr.firstname + ' '+ usr.middlename + ' ' + usr.lastname;
 		}
 
 		def preparedby;
 		usr = sys_user.read([objid: env.USERID]);
 		if (usr) {
 			preparedby = [objid: usr.objid, title: usr.jobtitle];
-			preparedby.name = usr.lastname + ', ' + usr.firstname;
-			if (usr.middlename) preparedby.name += ' ' + usr.middlename;
+			preparedby.name = usr.firstname + ' ' + usr.lastname;
+			if (usr.middlename) preparedby.name = usr.firstname + ' ' + usr.middlename + ' ' + usr.lastname;
 		}
+
 
 		def branch = branchSvc.open([:]);
 		def data = [
-			date_period 	: new SimpleDateFormat("yyyy-MMM-dd").format(currdate),
-			dtprinted		: new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a").format(currdate),
-			printedby 		: env.NAME,
-			items			: list,
-			preparedby 		: preparedby,
-			notedby 		: notedby
+			date_period 			  : new SimpleDateFormat("yyyy-MMM-dd").format(currdate),
+			dtprinted				  : new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a").format(currdate),
+			printedby 				  : env.NAME,
+			items					  : list,
+			//overduetotalamountratio   : amountratio,
+			//overduetotalaccountsratio : accountsratio,
+			//preparedby      		  : preparedby,
+			//notedby 	    		  : notedby
 		];
+
+		println data;
 		branch.each{ k, v->
-			data["branch_"+k] = v;
+			data["branch_" + k] = v;
+		}
+		notedby.each{ k, v ->
+			data["notedby_" + k] = v;
+		}
+		preparedby.each{ k, v ->
+			data["preparedby_" + k] = v;
 		}
 
 		return data;

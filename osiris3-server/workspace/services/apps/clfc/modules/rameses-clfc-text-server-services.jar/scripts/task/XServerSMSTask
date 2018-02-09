@@ -1,0 +1,255 @@
+
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.LinkedList;
+import java.rmi.server.UID;
+
+class XServerSMSTask
+{
+	@ActiveDB(em='sms', value='server_sms_for_sending')
+	def em;
+
+	@ActiveDB(em='sms', value='server_sms_sent')
+	def sms_sent;
+
+	@ActiveDB(em='sms', value='sms_provider')
+	def sms_provider;
+
+	@ActiveDB(em='sms', value='server_sms_log')
+	def sms_log;
+
+	@Service('PDUConverterService')
+	def pduConverterSvc;
+
+	@Service('SMSSenderService')
+	def sender;
+
+	@Service('DateService')
+	def dateSvc;
+
+	private def REGEX = '^[0|\\+63]+(9)+(\\d{9})';
+	private LinkedBlockingQueue waiter = new LinkedBlockingQueue();
+
+	//@Schedule(interval=1, timeUnit='SECONDS')
+	//@Schedule(interval=1, timeUnit='SECONDS')
+	public def sendSMS( task ) {
+		def xlist = em.getList([_limit: 1]);
+		if (!xlist) return;
+
+		def list = [];
+		xlist?.each{ o->
+			def item = em.read([objid: o.objid]);
+			if (item) list << item;
+		}
+
+
+		def for_sending = [];
+		list?.each{ o->
+			def item = [objid: o.objid, mobileno: o.mobileno, message: o.message];
+
+			for_sending << item;
+		}
+
+		for_sending = addProvider(for_sending);
+		def prov = getProviders(for_sending);
+		sendSMSImpl(prov);
+
+	}
+
+	private void sendSMSImpl( providers ) {
+		println 'providers ' + providers;
+		providers?.each{ p->
+			if (p?.portname) {
+				def messages = new LinkedList();
+				try {
+
+					messages.addAll(p.messages);
+
+					def pdu
+					messages?.eachWithIndex{ o, idx->
+						o.idx = (idx + 1);
+						def pdumobile = pduConverterSvc.convertMobileNumToPduMessage(o.mobileno);
+
+						//println 'message ' + o.message;
+						o.messagelist = pduConverterSvc.convertToMultipartMessageWithHeader(o.message);
+						o?.messagelist?.eachWithIndex{ m, indx->
+							m.idx = (indx + 1);
+							def pdumessage = "004100" + pdumobile + "0000";
+
+							//println 'message ' + m;
+
+							def UD = m.pdu.header + m.pdu.data;
+							def length = m.pdu.headerlength + m.pdu.length;
+							length = Math.abs(length/2).intValue();
+							def UDL = pduConverterSvc.convertToHexadecimal(length);
+							if (UDL.length() < 2) {
+								UDL = "0" + UDL;
+							}
+
+							pdumessage += UDL.toUpperCase() + UD;
+
+							m.pdu.message = pdumessage;
+							m.pdu.messagelength = pdumessage.length();
+							println 'pdu message ' + m.pdu.message + ' message length ' + m.pdu.messagelength;
+						}
+					}
+
+					throw new Exception('stopping');
+
+					sender.connect(p.portname, p.baudrate, p.databits, p.stopbits, p.parity);
+
+
+					if (sender.getIsConnected() == true) {
+						sender.sendMessage(messages)
+					}
+
+
+					while (sender.getIsSending() == true) {
+						//Thread.sleep(5000);
+						//println 'sending';
+						waiter.poll(3000, TimeUnit.MILLISECONDS);
+					}
+
+					//println 'list';
+					
+					/*
+					println '\nsent list';
+					def list = messages.findAll{ it._sent == true }
+					list?.each{ println it }
+					*/
+
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					messages?.each{ o->
+						def data = em.read([objid: o.objid]);
+						if (o._sent == true) {
+							def sent = sms_sent.read([objid: o.objid]);
+							if (!sent) {
+								sent = data;
+								sent.dtfiled = dateSvc.serverDate;
+								sms_sent.create(sent);
+							}
+							em.delete([objid: o.objid]);
+							println 'sent to borrower: ' + data?.borrower?.name + ' branch: ' + data?.branch?.code;
+						}
+						if (o.retry > 3) {
+							def log = [
+								objid	: 'LOG' + new UID(),
+								dtfiled : dateSvc.serverDate,
+								type 	: 'SEND',
+								remarks : 'Error in sending message for ' + data?.borrower?.name + ' after 3 tries.',
+								data 	: data
+							];
+							sms_log.create(log);
+
+							data.dtfiled = log.dtfiled;
+							em.update(data);
+						}
+					}
+					sender.disconnect();
+				}
+			}
+		}
+	}
+
+	private def getProviders( list ) {
+		def providers = [];
+		list?.each{ o->
+			if (o.smsprovider) providers << o.smsprovider;
+		}
+
+		providers.unique{ it.code }
+
+		providers?.each{ o->
+			def xlist = list.findAll{ it.smsprovider?.code == o.code }
+			xlist?.each{ l->
+				l.remove('smsprovider');
+				if (!o.messages) o.messages = [];
+				o.messages << l;
+			}
+		}
+
+		return providers;
+	}
+
+	private def addProvider( list ) {
+		def mobileno, prefix, provider;
+
+		def xlist = [];
+		list?.each{ o->
+			def data = em.read([objid: o?.objid]);
+			mobileno = o.mobileno;
+			println 'mobileno "' + mobileno + '"';
+			if (mobileno.matches(REGEX)) {
+				mobileno = mobileno.replace('+63', '0');
+				prefix = mobileno.substring(0, 4);
+				provider = sms_provider.findProviderByPrefix([prefix: prefix]);
+				if (provider) {
+					o.smsprovider = provider;
+					xlist << o;
+				} else {
+					if (data) {
+						def log = [
+							objid	: 'LOG' + new UID(),
+							dtfiled : dateSvc.serverDate,
+							type 	: 'VALIDATE_PREFIX',
+							remarks : 'Invalid prefix for ' + data?.borrower?.name + ' with mobileno ' + mobileno + '.',
+							data 	: data
+						];
+						sms_log.create(log);
+
+						/*
+						data.dtfiled = log.dtfiled;
+						em.update(data);
+						*/
+						em.delete(data);
+					}
+				}
+			} else {
+				if (data) {
+					def log = [
+						objid	: 'LOG' + new UID(),
+						dtfiled : dateSvc.serverDate,
+						type 	: 'VALIDATE_MOBILENO',
+						remarks : 'Invalid mobileno for ' + data?.borrower?.name + ' with mobileno ' + mobileno + '.',
+						data 	: data
+					];
+					sms_log.create(log);
+
+					/*
+					data.dtfiled = log.dtfiled;
+					em.update(data);
+					*/
+					em.delete(data);
+				}
+			}
+		}
+
+		return xlist;
+	}
+
+	private def createSMSMessage( data ) {
+		def msg = '';
+
+		if (data?.reftype) msg += 'CLLCI:\n';
+
+		if (data?.reftype == 'PAYMENT') {
+			msg += 'Payment for the loan of ' + data?.borrower?.lastname + ', ' + data?.borrower?.firstname;
+			//msg += ' with Loan No. ' + data?.loanapp?.appno;
+			msg += ' with the amount of ' + data?.amount;
+			msg += ' with Ref. No. ' + data?.refno;
+			msg += ' received by collector ' + data?.collector?.name + '.';
+		} else if (data?.reftype == 'VOID') {
+			msg += 'Payment for the loan of ' + data?.borrower?.lastname + ', ' + data?.borrower?.firstname;
+			//msg += ' with Loan No. ' + data?.loanapp?.appno;
+			msg += ' with the amount of ' + data?.amount;
+			msg += ' with Ref. No. ' + data?.refno;
+			msg += ' received by collector ' + data?.collector?.name + ' has been voided.';
+		}
+
+		return msg;
+	}
+}

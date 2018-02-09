@@ -5,7 +5,43 @@ import com.rameses.util.*;
 import java.math.*;
 
 public class Payment {
-	
+
+	String ledgerid;
+	Date dtpaid;
+	Date dtlastschedule;
+	String paymentmethod;
+	double amount;
+	double totalpaymentuptocurrent;
+
+	public Payment() {}
+
+	public Payment( o ) {
+		amount = o.amount;
+		dtpaid = parseDate(o.dtpaid);
+		if (o.ledgerid) ledgerid = o.ledgerid;
+		if (o.paymentmethod) paymentmethod = o.paymentmethod;
+		if (o.totalpaymentuptocurrent) totalpaymentuptocurrent = o.totalpaymentuptocurrent;
+		if (o.dtlastschedule) dtlastschedule = parseDate(o.dtlastschedule);
+	}
+
+	private def parseDate( date ) {
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+	def toMap() {
+		return [
+			dtpaid 			: dtpaid,
+			amount 			: amount,
+			paymentmethod 	: paymentmethod,
+			dtlastschedule	: dtlastschedule
+		];
+	}
+
+	/*
 	Date applydate;
 	Date dtpaid;
 	double amount;
@@ -77,5 +113,6 @@ public class Payment {
 		def ud = new BigDecimal( this.amount - this.deduction );
 		return ud.setScale(2, RoundingMode.HALF_UP).doubleValue();	
 	}
+	*/
 
 }

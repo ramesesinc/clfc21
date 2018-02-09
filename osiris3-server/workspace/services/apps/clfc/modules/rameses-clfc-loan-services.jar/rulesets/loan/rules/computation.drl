@@ -196,6 +196,7 @@ rule "proceed posting: current day within term and amount paid greater than tota
 		r: References(amountPaid > totalPayment, isFullPayment == false, isProceed == true, isOffset == 0, isOverdue == 0, trm: term)
 		p: Payment(amountPaid > 0, currentDay <= trm)
 	then
+		System.out.println("proceed posting: amount paid greater than total payment");
 		Map listItem = new HashMap();
 
 		double interest = r.getInterest();
@@ -327,7 +328,7 @@ rule "proceed posting: current day within term and amount paid less than equal t
 		References(amountPaid <= totalPayment, isFullPayment == false, isProceed == true, isOffset == 0, isoverdue: isOverdue, i: interest, trm: term, ap: absentPenalty, ur: underpaymentRate, td: totalDays, op: overduePenalty, tae: trialAndError, hasSunday: hasSunday, amtpaid: amountPaid, ad: amountDue)
 		p: Payment(amountPaid > 0, currentDay <= trm)
 	then
-		//System.out.println("proceed posting: current day within term");
+		System.out.println("proceed posting: current day within term");
 		java.util.Map listItem = new java.util.HashMap();
 		double amountPaid = p.getAmountPaid();
 		double totalInterest = p.getTotalInterest();
@@ -336,7 +337,9 @@ rule "proceed posting: current day within term and amount paid less than equal t
 		int currentDay = p.getCurrentDay();
 		int days = p.getDays();
 
-		int lastcurrentday = currentDay;
+		//int lastcurrentday = currentDay;
+		int lastcurrentday = currentDay - 1;
+		System.out.println("last payment " + lastPayment);
 		if (lastPayment.containsKey("lastcurrentday")) {
 			lastcurrentday = java.lang.Integer.parseInt(lastPayment.get("lastcurrentday").toString());
 		}
@@ -356,8 +359,8 @@ rule "proceed posting: current day within term and amount paid less than equal t
 		Boolean hasLackingInterest = false;
 		Boolean hasLackingPenalty = false; 
 
-		//System.out.println("current day: " + currentDay + " last current date: " + lastcurrentday);
-		//System.out.println("days: " + days);
+		System.out.println("current day: " + currentDay + " last current date: " + lastcurrentday);
+		System.out.println("days: " + days);
 		if (currentDay == lastcurrentday) {
 			if (amountPaid > 0 && lackinginterest > 0) {
 				hasLackingInterest = true;

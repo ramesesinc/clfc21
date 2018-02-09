@@ -3,8 +3,11 @@ import com.rameses.annotations.*;
 import java.rmi.server.UID;
 import java.text.SimpleDateFormat;
 
-class LoanAppCaptureRenewService
-{
+class LoanAppCaptureRenewService { 
+
+	@Env 
+	def env;
+
 	@ActiveDB("loan_application")
 	def em;
 
@@ -12,7 +15,10 @@ class LoanAppCaptureRenewService
 	def loanapp;
 
 	@ActiveDB('loan_product_type')
-	def productType;	
+	def productType;
+
+	@ActiveDB("loan_producttype")
+	def loan_producttype;
 
 	@ActiveDB('borrower')
 	def borrower; 
@@ -65,8 +71,8 @@ class LoanAppCaptureRenewService
 	@Service('LoanAppAssessmentService')
 	def appAssessmentSvc;
 
-	@Env 
-	def env;
+	@Service("NewLoanProductTypeService")
+	def productTypeSvc;
 
 	private def DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -146,6 +152,11 @@ class LoanAppCaptureRenewService
 	}
 
 	@ProxyMethod
+	public def test() {
+		println 'svc-> ' + productTypeSvc;
+	}
+
+	@ProxyMethod
 	public def create( data ) {
 		validate(data);
 		data.dtcreated = dateSvc.serverDate;
@@ -154,8 +165,27 @@ class LoanAppCaptureRenewService
 		if (!data.txnmode) data.txnmode = 'CAPTURE';
 		if (!data.txntype) data.txntype = 'RENEW';
 
-		data.dtmatured = generateMaturityDate(data);
+		//data.dtmatured = generateMaturityDate(data);
+		/*
+		data.producttype.name = data.producttype.code;
+		data.producttype.term = 0;
 
+		def xdata = [
+			loanapp 	: [
+				loanamount	: data.loanamount,
+				dtreleased 	: parseDate(data.dtreleased)
+			]
+		]
+
+		def res = productTypeSvc.executeProductTypeRulesForLoanApplication(data.producttype, [:], "user", xdata);
+		//println 'svc-> ' + productTypeSvc;
+		res.each{ k,v-> 
+			data[k] = v 
+			println k + '-> ' + v;
+		}
+		*/
+
+		data = applyProductType(data);
 		em.create(data); 
 		/*
 		em.create(data, 'loanapp_capture'); 
@@ -180,18 +210,42 @@ class LoanAppCaptureRenewService
 	public def update( data ) {
 		validate(data);
 
-		data.dtmatured = generateMaturityDate(data);
+		data = applyProductType(data);
 		em.update(data);
 
 		return open(data);
+	}
+
+	def applyProductType( data ) {
+
+		data.producttype.name = data.producttype.code;
+		data.producttype.term = 0;
+		//data.dtmatured = generateMaturityDate(data);
+		def xdata = [
+			loanapp 	: [
+				loanamount	: data.amount,
+				dtreleased 	: parseDate(data.dtreleased)
+			]
+		]
+
+		//println 'app ' + xdata.loanapp.each{ println it }
+
+		println 'producttype';
+		data.producttype.each{ println it }
+
+		def res = productTypeSvc.executeProductTypeRulesForLoanApplication(data.producttype, [:], "user", xdata);
+		//println 'svc-> ' + productTypeSvc;
+		res.each{ k,v-> 
+			data[k] = v 
+		}
+
+		return data;
 	}
 
 	@ProxyMethod
 	public def open( params ) {
 		def data = em.read(params);
 		if (!data) throw new RuntimeException("Loan Application record does not exist or has already been deleted.");
-
-		println 'product type ' + data.producttype;
 
 		return data;
 	}
@@ -401,7 +455,8 @@ class LoanAppCaptureRenewService
 			netamount 		: assessment?.netamount? assessment.netamount : 0,
 			totalcharges 	: assessment?.totalcharges? assessment.totalcharges : 0,
 			dtmatured 		: data.dtmatured,
-			assessmentinfo 	: assessment
+			assessmentinfo 	: assessment,
+			producttype 	: data.producttype
 		];
 		loanapp.create(extinfo, "extinfo");
 
@@ -477,6 +532,7 @@ class LoanAppCaptureRenewService
 
 	}
 
+	/*
 	private def generateMaturityDate( data ) {
 		def cal = Calendar.getInstance();
 		cal.setTime(parseDate(data.dtreleased));
@@ -519,6 +575,7 @@ class LoanAppCaptureRenewService
 
 		return parseDate(DATE_FORMAT.format(cal.getTime()));
 	}
+	*/
 
 	private def parseDate( date ) {
 		if (!date) return null;
@@ -530,11 +587,16 @@ class LoanAppCaptureRenewService
 		}
 	}
 
+	/*
+	@ProxyMethod
+	public def xgetProductTypes() {
+		return productType.getList([searchtext: '%']);
+	}
+	*/
+
 	@ProxyMethod
 	public def getProductTypes() {
-		def list = productType.getList([searchtext: '%']);
-		//list.each{ it.title = it.name }
-		return list;
+		return loan_producttype.getListByState([searchtext: "%", txnstate: "ACTIVATED"]).collect{ [title: it.title, code: it.code, version: 2 ]};
 	}
 
 	@ProxyMethod
@@ -605,11 +667,17 @@ class LoanAppCaptureRenewService
 		];
 		loanapp.create(newlog, 'loanapp_log'); 
 
+		println 'data';
+		data.each{ println it }
+
 		buildSearchIndex(data);
 		buildBorrower(data);
 		buildBusiness(data);
 		buildOtherLending(data);
 		buildCollateral(data);
+
+		throw new RuntimeException("stopping")
+
 		return data;
 	}
 

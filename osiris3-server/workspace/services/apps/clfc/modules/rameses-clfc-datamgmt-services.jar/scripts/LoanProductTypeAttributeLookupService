@@ -1,0 +1,44 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class LoanProductTypeAttributeLookupService extends ActiveListService {
+	
+	@ActiveDB("loan_producttype_attribute")
+	def em;
+
+	String listMethod = "getLookupList";
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: "code", caption: "Code"];
+		cols << [name: "title", caption: "Title"];
+		cols << [name: "type", caption: "Type"];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+		params.state = "ACTIVATED";
+		if (params.state) {
+			params._listMethod = "getLookupListByState";
+		}
+		if (params.category) {
+			params._listMethod = "getLookupListByCategory";
+		}
+		if (params.state && params.category) {
+			params._listMethod = "getLookupListByStateAndCategory";
+		}
+	}
+
+	void afterList( params, list ) {
+		list?.each{ o->
+			def info = o.remove("info");
+			info = em.serializer.read(info);
+			o.putAll(info);
+		}
+	}
+
+}

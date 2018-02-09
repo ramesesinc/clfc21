@@ -1,4 +1,27 @@
 [getList]
+select a.objid as appid, a.appno, b.objid as borrower_objid, b.name as borrower_name,
+	b.address as borrower_address, lc.dtreleased
+from (
+	select c.objid
+	from loanapp_capture_open c
+	inner join loanapp a on c.objid=a.objid
+	where a.appmode='capture'
+		and a.state='released'
+		and a.appno like $P{searchtext}
+	union
+	select c.objid
+	from loanapp_capture_open c
+	inner join loanapp a on c.objid=a.objid
+	where a.appmode='capture'
+		and a.state='released'
+		and a.borrower_name like $P{searchtext}
+) lco
+	inner join loanapp_capture lc on lco.objid=lc.objid
+	inner join loanapp a on lc.objid=a.objid
+	inner join borrower b on a.borrower_objid=b.objid
+order by a.appno
+
+[xgetList]
 SELECT l.*, 
 	b.address AS borrower_address, 
 	lr.description AS route_description, lr.area AS route_area, 

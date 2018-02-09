@@ -26,18 +26,18 @@ class CapturePaymentInterceptor
 			if (cp) {
 				cp.state = 'POSTED';
 				em.update(cp);
+			}
 
-				def billing = ledger_billing.read([objid: cp?.specialcollectionid], 'billing-item');
-				if (billing) {
-					billing.state = 'POSTED';
-					ledger_billing.update(billing, 'billing-item');
-				}
+			def billing = ledger_billing.read([objid: cp?.specialcollectionid], 'billing-item');
+			if (billing) {
+				billing.state = 'POSTED';
+				ledger_billing.update(billing, 'billing-item');
+			}
 
-				def item = fieldcollection.read([objid: cp?.specialcollectionid], 'fc-item');
-				if (item) {
-					item.state = 'POSTED';
-					fieldcollection.update(item, 'fc-item');
-				}
+			def item = fieldcollection.read([objid: cp?.specialcollectionid], 'fc-item');
+			if (item) {
+				item.state = 'POSTED';
+				fieldcollection.update(item, 'fc-item');
 			}
 		}
 	}

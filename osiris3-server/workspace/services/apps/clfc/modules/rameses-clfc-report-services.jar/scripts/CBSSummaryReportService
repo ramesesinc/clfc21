@@ -20,6 +20,7 @@ class CBSSummaryReportService
 	@Service("BranchService")
 	def branchSvc;
 
+	@Async
 	@ProxyMethod
 	public def getReportData( params ) {
 		def dateFormat = new SimpleDateFormat("yyyy-MMM-dd");
@@ -41,17 +42,25 @@ class CBSSummaryReportService
 			}
 		}
 
+
 		def l;
+		def cbssummarylist = [];
+
 		list.each{ o->
 			o.list = [];
 			l = items.findAll{ it.route == o.route }
+			
 			l.each{
 				item = [:];
 				item.putAll(it);
-				o.list.add(item);
+				o.list.add(item);							
 			}
-			o.total = l.amount.sum();
-			o.list.sort{ it.txndate }
+			
+			l.sort{ it.txndate };
+			cbssummarylist.addAll( l );
+		
+			//o.total = l.amount.sum();
+			//o.list.sort{ it.txndate }
 		}
 
 		def branch = branchSvc.open([:]);
@@ -59,10 +68,10 @@ class CBSSummaryReportService
 			date_period : startdate + " TO " + enddate,
 			dtprinted	: new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a").format(dateSvc.serverDate),
 			printedby 	: env.NAME,
-			items		: list
+			items		: cbssummarylist
 		];
 		branch.each{ k, v->
-			data["branch_"+k] = v;
+			data["branch_"+k] = v;                    
 		}
 		return data;
 	}
