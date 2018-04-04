@@ -1,0 +1,13 @@
+<schema adapter="main">
+	<element tablename="followup_report">
+		<field name="objid" primary="true" prefix="FUR" />
+		<field name="txndate" />
+		<field name="dtcreated" caption="datecreated" />
+		<field name="dtmodified" caption="datemodified" />
+		<field name="modifiedby_objid" caption="modifiedby_objid" />
+		<field name="modifiedby_name" caption="modifiedby_name" />
+		<field name="author_objid" caption="author_objid" required="true" />
+		<field name="author_name" caption="author_name" required="true" />
+		<field name="reportnote" caption="reportnote" />
+	</element>
+</schema>

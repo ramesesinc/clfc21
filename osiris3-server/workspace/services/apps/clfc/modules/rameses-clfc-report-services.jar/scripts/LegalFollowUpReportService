@@ -1,0 +1,86 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.text.SimpleDateFormat;
+import java.text.DecimalFormat;
+
+class LegalFollowUpReportService extends ActiveCrudListService {
+	
+	@Env
+	def env;
+
+	@ActiveDB("followup_report")
+	def em;
+
+	@Service('BranchService')
+	def branchService;
+
+	@Service("DateService")
+	def dateService;
+
+	private def DATE_FORMAT1 = new SimpleDateFormat("MMMMM dd, yyyy");
+	private def DATE_FORMAT2 = new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a");
+
+	@ProxyMethod
+	public def getColumns( params ){
+		return [
+			[name: 'txndate', caption: 'Transaction Date'],
+			[name: 'dtcreated', caption: 'Date Created'],
+			[name: 'dtmodified', caption: 'Date Modified'],
+			[name: 'modifiedby.objid', caption: 'Modified By Objid'],
+			[name: 'modifiedby.name', caption: 'Modified By Name'],
+			[name: 'author.objid', caption: 'Author Objid'],
+			[name: 'author.name', caption: 'Author Name'],
+			[name: 'reportnote', caption: 'Note']
+		]
+	}	
+
+	void beforeCreate( entity ){
+		entity.dtcreated = dateService.serverDate;
+		entity.author = [objid: env.USERID, name: env.NAME];
+	}
+
+	void beforeUpdate( entity ){
+		entity.dtmodified = dateService.serverDate;
+		entity.modifiedby = [objid: env.USERID, name: env.NAME];
+	}
+
+	@ProxyMethod
+	public def getReportData(params){
+
+		def reportdata = em.read([objid: params.objid]);
+
+		def txndate = parseDate(params.date);
+
+		def list = em.getMergeFollowUpReportDetail([date: txndate]);
+		if (!list) {
+			throw new RuntimeException("No Follow-up Report for " + txndate + ".");
+		}
+		
+		def serverdate = dateService.serverDate;
+		def branch = branchService.open([:]);
+		def data = [
+			date_period : DATE_FORMAT1.format(txndate),
+			dtprinted	: DATE_FORMAT2.format(serverdate),
+			printedby 	: env.NAME,
+			items		: list,
+			txndate 	: reportdata.txndate,
+			reportnote 	: reportdata.reportnote
+		];
+		
+		branch.each{ k, v->
+			data["branch_"+k] = v;
+		}
+		return data;
+	}
+
+	def parseDate( date ){
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+}
