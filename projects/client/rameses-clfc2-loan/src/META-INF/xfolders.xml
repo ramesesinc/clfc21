@@ -5,4 +5,13 @@
         </folder>
     </folder>
     
+    <folder id="menucategory">
+        <folder id="loan" caption="Loans">
+            <folder id="master" caption="Master" icon="home/icons/folder.png"/>
+            <folder id="app" caption="Application" icon="home/icons/folder.png"/>
+            <folder id="account" caption="Accounts" icon="home/icons/folder.png"/>
+            <folder id="billing" caption="Billing" icon="home/icons/folder.png"/>
+        </folder>            
+    </folder>
+
 </folders>

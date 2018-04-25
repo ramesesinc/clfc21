@@ -3,8 +3,7 @@
           allowDelete="false" 
           allowCreate="false">
     <invokers>
-        <invoker folderid="/home/app" caption="Loan Applications" 
-                 action="init" index="-1" 
+        <invoker folderid="/menucategory/loan/app" caption="View Applications" action="init" 
                  cols="appno,apptype,dtcreated,borrower.name,loanamount,loantype,route.code,producttype.name"/>
     </invokers>
 </workunit>

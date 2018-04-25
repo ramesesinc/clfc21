@@ -1,6 +1,6 @@
 <workunit>
     <invokers>
-        <invoker folderid="/home/app" caption="Renewal" action="init" target="window" />
+        <invoker xfolderid="/home/app" caption="Renewal" action="init" target="window" />
         
         <invoker type="formActions" caption="Cancel" action="doCancel" mnemonic="C" 
                  visibleWhen="#{mode.toString().matches('init|info') == true}" immediate="true"/>

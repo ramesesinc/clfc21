@@ -27,26 +27,21 @@ public class LoanAppAttachmentPage extends javax.swing.JPanel {
 
         xSplitView1 = new com.rameses.rcp.control.XSplitView();
         jPanel1 = new javax.swing.JPanel();
-        xDataTable1 = new com.rameses.rcp.control.XDataTable();
         jPanel2 = new javax.swing.JPanel();
         xLabel2 = new com.rameses.rcp.control.XLabel();
         xButton1 = new com.rameses.rcp.control.XButton();
         xButton3 = new com.rameses.rcp.control.XButton();
+        xDataTable1 = new com.rameses.rcp.control.XDataTable();
         jPanel3 = new javax.swing.JPanel();
         xLabel1 = new com.rameses.rcp.control.XLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
         xHtmlView1 = new com.rameses.rcp.control.XHtmlView();
 
         xSplitView1.setDividerLocation(200);
-        xSplitView1.setOrientation("VERTICAL");
+        xSplitView1.setOrientation(com.rameses.rcp.constant.UIConstants.VERTICAL);
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 10));
         jPanel1.setLayout(new java.awt.BorderLayout());
-
-        xDataTable1.setHandler("attachmentHandler");
-        xDataTable1.setImmediate(true);
-        xDataTable1.setName("selectedAttachment"); // NOI18N
-        jPanel1.add(xDataTable1, java.awt.BorderLayout.CENTER);
 
         jPanel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 5, 0));
 
@@ -83,6 +78,11 @@ public class LoanAppAttachmentPage extends javax.swing.JPanel {
         );
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.NORTH);
+
+        xDataTable1.setHandler("attachmentHandler");
+        xDataTable1.setName("selectedAttachment"); // NOI18N
+        xDataTable1.setImmediate(true);
+        jPanel1.add(xDataTable1, java.awt.BorderLayout.CENTER);
 
         xSplitView1.add(jPanel1);
 

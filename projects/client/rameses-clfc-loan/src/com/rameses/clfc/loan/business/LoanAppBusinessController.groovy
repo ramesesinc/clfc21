@@ -95,7 +95,6 @@ class LoanAppBusinessController
     }
     
     boolean removeBusinessImpl(o) {
-        if (caller.mode == 'read') return false;
         if (MsgBox.confirm("You are about to remove this business. Continue?")) {
             businesses.remove(o);
             return true;

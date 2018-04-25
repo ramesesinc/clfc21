@@ -147,19 +147,8 @@
                 <Component class="com.rameses.rcp.control.XTextField" name="xTextField5">
                   <Properties>
                     <Property name="caption" type="java.lang.String" value="Registered Name"/>
-                    <Property name="captionWidth" type="int" value="135"/>
                     <Property name="name" type="java.lang.String" value="entity.registeredname" noResource="true"/>
-                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[0, 20]"/>
-                    </Property>
-                    <Property name="required" type="boolean" value="true"/>
-                  </Properties>
-                </Component>
-                <Component class="com.rameses.rcp.control.XTextField" name="xTextField6">
-                  <Properties>
-                    <Property name="caption" type="java.lang.String" value="Chassis No."/>
                     <Property name="captionWidth" type="int" value="135"/>
-                    <Property name="name" type="java.lang.String" value="entity.chassisno" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
                     </Property>
@@ -169,34 +158,42 @@
                 <Component class="com.rameses.rcp.control.XTextField" name="xTextField7">
                   <Properties>
                     <Property name="caption" type="java.lang.String" value="Plate No."/>
-                    <Property name="captionWidth" type="int" value="135"/>
                     <Property name="name" type="java.lang.String" value="entity.plateno" noResource="true"/>
+                    <Property name="captionWidth" type="int" value="135"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
                     </Property>
                     <Property name="required" type="boolean" value="true"/>
+                  </Properties>
+                </Component>
+                <Component class="com.rameses.rcp.control.XTextField" name="xTextField6">
+                  <Properties>
+                    <Property name="caption" type="java.lang.String" value="Chassis No."/>
+                    <Property name="name" type="java.lang.String" value="entity.chassisno" noResource="true"/>
+                    <Property name="captionWidth" type="int" value="135"/>
+                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+                      <Dimension value="[0, 20]"/>
+                    </Property>
                   </Properties>
                 </Component>
                 <Component class="com.rameses.rcp.control.XTextField" name="xTextField8">
                   <Properties>
                     <Property name="caption" type="java.lang.String" value="Engine No."/>
-                    <Property name="captionWidth" type="int" value="135"/>
                     <Property name="name" type="java.lang.String" value="entity.engineno" noResource="true"/>
+                    <Property name="captionWidth" type="int" value="135"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
                     </Property>
-                    <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
                 <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField1">
                   <Properties>
                     <Property name="caption" type="java.lang.String" value="Market/Appraisal Value"/>
-                    <Property name="captionWidth" type="int" value="135"/>
                     <Property name="name" type="java.lang.String" value="entity.marketvalue" noResource="true"/>
+                    <Property name="captionWidth" type="int" value="135"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
                     </Property>
-                    <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
               </SubComponents>

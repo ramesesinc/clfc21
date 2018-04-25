@@ -32,7 +32,7 @@ class LoanAppDetailController
         data = service.open([objid: loanapp.objid]);
         loanapp.clear();
         loanapp.putAll(data);
-        productTypes = service.getProductTypes(); 
+        productTypes = service.getProductTypes().collect{[ name: it.name, term: it.term ]}
 
         data.producttype = productTypes.find{ it.name == data.producttype?.name } 
         if (data.producttype == null) data.producttype = [:];

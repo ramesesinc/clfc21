@@ -43,21 +43,6 @@
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout"/>
           <SubComponents>
-            <Component class="com.rameses.rcp.control.XDataTable" name="xDataTable1">
-              <Properties>
-                <Property name="columns" type="[Lcom.rameses.rcp.common.Column;" editor="com.rameses.beaninfo.editor.ColumnPropertyEditor">
-                  <SerializedValue value="-84,-19,0,5,117,114,0,32,91,76,99,111,109,46,114,97,109,101,115,101,115,46,114,99,112,46,99,111,109,109,111,110,46,67,111,108,117,109,110,59,-113,88,47,82,32,-6,-98,-32,2,0,0,120,112,0,0,0,0"/>
-                </Property>
-                <Property name="handler" type="java.lang.String" value="attachmentHandler"/>
-                <Property name="immediate" type="boolean" value="true"/>
-                <Property name="name" type="java.lang.String" value="selectedAttachment" noResource="true"/>
-              </Properties>
-              <Constraints>
-                <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">
-                  <BorderConstraints direction="Center"/>
-                </Constraint>
-              </Constraints>
-            </Component>
             <Container class="javax.swing.JPanel" name="jPanel2">
               <Properties>
                 <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
@@ -129,6 +114,21 @@
                 </Component>
               </SubComponents>
             </Container>
+            <Component class="com.rameses.rcp.control.XDataTable" name="xDataTable1">
+              <Properties>
+                <Property name="handler" type="java.lang.String" value="attachmentHandler"/>
+                <Property name="name" type="java.lang.String" value="selectedAttachment" noResource="true"/>
+                <Property name="columns" type="[Lcom.rameses.rcp.common.Column;" editor="com.rameses.beaninfo.editor.ColumnPropertyEditor">
+                  <SerializedValue value="-84,-19,0,5,117,114,0,32,91,76,99,111,109,46,114,97,109,101,115,101,115,46,114,99,112,46,99,111,109,109,111,110,46,67,111,108,117,109,110,59,-113,88,47,82,32,-6,-98,-32,2,0,0,120,112,0,0,0,0"/>
+                </Property>
+                <Property name="immediate" type="boolean" value="true"/>
+              </Properties>
+              <Constraints>
+                <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">
+                  <BorderConstraints direction="Center"/>
+                </Constraint>
+              </Constraints>
+            </Component>
           </SubComponents>
         </Container>
         <Container class="javax.swing.JPanel" name="jPanel3">

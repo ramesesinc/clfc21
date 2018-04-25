@@ -50,18 +50,21 @@ public class LoanApplicationModelImpl {
         def items = [];
         def type = entity?.borrower?.type?.toString().toLowerCase();
         items << [name:'principalborrower', caption:'Principal Borrower'];
+        if ( type == 'individual') { 
+            items << [name:'jointborrower', caption:'Joint Borrower'];
+            items << [name:'comaker', caption:'Co-Maker'];
+        }
+        
         items << [name:'loandetail', caption:'Loan Details'];
 
         if ( type == 'individual') { 
             items << [name:'business', caption:'Business'];
             items << [name:'collateral', caption:'Collateral'];
             items << [name:'otherlending', caption:'Other Lending'];
-            items << [name:'jointborrower', caption:'Joint Borrower'];
-            items << [name:'comaker', caption:'Co-Maker'];
             items << [name:'attachment', caption:'Attachments'];
         }
-        items << [name:'comment', caption:'Comments'];
         items << [name:'recommendation', caption:'Recommendations'];
+        items << [name:'comment', caption:'Logs'];
         /*
         [name:'fla', caption:'FLA'],
         [name:'prevfla', caption:'Previous FLA'],
@@ -122,13 +125,12 @@ public class LoanApplicationModelImpl {
     boolean getIsPending() {
         return ( entity.state == 'PENDING' && entity.appmode != 'CAPTURE') 
     }
-    def submitForInspection() {
-        def handler = {o->
-            o.objid = entity.objid; 
-            entity.state = appSvc.submitForInspection(o).state;
+    void submitForInspection() { 
+        if ( MsgBox.confirm('You are about to submit this application for inspection. Continue?')) {
+            def p = [ objid: entity.objid ];
+            entity.state = appSvc.submitForInspection(p).state;
             binding.refresh('title|formActions|opener');
         }
-        return InvokerUtil.lookupOpener("application-forinspection:create", [handler:handler])
     }
     
     boolean getIsForInspection() {
@@ -145,6 +147,7 @@ public class LoanApplicationModelImpl {
 
         def business = entity.businesses.find{ it.ci?.evaluation == null }
         if (business) throw new Exception("CI Report for business $business.tradename is required.");
+        
         def handler = {o->
             o.objid = entity.objid; 
             entity.state = appSvc.submitForCrecom(o).state;
@@ -182,18 +185,86 @@ public class LoanApplicationModelImpl {
         return InvokerUtil.lookupOpener("application-returnforci:create", [handler:handler]);
     }
     
-    boolean getIsApproved() {
-        return (entity.state == 'APPROVED' && mode == 'read' && entity.appmode != 'CAPTURE');
+    boolean isForApproval() {
+        return (entity.state == 'FOR_APPROVAL' && entity.appmode != 'CAPTURE');
     }
     
-    def backOut() {
-        def handler = {o->
-            println o
+    void sendBack() {
+        if ( MsgBox.confirm('You are about to send back the application. Continue?')) {
+            entity.state = appSvc.sendBack([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
         }
-        return InvokerUtil.lookupOpener("backout:create", [handler:handler]);
     }
     
-    def submitForRelease() {
-        println 'submit for release'
+    void approve() {
+        if ( MsgBox.confirm('You are about to approve this application. Continue?')) {
+            entity.state = appSvc.approve([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
+        }
+    }
+    
+    void disapprove() {
+        if ( MsgBox.confirm('You are about to disapprove this application. Continue?')) {
+            entity.state = appSvc.disapprove([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
+        }
+    }
+    
+    void disqualifiedOut() {
+        if ( MsgBox.confirm('You are about to disqualify this application. Continue?')) {
+            entity.state = appSvc.disqualifiedOut([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
+        }
+    }
+    
+    void cancelledOut() {
+        if ( MsgBox.confirm('You are about to cancel out this application. Continue?')) {
+            entity.state = appSvc.cancelledOut([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
+        }
+    }
+    
+    boolean isApproved() {
+        return (entity.state == 'APPROVED' && entity.appmode != 'CAPTURE');
+    }
+    
+    boolean isForRequirement() {
+        return (entity.state == 'FOR_REQUIREMENT' && entity.appmode != 'CAPTURE');
+    }
+    void submitForRequirement() {
+        if ( MsgBox.confirm('You are about to submit this application for requirement. Continue?')) {
+            entity.state = appSvc.submitForRequirement([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
+        }
+    }
+
+    boolean isForProcessing() {
+        return (entity.state == 'FOR_PROCESSING' && entity.appmode != 'CAPTURE');
+    }
+    void submitForProcessing() {
+        if ( MsgBox.confirm('You are about to submit this application for processing. Continue?')) {
+            entity.state = appSvc.submitForProcessing([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
+        }
+    }
+
+    boolean isForRelease() {
+        return (entity.state == 'FOR_RELEASE' && entity.appmode != 'CAPTURE');
+    }
+    void submitForRelease() {
+        if ( MsgBox.confirm('You are about to submit this application for release. Continue?')) {
+            entity.state = appSvc.submitForRelease([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
+        }
+    }    
+
+    boolean isReleased() {
+        return (entity.state == 'RELEASED' && entity.appmode != 'CAPTURE');
+    }
+    void release() {
+        if ( MsgBox.confirm('You are about to release this application. Continue?')) {
+            entity.state = appSvc.release([ objid: entity.objid])?.state; 
+            binding.refresh('title|formActions|opener');
+        }
     }    
 }

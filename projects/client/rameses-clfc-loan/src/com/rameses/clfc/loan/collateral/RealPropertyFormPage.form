@@ -143,12 +143,11 @@
                 <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField1">
                   <Properties>
                     <Property name="caption" type="java.lang.String" value="Zonal Value"/>
-                    <Property name="captionWidth" type="int" value="140"/>
                     <Property name="name" type="java.lang.String" value="entity.zonalvalue" noResource="true"/>
+                    <Property name="captionWidth" type="int" value="140"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[120, 20]"/>
                     </Property>
-                    <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
                 <Component class="com.rameses.rcp.control.XDateField" name="xDateField1">
@@ -161,6 +160,20 @@
                     </Property>
                   </Properties>
                 </Component>
+                <Component class="com.rameses.rcp.control.XComboBox" name="xComboBox3">
+                  <Properties>
+                    <Property name="caption" type="java.lang.String" value="Mode of Acquisition"/>
+                    <Property name="expression" type="java.lang.String" value="#{item.value}"/>
+                    <Property name="itemKey" type="java.lang.String" value="value"/>
+                    <Property name="items" type="java.lang.String" value="modesOfAcquisition"/>
+                    <Property name="name" type="java.lang.String" value="entity.modeofacquisition" noResource="true"/>
+                    <Property name="captionWidth" type="int" value="140"/>
+                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+                      <Dimension value="[0, 22]"/>
+                    </Property>
+                    <Property name="required" type="boolean" value="true"/>
+                  </Properties>
+                </Component>
                 <Component class="com.rameses.rcp.control.XTextField" name="xTextField3">
                   <Properties>
                     <Property name="caption" type="java.lang.String" value="Acquired From"/>
@@ -168,20 +181,6 @@
                     <Property name="name" type="java.lang.String" value="entity.acquiredfrom" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
-                    </Property>
-                    <Property name="required" type="boolean" value="true"/>
-                  </Properties>
-                </Component>
-                <Component class="com.rameses.rcp.control.XComboBox" name="xComboBox3">
-                  <Properties>
-                    <Property name="caption" type="java.lang.String" value="Mode of Acquisition"/>
-                    <Property name="captionWidth" type="int" value="140"/>
-                    <Property name="expression" type="java.lang.String" value="#{item.value}"/>
-                    <Property name="itemKey" type="java.lang.String" value="value"/>
-                    <Property name="items" type="java.lang.String" value="modesOfAcquisition"/>
-                    <Property name="name" type="java.lang.String" value="entity.modeofacquisition" noResource="true"/>
-                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[0, 22]"/>
                     </Property>
                     <Property name="required" type="boolean" value="true"/>
                   </Properties>
@@ -200,12 +199,11 @@
                 <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField2">
                   <Properties>
                     <Property name="caption" type="java.lang.String" value="Market/Appraisal Value"/>
-                    <Property name="captionWidth" type="int" value="140"/>
                     <Property name="name" type="java.lang.String" value="entity.marketvalue" noResource="true"/>
+                    <Property name="captionWidth" type="int" value="140"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[120, 20]"/>
                     </Property>
-                    <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
                 <Container class="javax.swing.JScrollPane" name="jScrollPane1">

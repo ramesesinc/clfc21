@@ -73,24 +73,21 @@ public class ApplianceFormPage extends javax.swing.JPanel {
         xFormPanel1.add(xDateField1);
 
         xTextField3.setCaption("Model No.");
-        xTextField3.setCaptionWidth(150);
         xTextField3.setName("entity.modelno"); // NOI18N
+        xTextField3.setCaptionWidth(150);
         xTextField3.setPreferredSize(new java.awt.Dimension(0, 20));
-        xTextField3.setRequired(true);
         xFormPanel1.add(xTextField3);
 
         xTextField4.setCaption("Serial No");
-        xTextField4.setCaptionWidth(150);
         xTextField4.setName("entity.serialno"); // NOI18N
+        xTextField4.setCaptionWidth(150);
         xTextField4.setPreferredSize(new java.awt.Dimension(0, 20));
-        xTextField4.setRequired(true);
         xFormPanel1.add(xTextField4);
 
         xDecimalField1.setCaption("Market/Appraisal Value");
-        xDecimalField1.setCaptionWidth(150);
         xDecimalField1.setName("entity.marketvalue"); // NOI18N
+        xDecimalField1.setCaptionWidth(150);
         xDecimalField1.setPreferredSize(new java.awt.Dimension(150, 20));
-        xDecimalField1.setRequired(true);
         xFormPanel1.add(xDecimalField1);
 
         jScrollPane1.setPreferredSize(new java.awt.Dimension(0, 100));

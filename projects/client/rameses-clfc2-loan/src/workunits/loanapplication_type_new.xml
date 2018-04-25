@@ -1,6 +1,6 @@
 <workunit>
     <invokers>
-        <invoker folderid="/home/app" caption="New Loan" action="init" target="window" />
+        <invoker xfolderid="/home/app" caption="New Loan" action="init" target="window" />
         
         <invoker type="formActions" caption="Cancel" action="doCancel" mnemonic="C" 
                  visibleWhen="#{mode == 'init'}" immediate="true"/>

@@ -15,7 +15,7 @@ import com.rameses.rcp.ui.annotations.Template;
  * @author  wflores
  */
 @StyleSheet
-@Template(FormPage.class)
+@Template(FormPage.class) 
 public class LoanAppBusinessPage extends javax.swing.JPanel {
     
     public LoanAppBusinessPage() {
@@ -45,7 +45,7 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
         xHtmlView1 = new com.rameses.rcp.control.XHtmlView();
 
         xSplitView1.setDividerLocation(200);
-        xSplitView1.setOrientation("VERTICAL");
+        xSplitView1.setOrientation(com.rameses.rcp.constant.UIConstants.VERTICAL);
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 10));
         jPanel1.setLayout(new java.awt.BorderLayout());
@@ -56,9 +56,14 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
         xButton1.setText("Add");
 
         xButton3.setDepends(new String[] {"selectedBusiness"});
-        xButton3.setDisableWhen("#{selectedBusiness == null || caller.mode=='read'}");
+        xButton3.setDisableWhen("#{selectedBusiness == null || mode != 'edit'}");
         xButton3.setName("removeBusiness"); // NOI18N
         xButton3.setText("Remove");
+        xButton3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                xButton3ActionPerformed(evt);
+            }
+        });
 
         xLabel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 2, 0));
         xLabel2.setFontStyle("font-weight:bold;font-size:12");
@@ -69,6 +74,11 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
         xButton2.setDisableWhen("#{loanapp.state != 'FOR_INSPECTION' || selectedBusiness == null || mode == 'read'}");
         xButton2.setName("addCiReport"); // NOI18N
         xButton2.setText("CI Report");
+        xButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                xButton2ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -95,6 +105,8 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.NORTH);
 
+        xDataTable1.setHandler("businessHandler");
+        xDataTable1.setName("selectedBusiness"); // NOI18N
         xDataTable1.setColumns(new com.rameses.rcp.common.Column[]{
             new com.rameses.rcp.common.Column(new Object[]{
                 new Object[]{"name", "tradename"}
@@ -172,9 +184,7 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.DecimalColumnHandler("#,##0.00", -1.0, -1.0, false, 0)}
             })
         });
-        xDataTable1.setHandler("businessHandler");
         xDataTable1.setImmediate(true);
-        xDataTable1.setName("selectedBusiness"); // NOI18N
         jPanel1.add(xDataTable1, java.awt.BorderLayout.CENTER);
 
         xSplitView1.add(jPanel1);
@@ -206,6 +216,14 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
             .addComponent(xSplitView1, javax.swing.GroupLayout.DEFAULT_SIZE, 470, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
+
+    private void xButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_xButton3ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_xButton3ActionPerformed
+
+    private void xButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_xButton2ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_xButton2ActionPerformed
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
