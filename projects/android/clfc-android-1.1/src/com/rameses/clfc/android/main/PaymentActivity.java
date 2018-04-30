@@ -655,7 +655,8 @@ public class PaymentActivity extends ControlActivity
 				params.put("txndate", date.toString());
 				params.put("paytype", type);
 				params.put("payoption", option);
-				params.put("amount", Double.parseDouble(et_amount.getText().toString()));
+//				params.put("amount", Double.parseDouble(et_amount.getText().toString()));
+				params.put("amount", new BigDecimal(et_amount.getText().toString()));
 				params.put("paidby", et_paidby.getText().toString());
 				params.put("isfirstbill", isfirstbill);
 //				params.put("lng", lng);
@@ -665,7 +666,7 @@ public class PaymentActivity extends ControlActivity
 				params.put("type", collectionSheet.getString("type"));
 				params.put("overpaymentamount", 0);
 				if ("over".equals(type)) {
-					overpayment = new BigDecimal(Double.parseDouble(et_overpayment.getText().toString())).setScale(2);
+					overpayment = new BigDecimal(et_overpayment.getText().toString()).setScale(2);
 					params.put("overpaymentamount", overpayment);
 					collectionSheet.put("overpaymentamount", overpayment);
 					synchronized (MainDB.LOCK) {

@@ -81,7 +81,9 @@ public class AppSettingsImpl extends AppSettings
 	}
 	
 	public String getTrackerid(String prefix) {
-		return getString(prefix + "trackerid", null);
+		synchronized (LOCK) {
+			return getString(prefix + "trackerid", null);	
+		}
 	}
 	
 	public void setCaptureid( String prefix, String captureid ) {
@@ -116,7 +118,9 @@ public class AppSettingsImpl extends AppSettings
 	}
 	
 	public String getTrackerOwner(String prefix) {
-		return getString(prefix + "tracker_owner", null);
+		synchronized (LOCK) {
+			return getString(prefix + "tracker_owner", null);	
+		}
 	}
 	
 //	public String getCaptureid() {

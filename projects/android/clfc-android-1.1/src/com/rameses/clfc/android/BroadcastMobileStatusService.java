@@ -1,5 +1,6 @@
 package com.rameses.clfc.android;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +56,7 @@ public class BroadcastMobileStatusService {
 			Platform.getTaskManager().schedule(actionTask, 1000, 1000);
 			ApplicationUtil.println("BroadcastMobileStatusService", "start");
 		} 
-	}
+	} 
 	
 	public void restart() {
 		if (serviceStarted == true) {
@@ -66,8 +67,8 @@ public class BroadcastMobileStatusService {
 		start();
 	}
 	
-	private void println(Object msg) {
-		Log.i("BroadcastMobileStatusService", msg.toString());
+	private void println( Object msg ) {
+		ApplicationUtil.println("BroadcastMobileStatusService", msg.toString());
 	}
 	
 	private void createTask() {
@@ -84,7 +85,7 @@ public class BroadcastMobileStatusService {
 //						trackerdb.beginTransaction();
 //						list = locationTracker.getLocationTrackers(SIZE);	
 						list = trackerSvc.getForUploadLocationTrackers(SIZE);
-						ApplicationUtil.println("BroadcastMobileStatusService", "list " + list);
+						println("list " + list);
 //						trackerdb.commit(); 
 					} catch (Throwable t) {
 						t.printStackTrace();
@@ -157,24 +158,30 @@ public class BroadcastMobileStatusService {
 						params.put("txndate", proxy.getString("txndate"));
 //						params.put("lng", proxy.getDouble("lng"));
 //						params.put("lat", proxy.getDouble("lat"));
-						params.put("lng", Double.parseDouble(proxy.getString("lng")));
-						params.put("lat", Double.parseDouble(proxy.getString("lat")));
+//						params.put("lng", Double.parseDouble(proxy.getString("lng")));
+//						params.put("lat", Double.parseDouble(proxy.getString("lat")));
+						params.put("lng", new BigDecimal( proxy.getString("lng") ));
+						params.put("lat", new BigDecimal( proxy.getString("lat") ));
 						params.put("state", 1);
 						params.put("wifi", proxy.getInteger("wifi"));
 						params.put("mobiledata", proxy.getInteger("mobiledata"));
 						params.put("gps", proxy.getInteger("gps"));
 						params.put("network", proxy.getInteger("network"));
+						params.put("statustext", proxy.getString("phonestatus"));
 //						params.put("prevlng", proxy.getDouble("prevlng"));
 //						params.put("prevlat", proxy.getDouble("prevlat"));
-						params.put("prevlng", Double.parseDouble(proxy.getString("prevlng")));
-						params.put("prevlat", Double.parseDouble(proxy.getString("prevlat")));
+//						params.put("prevlng", Double.parseDouble(proxy.getString("prevlng")));
+//						params.put("prevlat", Double.parseDouble(proxy.getString("prevlat")));
+						params.put("prevlng", new BigDecimal( proxy.getString("prevlng") ));
+						params.put("prevlat", new BigDecimal( proxy.getString("prevlat") ));
+						
+						println("params " + params);
 						
 						Map param = new HashMap();
 						String enc = new Base64Cipher().encode(params);
 						param.put("encrypted", enc);
 						
-						if (response == null) response = new HashMap();
-						response.clear();
+						response = new HashMap();
 						MobileStatusService service;
 						for (int j=0; j<10; j++) {
 							try {
@@ -185,12 +192,13 @@ public class BroadcastMobileStatusService {
 						 		break;
 							} catch (Throwable e) { e.printStackTrace();}
 						}
-						
+						 
 						if (response != null && response.containsKey("response")) {
 							String str = response.get("response").toString();
+							println("response " + str);
 							if (str.toLowerCase().equals("success")) {
 								trackerdb = new SQLTransaction(DBNAME);
-								try {
+								try { 
 									trackerdb.beginTransaction();
 									trackerdb.delete("mobile_status", "objid=?", new Object[]{proxy.getString("objid")});
 									trackerdb.commit();

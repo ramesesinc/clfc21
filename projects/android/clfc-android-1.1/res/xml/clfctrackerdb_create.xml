@@ -34,10 +34,11 @@
         	mobiledata NUMERIC NOT NULL, -- 1 or 0
         	gps NUMERIC NOT NULL, -- 1 or 0
         	network NUMERIC NOT NULL, -- 1 or 0
-        	lng TEXT NOT NULL,
-        	lat TEXT NOT NULL,
-        	prevlng TEXT NOT NULL,
-        	prevlat TEXT NOT NULL,
+        	phonestatus TEXT,
+        	lng NUMERIC NOT NULL,
+        	lat NUMERIC NOT NULL,
+        	prevlng NUMERIC NOT NULL,
+        	prevlat NUMERIC NOT NULL,
         	forupload NUMERIC NOT NULL, -- 1 or 0
         	timedifference NUMERIC NOT NULL,
         	dtsaved TEXT NOT NULL,

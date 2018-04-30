@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.rameses.clfc.android.ApplicationUtil;
 import com.rameses.db.android.DBContext;
 
 public class DBMobileStatusTracker extends AbstractDBMapper {
@@ -51,6 +52,7 @@ public class DBMobileStatusTracker extends AbstractDBMapper {
 		try {
 			String sql = "SELECT * FROM " + getTableName() + " WHERE forupload=1 ORDER BY txndate ";
 			if (limit > 0) sql += "LIMIT " + limit;
+			ApplicationUtil.println("BroadcastMobileStatusService", "sql " + sql);
 			return ctx.getList(sql, new Object[]{});
 		} catch (Exception e) {
 			throw e;

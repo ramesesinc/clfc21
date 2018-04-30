@@ -1,5 +1,6 @@
 package com.rameses.clfc.android;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Date;
@@ -38,10 +39,11 @@ class LocationTrackerService
 	private String collectorid;
 	private Location location;
 	private UserProfile profile;
-	private double lng;
-	private double lat;
-	private double prevlng = 0.0;
-	private double prevlat = 0.0;
+//	private double lng;
+//	private double lat;
+//	private double prevlng = 0.0;
+//	private double prevlat = 0.0;
+	private BigDecimal lng, lat, prevlng, prevlat;
 	private Map params = new HashMap();
 	private MapProxy prevlocation;	
 	private Task actionTask;
@@ -146,33 +148,53 @@ class LocationTrackerService
 			private void execTracker(SQLTransaction trackerdb, String trackerid) throws Exception {
 
 				location = NetworkLocationProvider.getLocation();
-				lng = (location == null? 0.0: location.getLongitude());
-				lat = (location == null? 0.0: location.getLatitude());
+				String val1 = "0", val2 = "0";
+				if (location != null) {
+					val1 = location.getLongitude() + "";
+					val2 = location.getLatitude() + "";
+				}
+				lng = new BigDecimal(val1);
+				lat = new BigDecimal(val2);
+//				lng = (location == null? 0.0: location.getLongitude());
+//				lat = (location == null? 0.0: location.getLatitude());
+				
+//				String strLng = lng + "";
+//				String strLat = lat + "";
 
 				prevLocation.setDBContext(trackerdb.getContext());
 				prevLocation.setCloseable(false);			
 				prevlocation = new MapProxy(prevLocation.getPrevLocation(trackerid));
-				prevlng = 0.0;
-				prevlat = 0.0;
+//				prevlng = 0.0;
+//				prevlat = 0.0;
+				val1 = "0";
+				val2 = "0";
 				if (prevlocation != null && !prevlocation.isEmpty()) {
 //					prevlng = prevlocation.getDouble("lng");
 //					prevlat = prevlocation.getDouble("lat");
-					prevlng = Double.parseDouble(prevlocation.getString("lng"));
-					prevlat = Double.parseDouble(prevlocation.getString("lat"));
+//					prevlng = Double.parseDouble(prevlocation.getString("lng"));
+//					prevlat = Double.parseDouble(prevlocation.getString("lat"));
+					val1 = prevlocation.getString("lng");
+					val2 = prevlocation.getString("lat");
 				}
+				prevlng = new BigDecimal(val1);
+				prevlat = new BigDecimal(val2);
+//				String strPrevLng = prevlng + "";
+//				String strPrevLat = prevlat + "";
 //				lat += 1;
 //				System.out.println("lng->"+lng+", lat->"+lat+", prevlng->"+prevlng+", prevlat->"+prevlat);
 				
 				ApplicationUtil.println("LocationTrackerService", "lng: " + lng + " prevlng: " + prevlng + " lat: " + lat + " prevlat: " + prevlat);
-				if ((lng > 0 && prevlng != lng) || (lat > 0 && prevlat != lat)) {				
+//				if ((lng > 0 && prevlng != lng) || (lat > 0 && prevlat != lat)) {
+//				if ((lng > 0 && !strPrevLng.equals(strLng)) || (lat > 0 && !strPrevLat.equals(strLat))) {
+				if ((lng.compareTo(new BigDecimal("0")) > 0 && prevlng.compareTo(lng) != 0) || (lat.compareTo(new BigDecimal("0")) > 0 && prevlat.compareTo(lat) != 0)) {
 					profile = SessionContext.getProfile();
 					collectorid = (profile == null? null : profile.getUserId());
 					if (collectorid != null) {					
 						locationTracker.setDBContext(trackerdb.getContext());
 						seqno = locationTracker.getLastSeqnoByCollectorid(collectorid);	
 													
-						String strLng = String.valueOf(lng);
-						String strLat = String.valueOf(lat);
+//						String strLng = String.valueOf(lng);
+//						String strLat = String.valueOf(lat);
 						
 						params = new HashMap();
 						params.put("objid", "TRCK" + UUID.randomUUID());
@@ -182,8 +204,8 @@ class LocationTrackerService
 						params.put("txndate", app.getServerDate().toString());
 //						params.put("lng", lng);
 //						params.put("lat", lat);
-						params.put("lng", strLng);
-						params.put("lat", strLat);
+						params.put("lng", lng.toString());
+						params.put("lat", lat.toString());
 						params.put("forupload", 0);
 						Calendar cal = Calendar.getInstance();
 						
@@ -208,8 +230,8 @@ class LocationTrackerService
 						params = new HashMap();
 //						params.put("lng", lng);
 //						params.put("lat", lat);
-						params.put("lng", strLng);
-						params.put("lat", strLat);
+						params.put("lng", lng.toString());
+						params.put("lat", lat.toString());
 						ApplicationUtil.println("LocationTrackerService", "params-> " + params);
 						if (prevlocation == null || prevlocation.isEmpty()) {
 							params.put("objid", "PL" + UUID.randomUUID().toString());
