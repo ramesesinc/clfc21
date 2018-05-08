@@ -29,5 +29,6 @@ echo.
 echo.========================================================================
 echo.
 
-"%JAVA%" "%JAVA_OPTS%" -Djava.library.path=$BASE_DIR/lib/ext -cp lib/*;. com.rameses.main.bootloader.MainBootLoader
+rem "%JAVA%" "%JAVA_OPTS%" -Djava.library.path=$BASE_DIR/lib/ext -cp lib/*;. com.rameses.main.bootloader.MainBootLoader
+"%JAVA%" "%JAVA_OPTS%" -cp lib/*;. com.rameses.main.bootloader.MainBootLoader
 pause

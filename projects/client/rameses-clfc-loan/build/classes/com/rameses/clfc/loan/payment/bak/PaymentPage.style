@@ -1,6 +1,0 @@
-"entity.(bank|check.*)" [entity.payoption!='check'] {
-    enabled: false;
-}
-"entity.(bank|check.*)" [entity.payoption=='check'] {
-    enabled: true;
-}

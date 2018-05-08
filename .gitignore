@@ -11,6 +11,8 @@
 */temp
 */tmp
 Thumbs.db
+build
+dist
 
 android/*/_tmp
 android/*/.settings
