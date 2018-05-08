@@ -1,0 +1,489 @@
+import com.rameses.annotations.*;
+import java.io.OutputStream;
+import java.io.InputStream;
+import gnu.io.SerialPort;
+import gnu.io.SerialPortEvent;
+import gnu.io.SerialPortEventListener;
+import gnu.io.CommPortIdentifier;
+
+public class XSMSSenderService implements Runnable,SerialPortEventListener
+{
+
+	private SerialPort serialPort;
+	private CommPortIdentifier portIdentifier;
+	private String portName;
+
+	private OutputStream outputStream;
+	private InputStream inputStream;
+
+	private boolean isConnected = false;
+	private boolean isSending = false;
+	private boolean isSent = false;
+
+	private Map currentCommand;
+
+	private LinkedList commands = new LinkedList();
+
+	/*
+	private String mobileno = "";
+	private String message = "";
+	*/
+	private List messages = [];
+
+	@ProxyMethod(local=true)
+	public void connect( portName ) {
+		portIdentifier = CommPortIdentifier.getPortIdentifier(portName);
+
+		serialPort = (SerialPort) portIdentifier.open(getClass().getSimpleName(), 2000);
+
+
+		this.portName = portName;
+		this.isConnected = true;
+		this.isSent = false;
+		this.currentCommand = null;
+            
+		this.outputStream = this.serialPort.getOutputStream();
+		this.inputStream = this.serialPort.getInputStream();
+
+		serialPort.setSerialPortParams(9600, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+
+		serialPort.addEventListener(this);
+		//serialPort.addEventListener(new MySerialPortEventListener(this.serialPort.getInputStream()));
+
+		/*
+		def eventListener = new SerialPortEventListener() {
+			public void serialEvent( SerialPortEvent ev ) {
+				println 'serial event';
+			}
+		};
+		*/
+
+		//serialPort.addEventListener(eventListener);
+		serialPort.notifyOnDataAvailable(true);
+		serialPort.notifyOnBreakInterrupt(true);
+		serialPort.enableReceiveTimeout(30);
+	}
+
+	@ProxyMethod(local=true)
+	public void disconnect() {
+		//println 'disconnect';
+		if (this.serialPort != null) {
+			this.serialPort.close();
+		}
+		this.portName = null;
+		this.isConnected = false;
+	}
+
+	@ProxyMethod(local=true)
+	public String getPortName() { return this.portName; }
+
+	@ProxyMethod(local=true)
+	public boolean getIsConnected() { return this.isConnected; }
+
+	@ProxyMethod(local=true)
+	public boolean getIsSending() { return this.isSending; }
+
+	@ProxyMethod(local=true)
+	public boolean getIsSent() { return this.isSent; }
+
+	@ProxyMethod(local=true)
+	public def sendMessage( messages ) {
+
+		this.isSending = true;
+		//this.message = message;
+		this.messages = messages;
+
+
+		//this.messages?.each{ it.sent = true }
+
+		def item = [:], response = [:];
+
+		//Map item = new HashMap();
+		//Map response = new HashMap();
+
+		String cmd = "AT" + ((char) 13);
+		item.command = cmd;
+		//item.put("command", cmd);
+
+		response.OK = { 
+			//println 'execute ok';
+			setSMSFormat();
+		}
+
+		response.ERROR = {
+			//println 'execute error';
+		}
+
+		item.response = response;
+		//response.put("OK", { println 'execute ok'; });
+		//response.put("")
+
+		//item.put("response", new )
+
+		//commands.add(item);
+
+		
+		//commands.add(cmd);
+
+		//cmd = "AT+CMGS=\"" + mobileno + "\"" + ((char) 13);
+		//commands.add(cmd);
+
+		//cmd = "You have paid 150.00 for your loan." + ((char) 26);
+		//commands.add(cmd);
+
+		executeCommands();
+	}
+
+	//@ProxyMethod
+	public def xxsendMessage( mobileno, message, objid ) {
+		this.isSending = true;
+
+		if (!this.messages) this.messages = [];
+
+		this.messages << [mobileno: mobileno, message: message, objid: objid];
+		//this.mobileno = mobileno;
+		//this.message = message;
+
+		def item = [:], response = [:];
+
+		String cmd = "AT" + ((char) 13);
+		item.command = cmd;
+		response.OK = { 
+			//println 'execute ok';
+			setSMSFormat();
+		}
+
+		response.ERROR = {
+			//println 'execute error';
+		}
+
+		item.response = response;
+		commands.add(item);
+		executeCommands();
+	}
+
+	@ProxyMethod(local=true)
+	public def xsendMessage( mobileno, message ) {
+		this.isSending = true;
+
+		this.mobileno = mobileno;
+		this.message = message;
+
+		def item = [:], response = [:];
+
+		//Map item = new HashMap();
+		//Map response = new HashMap();
+
+		String cmd = "AT" + ((char) 13);
+		item.command = cmd;
+		//item.put("command", cmd);
+
+		response.OK = { 
+			//println 'execute ok';
+			setSMSFormat();
+		}
+
+		response.ERROR = {
+			//println 'execute error';
+		}
+
+		item.response = response;
+		//response.put("OK", { println 'execute ok'; });
+		//response.put("")
+
+		//item.put("response", new )
+
+		commands.add(item);
+
+		
+		//commands.add(cmd);
+
+		//cmd = "AT+CMGS=\"" + mobileno + "\"" + ((char) 13);
+		//commands.add(cmd);
+
+		//cmd = "You have paid 150.00 for your loan." + ((char) 26);
+		//commands.add(cmd);
+
+		executeCommands();
+
+	}
+
+	void setSMSFormat() {
+		//def item = [command: "AT+CMGF=1" + ((char) 13)];
+		def item = [command: "AT+CMGF=0" + ((char) 13)];
+		def response = [:]
+
+		response.OK = {
+			//println 'sms format ok';
+			sendSMS();
+		}
+
+		response.ERROR = {
+			//println 'sms format error';
+		}
+		item.response = response;
+		commands.add(item);
+
+		executeCommands();
+	}
+
+	void setCodePage() {
+		def item = [command: "AT+CSCS=\"HEX\"" + ((char) 13)];
+		def response = [:];
+
+		response.OK = {
+			setDataCodingScheme();
+		}
+
+		response.ERROR = {
+
+		}
+
+		item.response = response;
+		commands.add(item);
+
+		executeCommands();
+	}
+
+	void setDataCodingScheme() {
+		def item = [command: "AT+CSMP=1,167,0,8" + ((char) 13)];
+		def response = [:];
+
+		response.OK = {
+			sendSMS();
+		}
+
+		response.ERROR = {
+
+		}
+
+		item.response = response;
+		commands.add(item);
+
+		executeCommands();
+	}
+
+	void sendSMS() {
+		def response = new HashMap();
+
+		response.put(">", {
+			//println 'send sms';
+			sendSMSContent();
+		});
+
+		response.ERROR = {
+			//println 'send sms error';
+		}
+
+		this.messages?.each{ m->
+			def item = [command: "AT+CMGS=\"" + m.mobileno + "\"" + ((char) 13), response: response, objid: m.objid];
+			commands.add(item);
+		}
+		/*
+		def item = [command: "AT+CMGS=\"" + this.mobileno + "\"" + ((char) 13)];
+		def response = new HashMap();
+
+		response.put(">", {
+			//println 'send sms';
+			sendSMSContent();
+		});
+
+		response.ERROR = {
+			//println 'send sms error';
+		}
+
+		item.response = response;
+		commands.add(item);
+		*/
+		executeCommands();
+	}
+
+	void sendSMSContent() {
+		def message = '';
+		def ii = this.messages?.find{ it.objid == this.currentCommand?.objid }
+		if (ii) message = ii.message;
+
+		def item = [command: message + ((char) 26), objid: this.currentCommand?.objid];
+		def response = [:];
+
+		response.OK = {
+			def i = this.messages.find{ it.objid == this.currentCommand.objid }
+			if (i) i.sent = true;
+			def cal = Calendar.getInstance();
+			println 'message sent ' + cal.getTime();
+			//this.isSent = true;
+		}
+
+		response.ERROR = {
+
+		}
+
+		item.response = response;
+		commands.add(item);
+
+		executeCommands();
+	}
+
+	private void executeCommands() {
+		if (commands.size() > 0) {
+			this.currentCommand = commands.poll();
+			//println 'item ' + item;
+			//this.currentCommand = commands.poll().toString();
+
+			(new Thread(this)).start();
+			//(new Thread(new SerialWriter(this.serialPort.getOutputStream(), this.currentCommand))).start();
+			///executeCommands();
+		} else {
+			this.isSending = false;
+		}
+
+	}
+
+	private void executeResponse( response ) {
+		//println 'current command ' + this.currentCommand;
+		println 'response ' + response + '\n';
+
+		def resp = this.currentCommand.response;
+
+		def i, executeList = [];
+		resp?.each{ k, v->
+			i = response.contains(k);
+			if (i == true) {
+				executeList << k;
+			}
+		}
+
+		if (executeList) {
+			executeList?.each{ o->
+				def handler = resp[o];
+				if (handler) handler();
+			}
+		} else {
+			commands.clear();
+		}
+
+		executeCommands();
+	}
+
+	public void serialEvent( SerialPortEvent ev ) {
+		StringBuffer buffer = new StringBuffer();
+		int type = ev.getEventType();
+		int newData = 0;
+
+		//println 'type ' + type;
+		//println 'data available ' + SerialPortEvent.DATA_AVAILABLE;
+		//println 'is true? ' + (type == SerialPortEvent.DATA_AVAILABLE);
+
+		if (type == SerialPortEvent.DATA_AVAILABLE) {
+
+			//println 'executing';
+			try {
+				//println 'input stream ' + this.inputStream;
+				//println 'available ' + this.inputStream.available();
+
+				while (newData != -1) {
+					newData = this.inputStream.read();
+
+					if (newData == -1) {
+						//executeCommands();
+						executeResponse(buffer.toString());
+						return;
+					}
+
+					if (newData == 10 || newData == 13) {
+						buffer.append((char) 32); //replace line feed(10) and carriage return(13) to blank space(32)
+						//do nothing;
+					} else {
+						buffer.append((char) newData);
+					}
+
+				}
+				//newData = this.inputStream.read();
+				//println 'newdata ' + newData;
+				//buffer.append((char) newData);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		//executeCommands();
+
+		/*
+		if (type == SerialPortEvent.DATA_AVAILABLE) {
+			try {
+				int counter = 0;
+				//_("available: " + is.available());
+				while (newData != -1) {
+					//_("inside while loop");
+					newData = this.inputStream.read();
+					_("counter: " + counter + " new data " + newData);
+					if (newData == -1) {
+					//_("buffer1 " + buffer.toString());
+						//executeResponse(buffer.toString());
+
+						println 'response ' + buffer.toString();
+						executeCommands();
+						return;
+					}
+
+					if (newData == 13) {
+						//do nothing;
+					} else {
+						buffer.append((char) newData);
+					}
+					//_("buffer " + buffer.toString());
+					//_("new data: " + newData);
+					counter++;
+				}
+			} catch (IOException e) {
+				_("IOException");
+				//return;
+			} catch (Exception e) {
+				_("Exception");
+			} finally {
+				_("finished");
+			}
+		}
+		*/
+	}
+
+	public void run() {
+		def cmd = this.currentCommand.command;
+		if (cmd) {
+			byte[] array = cmd.getBytes();
+			this.outputStream.write(array);
+			Thread.sleep(1000);
+		}
+	}
+
+	/*
+	public class SerialWriter extends Runnable {
+		private OutputStream os;
+
+		public SerialWriter( OutputStream os ) {
+			this.os = os;
+		}
+
+		public void run() {
+			println 'writing';
+
+		}
+	}
+	*/
+
+	/*
+	public class MySerialPortEventListener extends SerialPortEventListener {
+		private InputStream is;
+
+		public MySerialPortEventListener( InputStream is ) {
+			this.is = is;
+		}
+
+		public void serialEvent( SerialPortEvent ev ) {
+
+		}
+
+	}
+	*/
+
+}

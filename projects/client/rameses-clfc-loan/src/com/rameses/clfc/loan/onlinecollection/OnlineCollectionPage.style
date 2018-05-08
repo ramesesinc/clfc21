@@ -4,3 +4,9 @@
 "entity.remittance.cbsno" [entity.state != 'DRAFT' || !entity.hasCash] {
     enabled: false;
 }
+"breakdownPanel" [!entity.showbreakdown || entity.showbreakdown==false] {
+    visible: false;
+}
+"breakdownPanel" [entity.showbreakdown==true] {
+    visible: true;
+}

@@ -127,6 +127,21 @@ class CollectionCashbreakdownService extends ActiveCrudListService
 			];
 			result << item;
 		}
+		
+		def shortages = shortage.getShortagesByTxndateAndCollectorid(params);
+		shortages.sort{ it.dtfiled }
+		shortages.eachWithIndex{ itm, idx->
+			def item = [
+				objid 		: itm.objid,
+				itemid		: itm.objid,
+				description : 'Shortage ' + (idx+1),
+				type 		: 'shortage',
+				collection 	: [objid: itm.objid, type: 'SHORTAGE'],
+				group 		: [objid: itm.objid, type: 'shortage']
+			];
+			//items.add(item);
+			result << item;
+		}
 
 		def billing = ledger_billing.findByCollectorAndBilldate(params);
 		//if (!billing) return result;
@@ -139,20 +154,6 @@ class CollectionCashbreakdownService extends ActiveCrudListService
 				def prm = [collectionid: billing.objid, groupid: it.itemid, grouptype: it.type];
 				def item = remittance.findCollectionRemittance(prm);
 				if (it.state=='CANCELLED' || !item) items.remove(it); 
-			}
-
-			def shortages = shortage.getShortagesByTxndateAndCollectorid(params);
-			shortages.sort{ it.dtfiled }
-			shortages.eachWithIndex{ itm, idx->
-				def item = [
-					objid 		: itm.objid,
-					itemid		: itm.objid,
-					description : 'Shortage ' + (idx+1),
-					type 		: 'shortage',
-					collection 	: [objid: itm.objid, type: 'SHORTAGE'],
-					group 		: [objid: itm.objid, type: 'shortage']
-				];
-				items.add(item);
 			}
 
 			def routes = items.findAll{ it.type == 'route' }

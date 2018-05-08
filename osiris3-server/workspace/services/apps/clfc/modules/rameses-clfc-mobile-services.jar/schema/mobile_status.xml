@@ -7,6 +7,7 @@
 		<field name="mobiledata" required="true" />
 		<field name="gps" required="true" />
 		<field name="network" required="true" />
+		<field name="phonestatus" />
 		<field name="prevlng" required="true" />
 		<field name="prevlat" required="true" />
 	</element>

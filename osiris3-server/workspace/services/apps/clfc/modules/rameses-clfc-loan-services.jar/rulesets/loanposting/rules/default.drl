@@ -5,6 +5,19 @@ import java.util.*;
 
 global com.rameses.rules.common.RuleAction action;
 
+rule "build-billitems"
+  agenda-group "initial"
+  salience 100000
+  when
+    $L: SampleLoanApp()
+  then
+    Map params = new HashMap();
+
+    params.put("LOANAPP", $L);
+
+    action.execute("addSamplePostingItem", params, drools);
+end
+
 /*
 rule "build-billitems-wo-payment"
   agenda-group "initial"

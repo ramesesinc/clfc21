@@ -1,0 +1,17 @@
+<schema>
+
+	<element tablename='sms_provider'>
+		<field name='code' primary='true' />
+		<field name='dtcreated' required='true' />
+		<field name='author_objid' required='true' />
+		<field name='author_name' required='true' />
+		<field name='description' />
+		<field name='portname' />
+	</element>
+
+	<element name='prefix' tablename='sms_provider_prefix'>
+		<field name='prefix' primary='true' />
+		<field name='provider_code' required='true' />
+	</element>
+
+</schema>

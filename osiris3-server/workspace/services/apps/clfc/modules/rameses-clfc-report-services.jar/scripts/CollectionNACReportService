@@ -19,6 +19,7 @@ class CollectionNACReportService
 	@Service('BranchService')
 	def branchSvc;
 
+	@Async
 	@ProxyMethod
 	public def getReportData( params ) {
 		def df = new SimpleDateFormat("yyyy-MMM-dd");
@@ -51,7 +52,7 @@ class CollectionNACReportService
 		xlist?.each{ o->
 			item = em.findTotalAccountsCollected([objid: o.objid]);
 			if (item) {
-				o.acctcollected = item.count;
+				o.acctcollected = item.count;   
 			}
 
 			item = em.findTotalAmountCollected([objid: o.objid]);
@@ -69,56 +70,61 @@ class CollectionNACReportService
 				}
 				if (item) {
 					o.accttobecollected = item.count;
-					o.totalamountobecollected = item.totalamount;
+					o.totalamounttobecollected = item.totalamount;
 				}
 			}
 			o.description = o.description?.toUpperCase();
 		}
 
 		def list = [];
+		def txndate;
 		xlist.each{ o->
-			def i = list.find{ o.txndate == it.txndate}
+			def i = list.find{ o.txndate == it.txndate }
 			if (!i) {
 				i = [txndate: o.txndate];
 				list.add(i);
+				//txndate = o.txndate;	
 			}
 		}
 		list.unique{ it.txndate }
 		list.sort{ it.txndate }
 
-		def mlist, totaltobecollected = 0, totalcollected = 0;
+		def mlist, totaltobecollected = 0.0, totalcollected = 0.0;
 		list?.each{ o->
 			mlist = [];
 			mlist.addAll(xlist.findAll{ o.txndate == it.txndate });
 
 			if (mlist) {
 				mlist?.sort{ it.description + it.dtfiled }
-				def amt = mlist?.totalamountobecollected?.sum();
-				if (!amt) amt = 0;
+				def amt = mlist?.totalamounttobecollected?.sum();
+				if (!amt) amt = 0.0;
 				totaltobecollected += amt;
 
 				amt = mlist?.totalamountcollected?.sum();
-				if (!amt) amt = 0;
+				if (!amt) amt = 0.0;
 				totalcollected += amt;
 
 				o.list = mlist;
 			}
 		}
 
+
 		def df2 = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
 		def branch = branchSvc.open([:]);
 		def data = [
 			filter 				: filter,
 			//date_period : date,
+			//txndate				: txndate,
 			dtprinted			: df2.format(dateSvc.serverDate),
 			printedby 			: env.NAME,
-			items				: list,
+			items				: xlist,
 			totaltobecollected 	: totaltobecollected,
 			totalcollected 		: totalcollected
 		];
 		branch.each{ k, v->
 			data["branch_"+k] = v;
 		}
+		
 		return data;
 	}
 

@@ -547,7 +547,6 @@ class LedgerAmnestySMCService extends ActiveCrudListService
 		def addeddocs, removeddocs, updateddocs;
 		def addedfees, removedfees, updatedfees;
 		def fi = params.filinginfo;
-		if (!fi) fi = [:];
 		fi.title = "FILINGINFO";
 		if (fi) {
 			data.filinginfo = fi;
@@ -566,7 +565,6 @@ class LedgerAmnestySMCService extends ActiveCrudListService
 		}
 
 		def ci = params.courtinfo;
-		if (!ci) ci = [:];
 		ci.title = "COURTINFO";
 		if (ci) {
 			data.courtinfo = ci;
@@ -637,7 +635,6 @@ class LedgerAmnestySMCService extends ActiveCrudListService
 		def addedconditions, removedconditions, updatedconditions;
 
 		def ci = params.courtinfo;
-		if (!ci) ci = [title: "COURTINFO"];
 		if (ci) {
 			data.courtinfo = ci;
 
@@ -909,11 +906,10 @@ class LedgerAmnestySMCService extends ActiveCrudListService
 				def item, objid;
 				setting?.postingheader?.each{ o->
 					objid = o.code + data?.objid;
-					item = em.read([objid: objid], 'posting-header');
+					item = em.read([objid: o.objid], 'posting-header');
 					if (!item) {
-						item = [refid: data?.objid];
+						item = [objid: objid, refid: data?.objid];
 						item.putAll(o);
-						item.objid = objid;
 						em.create(item, 'posting-header');
 					}
 				}

@@ -78,7 +78,11 @@ public class DownloadBillingController
 	private Handler successhandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
-			route.put("downloaded", 1);
+//			route.put("downloaded", 1);			
+			if (route != null) {
+				route.put("allowdownload", false);
+				route.put("itemstate", "DOWNLOADED");
+			}
 			activity.getHandler().post(new Runnable() {
 				public void run() {
 					((RouteListActivity) activity).loadRoutes();
@@ -137,7 +141,7 @@ public class DownloadBillingController
 				
 				String tracker_owner = settings.getTrackerOwner(date);
 				params.put("trackerid", trackerid);
-								
+
 				Map map = svc.downloadBilling(params);
 
 //				String mTrackerid = map.get("trackerid").toString();
@@ -285,7 +289,10 @@ public class DownloadBillingController
 					params.put("name", collectorid + "-" + billdate);
 					params.put("value", billingid);
 					clfcdb.insert("sys_var", params);
-				}			
+				}
+				
+//				boolean flag = systemSvc.hasBillingByCollector( collectorid );
+//				billingid = s
 			}
 			
 			if (!proxy.isEmpty()) {

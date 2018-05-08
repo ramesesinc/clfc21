@@ -113,6 +113,7 @@ abstract class AbstractSpecialCollectionController  {
         EventQueue.invokeLater({
             listHandler?.reload();
             binding?.refresh('formActions');
+            caller?.reload();
         });
     }
     
@@ -250,6 +251,7 @@ abstract class AbstractSpecialCollectionController  {
         if (!MsgBox.confirm("You are about to reset this billing. Continue?")) return;
         
         entity = service.resetBilling(entity);
+        EventQueue.invokeLater({ caller?.reload(); })
         //entity = service.open(entity);
         MsgBox.alert("Resetting billing has been successfully processed.");
     }
@@ -270,9 +272,76 @@ abstract class AbstractSpecialCollectionController  {
         if (!MsgBox.confirm("You are about to submit this document for approval. Continue?")) return;
         
         entity = service.submitForApproval(entity);
+        EventQueue.invokeLater({ caller?.reload(); })
     }
     
-    void approveDocument() {
+    def approveDocument() {        
+        if (!MsgBox.confirm("You are about to approve this document. Continue?")) return;
+                
+        def onMessageImpl = { o->
+            //println 'onMessage '  + o;
+            //println 'EOF ' + AsyncHandler.EOF;
+            //loadingOpener.handle.binding.fireNavigation("_close");
+
+            if (o == AsyncHandler.EOF) {
+                //loadingOpener.handle.binding.fireNavigation("_close");
+                loadingOpener.handle.closeForm();
+                return;
+            }
+            entity = o;
+            generatePDFFile();
+            loadingOpener.handle.closeForm();
+            //entity.putAll(o);
+            //def msg = ;
+            //if (mode == 'edit') msg = "Follow-up collection updated successfully!";
+            //mode = 'read';
+            MsgBox.alert("Special collection billing created successfully!");
+            EventQueue.invokeLater({
+                binding?.refresh();
+                listHandler?.reload();
+                caller?.reload();
+            });
+        }
+        
+        loadingOpener = Inv.lookupOpener('popup:loading', [:]);
+        def handler = [
+            onMessage   : onMessageImpl,
+            onError     : { p->
+                loadingOpener.handle.closeForm();
+                
+                if (showconfirmation==true) {
+                    def msg = p.message;
+                    msg += '\nDo you still want to continue to create this billing?';
+                    if (MsgBox.confirm(msg)) {
+                        showconfirmation = false;
+                        def xhandler = { o->                            
+                            def handler2 = [
+                                onMessage   : onMessageImpl,
+                                onError     : { e->
+                                    //loadingOpener.handle.binding.fireNavigation('_close');  
+                                    loadingOpener.handle.closeForm();
+                                    MsgBox.err(e.message); 
+                                }
+                            ] as AsyncHandler;
+                            service.createNewBillingWithoutLedgerValidation(entity, handler2);
+                        }
+                        loadingOpener = Inv.lookupOpener('popup:loading', [handler: xhandler]);
+                        binding.fireNavigation(loadingOpener);
+                    }
+                    //def confirmhandler = {                        
+                        
+                    //}
+                    //Modal.show('popup:confirmation', [handler: confirmhandler, text: msg], [title: "Confirmation"]);
+                } else {
+                    MsgBox.err(p.message);
+                }
+            }
+        ] as AsyncHandler;
+        service.approveDocument(entity, handler);
+        return loadingOpener;
+    }
+    
+    void xapproveDocument() {
         if (!MsgBox.confirm("You are about to approve this document. Continue?")) return;
         
         entity = service.approveDocument(entity);
@@ -404,6 +473,7 @@ abstract class AbstractSpecialCollectionController  {
         if (!MsgBox.confirm("You are about to disapprove this document. Continue?")) return;
         
         entity = service.disapprove(entity);
+        EventQueue.invokeLater({ caller?.reload(); })
     }
     
     void generatePDFFile() {

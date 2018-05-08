@@ -222,8 +222,8 @@ class MobileStatusTrackerService
 						timedifference = settings.getLong("timedifference");
 					}
 					params.put("timedifference", timedifference);
-					trackerdb.insert("mobile_status", params);
-
+					trackerdb.insert("mobile_status", params); 
+   
 					
 					/*Platform.getMainActivity().getHandler().post(new Runnable() {
 						public void run() {

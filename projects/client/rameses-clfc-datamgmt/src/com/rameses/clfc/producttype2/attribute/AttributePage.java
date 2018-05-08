@@ -83,6 +83,7 @@ public class AttributePage extends javax.swing.JPanel {
         xTextField5.setName("entity.fieldname"); // NOI18N
         xTextField5.setPreferredSize(new java.awt.Dimension(0, 20));
         xTextField5.setRequired(true);
+        xTextField5.setSpaceChar('_');
         xTextField5.setTextCase(com.rameses.rcp.constant.TextCase.LOWER);
         xFormPanel1.add(xTextField5);
 

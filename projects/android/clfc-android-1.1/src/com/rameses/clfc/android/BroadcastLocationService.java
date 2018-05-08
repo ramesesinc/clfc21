@@ -1,5 +1,6 @@
 package com.rameses.clfc.android;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -157,8 +158,10 @@ public class BroadcastLocationService
 						params.put("txndate", proxy.getString("txndate"));
 //						params.put("lng", proxy.getDouble("lng"));
 //						params.put("lat", proxy.getDouble("lat"));
-						params.put("lng", Double.parseDouble(proxy.getString("lng")));
-						params.put("lat", Double.parseDouble(proxy.getString("lat")));
+//						params.put("lng", Double.parseDouble(proxy.getString("lng")));
+//						params.put("lat", Double.parseDouble(proxy.getString("lat")));
+						params.put("lng", new BigDecimal(proxy.getString("lng")));
+						params.put("lat", new BigDecimal(proxy.getString("lat")));
 						params.put("state", 1);
 						
 						Map param = new HashMap();

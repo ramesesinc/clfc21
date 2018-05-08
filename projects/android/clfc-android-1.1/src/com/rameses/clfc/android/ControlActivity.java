@@ -26,7 +26,6 @@ public class ControlActivity extends UIActionBarActivity
 		((TextView) findViewById(R.id.tv_mode)).setText(mode);	
 //		println("sessionid: " + SessionContext.getSessionId());
 	}
-
 	
 	@Override
 	public void onUserInteraction() {

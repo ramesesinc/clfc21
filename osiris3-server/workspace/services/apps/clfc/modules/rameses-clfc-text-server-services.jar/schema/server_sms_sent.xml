@@ -1,0 +1,15 @@
+<schema>
+
+	<element tablename='server_sms_sent'>
+		<field name='objid' primary='true' />
+		<field name='dtfiled' required='true' />
+		<field name='refid' required='true' />
+		<field name='part' required='true' />
+		<field name='totalpart' required='true' />
+		<field name='message' required='true' />
+		<field name='pdumessage' required='true' />
+		<field name='mobileno' required='true' />
+		<complex name='info' required='false' merge='true' serializer='default' />
+	</element>
+
+</schema>

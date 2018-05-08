@@ -35,22 +35,22 @@ class PostingConstraintController
     def entity, mode = 'read'
     def handler, constraintControls = [];
     def _expr, vars;
-    def forConstraintList;
+    def forConstraintList, headerList;
     
     def attributeLookup = Inv.lookupOpener("loan:producttype:attribute:lookup", [
          onselect: { o->
-             println 'attribute'
-             o.each{ println it }
+             //println 'attribute'
+             //o.each{ println it }
              entity.code = o.code;
              entity.title = o.title;
              entity.name = o.fieldname;
              entity.varname = o.varname;
              entity.datatype = o.datatype;
              entity.attributeid = o.code;
-             entity.postonlastitem = true;
              entity.sequence = entity.postinginfo?.postingsequence?.size();
              if (!entity.sequence) entity.sequence = 1;
              entity.index = entity.sequence - 1;
+             entity.attribute = o;
              
              binding?.refresh();
              /*
@@ -78,11 +78,43 @@ class PostingConstraintController
         binding?.refresh();
     }
     
-    def getPostingGroupList() {
+    def getRuleGroupList() {
         def list = service.getPostingRuleGroup();
         if (!list) list = [];
         return list;
     }
+    
+    def getRuleSetList() {
+        def list = service.getPostingRuleSet();
+        if (!list) list = [];
+        return list;
+    }
+    
+    /*
+    def getHeaderList() {
+        def list = [];
+        entity.postingheader.sort{ it.sequence }
+        entity.postingheader.each{
+            list << [code: it.code, title: it.title, name: it.name];
+        }
+        
+        return list;
+    }
+    */
+    
+    /*
+    def getPostingSequenceList() {
+        def list = service.getPostingRuleGroup();
+        if (!list) list = [];
+        return list;
+    }
+    
+    def getPostingGroupList() {
+        def list = service.getPostingRuleSet();
+        if (!list) list = [];
+        return list;
+    }
+    */
     
     def copyMap( src ) {
         def map = [:];
@@ -167,7 +199,7 @@ class PostingConstraintController
         }
         def params = [
             onselect    : handler,
-            fieldList   : service.getFieldList()
+            fieldList   : service.getFields()
         ];
         def op = Inv.lookupOpener('producttype:postinginfo:constraint:select', params);
         if (!op) return null;

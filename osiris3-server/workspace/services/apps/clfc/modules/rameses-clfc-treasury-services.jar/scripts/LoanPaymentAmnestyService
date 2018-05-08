@@ -61,12 +61,14 @@ class LoanPaymentAmnestyService
 		def txndate;
 		if(params.entity) {
 			txndate = params.entity.txndate;
-			def p = ledger_noncash.read([objid: params.noncashid]);
-			if (p) {
-				def payment = ledger_payment.findByParentidAndRefnoAndTxndate([parentid: ledger.objid, refno: params.refno, txndate: txndate]);
-				if (payment) {
-					p.refid = payment.objid;
-					ledger_noncash.update(p);
+			if (params.noncashid) {				
+				def p = ledger_noncash.read([objid: params.noncashid]);
+				if (p) {
+					def payment = ledger_payment.findByParentidAndRefnoAndTxndate([parentid: ledger.objid, refno: params.refno, txndate: txndate]);
+					if (payment) {
+						p.refid = payment.objid;
+						ledger_noncash.update(p);
+					}
 				}
 			}
 		} else {

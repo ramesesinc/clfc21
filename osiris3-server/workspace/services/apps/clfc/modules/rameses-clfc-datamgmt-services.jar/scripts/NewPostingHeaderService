@@ -1,0 +1,83 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import com.rameses.rules.common.*;
+
+class NewPostingHeaderService extends ActiveCrudListService {
+
+	@Env
+	def env;
+
+	@ActiveDB("postingheader")
+	def em;
+
+	@Service("LOVService")
+	def lovSvc;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: "title", caption: "Title"];
+		cols << [name: "name", caption: "Name"];
+		cols << [name: "datatype", caption: "Data Type"];
+		cols << [name: "type", caption: "Type"];
+
+		if (!params.category) cols << [name: "category", caption: "Category"];
+
+		return cols;
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	void beforeCreate( data ) {
+		data.dtcreated = dateSvc.serverDate;
+		data.author = getUser();
+	}
+
+	@ProxyMethod
+	public def getCategories() {
+		def list = [[caption: "All"]];
+		lovSvc.getKeyValues("POSTING_HEADER_CATEGORY").each{ 
+			list << [caption: it["value"], category: it["key"]]; 
+		};
+		return list;
+	}
+
+	@ProxyMethod
+	public def getTypes() {
+		return ["DEFAULT"];
+	}
+
+	@ProxyMethod
+	public def getDataTypes() {
+		return ["decimal", "date", "integer", "string"];
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+		if (params.category) {
+			params._listMethod = "getListByCategory";
+		}
+	}
+
+	@ProxyMethod
+	public def getFactList( params ) {
+		if (!params.category) throw new RuntimeException("Please specify category.");
+
+		params.category = params.category.toLowerCase();
+		return em.getFactListByCategory(params).collect{ [objid: it.objid, title: it.defaultvarname, varname: it.defaultvarname] } 
+	}
+
+	@ProxyMethod
+	public def getFieldList( params ) {
+		if (!params.factid) throw new RuntimeException("Please specify factid.");
+		//if (!params.category) throw new RuntimeException("Please specify category.");
+
+		return em.getFieldListByFactid(params).collect{ [objid: it.objid, name: it.name, title: it.name, handler: it.handler] };
+	}
+}

@@ -1,0 +1,65 @@
+import com.rameses.annotations.*;
+import com.rameses.server.common.*;
+import com.rameses.rules.common.RuleRequest;
+
+class TestPostingService {
+	
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('loan_ledger_payment')
+	def ledger_payment;
+
+	@Resource('RuleService')
+	def ruleSvc;
+
+
+	@ProxyMethod
+	public def testPost() {
+		def ledgerid = 'LEDGER3d762af1:14654dad05c:-7ed6';
+		def ledger = loan_ledger.read([objid: ledgerid]);
+		if (!ledger) throw new Exception('Ledger record does not exist or has already been deleted.');
+
+		def app = loanapp.read([objid: ledger.appid]);
+		if (!app) throw new Exception('Loan Application record does not exist or has already been deleted.');
+
+		//throw new Exception('stopping');
+		println 'app';
+		app?.each{ println it }
+		println '';
+		println 'ledger';
+		ledger?.each{ println it }
+
+
+		def params = [ledger: ledger, app: app];
+		def list = ledger_payment.getList(ledger);
+		def payments = [list[0]];
+
+		payments?.each{ p->
+			params.payment = p;
+			postPayment(params);
+		}
+
+	}
+
+
+	public def postPayment( params ) {
+		def prepostingResult = prePosting(params);
+	} 
+
+	public def prePosting( params ) {
+
+		def req = new RuleRequest('pre_posting_normal');
+
+		try {
+			ruleSvc.execute( req );	
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+}

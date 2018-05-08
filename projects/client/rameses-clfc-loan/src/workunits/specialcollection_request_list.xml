@@ -3,8 +3,9 @@
         <!--
         <invoker folderid="/explorer/txn/loan" caption="Field Requests" role="ACCT_OFFICER" />
         -->
-        
+        <!--
         <invoker folderid="/home/online/billing" caption="Field Requests" role="ACCT_OFFICER" />
+        -->
         
         <!--
         <invoker type="formActions" action="create" caption="Create" mnemonic="e" visibleWhen="#{selectedEntity != null &amp;&amp; selectedEntity.state == 'PENDING'}"/>

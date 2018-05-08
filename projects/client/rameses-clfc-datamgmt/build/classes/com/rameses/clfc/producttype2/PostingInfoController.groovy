@@ -46,6 +46,7 @@ class PostingInfoController {
         if (!entity.postinginfo.postingsequence) entity.postinginfo.postingsequence = [];
 
         entity.postinginfo.postingheader = header;
+        /*
         
         entity.postinginfo.postingsequence = [];
         header.each{ o->
@@ -69,8 +70,9 @@ class PostingInfoController {
             
             item.fields = service.getFields( item );
         }
+        */
         headersHandler?.reload();
-        binding?.refresh("postingHtml");
+        //binding?.refresh("postingHtml");
     }
     
     def addHeader() {
@@ -149,7 +151,7 @@ class PostingInfoController {
     
     void moveUpCondition( params ) {
         def list = entity.postinginfo.postingsequence;
-        def item = list.find{ it.objid==params.objid }
+        def item = list.find{ it.code==params.code }
         if (item) {
             def idx = item.index;
             
@@ -166,7 +168,7 @@ class PostingInfoController {
     
     void moveDownCondition( params ) {
         def list = entity.postinginfo.postingsequence;
-        def item = list.find{ it.objid==params.objid }
+        def item = list.find{ it.code==params.code }
         if (item) {
             def idx = item.index;
             
@@ -186,7 +188,7 @@ class PostingInfoController {
         
         def handler = { o->
 
-            def i = entity.postinginfo.postingsequence.find{ it.objid==o.objid }
+            def i = entity.postinginfo.postingsequence.find{ it.code==o.code }
             if (i) throw new RuntimeException("Posting condition has already been selected.");
 
             o.sequence = entity.postinginfo.postingsequence.size();
@@ -197,9 +199,10 @@ class PostingInfoController {
         }
         
         def params = [
-            mode    : mode,
-            handler : handler,
-            vars    : buildVarList()
+            mode        : mode,
+            handler     : handler,
+            vars        : buildVarList(),
+            headerList  : buildHeaderList()
         ]
         
         def op = Inv.lookupOpener("producttype:postinginfo:constraint:create", params);
@@ -216,7 +219,7 @@ class PostingInfoController {
     }
     
     def editCondition( params ) {
-        def item = entity.postinginfo.postingsequence.find{ it.objid==params.objid }
+        def item = entity.postinginfo.postingsequence.find{ it.code==params.code }
         if (!item) return;
         
         def handler = { o->            
@@ -232,12 +235,22 @@ class PostingInfoController {
             mode                : mode,
             handler             : handler,
             vars                : buildVarList( item?.index ),
-            forConstraintList   : []
+            forConstraintList   : [],
+            headerList          : buildHeaderList()
         ];
         
         def op = Inv.lookupOpener("producttype:postinginfo:constraint:open", xprm);
         if (!op) return null;
         return op;
+    }
+    
+    def buildHeaderList() {
+        def list = [];
+        def l = entity.postinginfo?.postingheader;
+        l?.each{ 
+            list << [code: it.code, title: it.title, name: it.name];
+        }
+        return list;
     }
     
     def buildVarList() {

@@ -10,6 +10,8 @@
 		<field name="txntype" required="true" />
 		<field name="dtstarted" required="true" />
 		<field name="dtended" required="true" />
+		<field name="collector_objid" required="true" />
+		<field name="collector_name" required="true" />
 		<field name="dtposted" />
 		<field name="poster_objid" />
 		<field name="poster_name" />

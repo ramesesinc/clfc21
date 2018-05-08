@@ -19,6 +19,9 @@
         <invoker type='formActions' action='submitForApproval' caption='Submit for Approval' mnemonic='s' shortcut='ctrl s'
             visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='DRAFT'}" role='AUDIT_AMNESTY' />
             
+            
+        <invoker type="formActions" action="returnToDraft" caption="Return" mnemonic="r" shortcut="ctrl r"
+            visibleWhen="${mode=='read' &amp;&amp; entity.txnstate=='FOR_APPROVAL'}" role="AUDIT_AMNESTY" />
         <invoker type='formActions' action='approveDocument' caption='Approve' mnemonic='a' shortcut='ctrl a'
             visibleWhen="#{mode=='read' &amp;&amp; entity.txnstate=='FOR_APPROVAL'}" role='AUDIT_APPROVER' />
         <invoker type='formActions' action='disapprove' caption='Disapprove' mnemonic='d' shortcut='ctrl d'
@@ -29,6 +32,8 @@
         <invoker type='formActions' action='editPosting' caption='Edit' mnemonic='e' shortcut='ctrl e'
             visibleWhen="#{postingmode=='read' &amp;&amp; entity.txnstate=='APPROVED'}" role='AUDIT_AMNESTY' />
             
+        <invoker type="formActions" action="returnToApproved" caption="Return" mnemonic="r" shortcut="ctrl r"
+            visibleWhen="${postingmode=='read' &amp;&amp; entity.txnstate=='APPROVED'}" role="AUDIT_AMNESTY" />
         <invoker type='formActions' action='submitForVerification' caption='Submit for Verification' mnemonic='s' shortcut='ctrl s'
             visibleWhen="#{postingmode=='read' &amp;&amp; entity.txnstate=='APPROVED'}" role='AUDIT_AMNESTY' />
         

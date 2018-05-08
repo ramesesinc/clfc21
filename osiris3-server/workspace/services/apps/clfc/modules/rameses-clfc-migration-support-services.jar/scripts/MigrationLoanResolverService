@@ -24,7 +24,7 @@ class MigrationLoanResolverService extends ActiveCrudListService
 		cols << [name: 'objid', caption: 'ID'];
 		cols << [name: 'acctname', caption: 'AcctName'];
 		cols << [name: 'loanamount', caption: 'Amount', type: 'decimal', format: '#,##0.00'];
-		cols << [name: 'loandate', caption: 'DateReleased', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'loandate', caption: 'Date Released', type: 'date', outputFormat: 'MMM-dd-yyyy'];
 
 		return cols;
 	}

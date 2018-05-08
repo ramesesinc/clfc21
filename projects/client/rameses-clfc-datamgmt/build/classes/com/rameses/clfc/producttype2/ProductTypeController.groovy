@@ -4,6 +4,7 @@ import com.rameses.rcp.common.*;
 import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
+import java.rmi.server.UID;
 
 class ProductTypeController {
 
@@ -36,6 +37,7 @@ class ProductTypeController {
         def defaultgenattr = service.getDefaultGeneralInfoAttributes();
         def defaultloanattr = service.getDefaultLoanInfoAttributes();
         def data = [
+            code        : 'PT' + new UID().toString().hashCode(),
             txnstate    : "DRAFT", 
             generalinfo : [
                 title       : "GENERALINFO",
@@ -133,33 +135,23 @@ class ProductTypeController {
     def cancel() {
         if (mode == "edit") {
             
-            if (preventity) {
-                entity = preventity;
-            }
+            entity = preventity;
             
             if (entity.generalinfo) {
-                if (prevgenattr) {
-                    entity.generalinfo.attributes = prevgenattr;
-                }
+                entity.generalinfo.attributes = prevgenattr;
                 entity.generalinfo._addedattr = [];
                 entity.generalinfo._removedattr = [];
             }
             
             if (entity.loaninfo) {
-                if (prevloanattr) {
-                    entity.loaninfo.attributes = prevloanattr;
-                }
+                entity.loaninfo.attributes = prevloanattr;
                 entity.loaninfo._addedattr = [];
                 entity.loaninfo._removedattr = [];
             }
             
             if (entity.postinginfo) {
-                if (prevpostingheader) {
-                    entity.postinginfo.postingheader = prevpostingheader;
-                }
-                if (prevpostingseq) {
-                    entity.postinginfo.postingsequence = prevpostingseq;
-                }
+                entity.postinginfo.postingheader = prevpostingheader;
+                entity.postinginfo.postingsequence = prevpostingseq;
             }
             
             mode = "read";

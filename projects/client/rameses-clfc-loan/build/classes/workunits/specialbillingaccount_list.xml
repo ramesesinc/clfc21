@@ -1,6 +1,8 @@
 <workunit extends='wtemplates/ListController.xml'>
     <invokers>
+        <!--
         <invoker folderid='/home/online/billing' caption='Special Billing Accounts' role='ACCT_OFFICER' />
+        -->
     </invokers>
     
     <code>

@@ -1,0 +1,19 @@
+<schema>
+
+	<element tablename="loan_producttypeattribute">
+		<field name="code" primary="true" />
+		<field name="dtcreated" required="true" />
+		<field name="author_objid" required="true" />
+		<field name="author_name" required="true" />
+		<field name="txnstate" required="true" />
+		<field name="title" required="true" />
+		<field name="handler" />
+		<field name="datatype" required="true" />
+		<field name="conditiontype" required="true" />
+		<field name="category" required="true" />
+		<field name="varname" required="true" />
+		<field name="fieldname" required="true" />
+		<complex name="info" required="false" serializer="default" merge="true" />
+	</element>
+
+</schema>

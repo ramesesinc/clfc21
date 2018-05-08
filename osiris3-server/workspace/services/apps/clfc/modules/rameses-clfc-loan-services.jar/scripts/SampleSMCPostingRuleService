@@ -1,0 +1,36 @@
+import com.rameses.annotations.*;
+import com.rameses.rules.common.*;
+import loan.facts.*;
+import loan.actions.*;
+import java.util.*;
+import com.rameses.util.*;
+
+class SampleSMCPostingRuleService
+{
+	@Service('RuleExecutorService')
+	def ruleSvc;
+
+	@ProxyMethod
+	public def execute( params ) {
+
+		try {
+			KnowledgeBase kbase = readKnowledgeBase();
+			println 'kbase ' + kbase;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		/*
+		facts << new SampleLoanApp(params);
+
+		def actions = new RuleAction(); 
+		actions.addCommand( "addSamplePostingItem", new  AddSamplePostingItem(facts: facts) );
+
+
+		ruleSvc.execute( "loanposting", facts, actions, null );
+
+		println 'facts size ' + facts?.size();
+		facts?.each{ println it?.toMap(); }
+		*/
+	}
+}

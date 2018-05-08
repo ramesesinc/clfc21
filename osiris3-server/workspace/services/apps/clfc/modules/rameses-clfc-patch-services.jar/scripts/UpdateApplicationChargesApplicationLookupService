@@ -1,0 +1,28 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class UpdateApplicationChargesApplicationLookupService extends ActiveListService {
+
+	@ActiveDB("update_application")
+	def em;
+
+	String listMethod = "getLookupApplicationList";
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: "appno", caption: "App. No."];
+		cols << [name: "borrower.name", caption: "Borrower"];
+		cols << [name: "Amount", caption: "amount", type: "decimal", format: "#,##0.00"];
+		cols << [name: "dtreleased", caption: "Release Date", type: "date", outputFormat: "MMM-dd-yyyy"];
+		cols << [name: "dtmatured", caption: "Maturity Date", type: "date", outputFomat: "MMM-dd-yyyy"];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + "%";
+	}
+
+}

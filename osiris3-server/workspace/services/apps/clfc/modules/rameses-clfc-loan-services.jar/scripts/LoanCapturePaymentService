@@ -281,7 +281,7 @@ class LoanCapturePaymentService {
 			message 	: 'Captured payment collection for approval (Collector: ' + data.collector.name + ' Date: ' + data.txndate + ')', 
 			senderid	: env.USERID, 
 			sendername 	: env.NAME, 
-			recipientid : 'APPROVER' 
+			recipientid : 'FIELD_COLLECTOR' 
 		]; 
 		inboxSvc.addMessage( msginfo );
 
@@ -549,6 +549,7 @@ class LoanCapturePaymentService {
 		}
 
 	}
+	
 	private void createFieldCollection( data ) {
 		//data = em.read(data);
 		data = open( data );
@@ -762,7 +763,11 @@ class LoanCapturePaymentService {
 		if ((c.get(Calendar.DAY_OF_WEEK) == 1)) hassunday = true;
 
 		def avgamount = data.dailydue;
-		if (data.paymentmethod == 'over') avgamount = ledger_billing.findAvgOverpaymentAmount([parentid: data.objid]).groupbaseamount;
+		if (data.paymentmethod == 'over') {
+			avgamount = data.overpaymentamount;
+			def i = ledger_billing.findAvgOverpaymentAmount([parentid: data.objid]);
+			if (i) avgamount = i.groupbaseamount;
+		}
 		
 		def item = [
 			ledgerid 		: data.objid,

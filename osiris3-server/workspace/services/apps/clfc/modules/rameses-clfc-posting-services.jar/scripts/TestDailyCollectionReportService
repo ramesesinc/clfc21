@@ -1,0 +1,105 @@
+import com.rameses.annotations.*;
+import java.text.SimpleDateFormat;
+
+class TestDailyCollectionReportService {
+
+	@Env
+	def env;
+
+	@ActiveDB("test_daily_collection_report")
+	def em;
+
+	@ActiveDB("encashment")
+	def encashment;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("BranchService")
+	def branchSvc;
+
+	private def DATE_FORMAT1 = new SimpleDateFormat("MMM-dd-yyyy");
+	private def DATE_FORMAT2 = new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a");
+	private def DATE_FORMAT3 = new SimpleDateFormat("MM/dd/yyyy");
+
+	@ProxyMethod
+	public def getReportData() {
+
+		def txndate = java.sql.Date.valueOf("2017-03-17");
+
+		def list = em.getPostedCollectionByDate([date: txndate]);
+		list?.each{ o->
+			o.series = o.startseries.toString().padLeft(6, "0") + " - " + o.endseries.toString().padLeft(6, "0");
+
+			o.items = em.getCollectionItems([objid: o.remittanceid]);
+			def ec = o.items?.findAll{ it.type == 'encashment'}
+			ec?.each{ i->
+				def cbs = encashment.read([objid: i.objid], "encashment-cbs");
+				i.cashremitted =  cbs?.breakdown?.amount.sum();
+				if (!i.cashremitted) i.cashremitted = 0;
+			}
+		}
+
+		def totalcollection = list?.amount.sum();
+		totalcollection += list?.noncash.sum();
+		if (!totalcollection) totalcollection = 0.00;
+
+		def overages = em.getOverageByDate([date: txndate]);
+		if (!overages) overages << [:];
+
+		def totaloverage = overages?.amount.sum();
+		if (!totaloverage) totaloverage = 0.00;
+
+		def totalcollectionwithoverage = totalcollection + totaloverage;
+
+		def totalcollectionfortheday = totalcollectionwithoverage;
+
+		def coh = em.getCashOnHandByDate([date: txndate]);
+		if (!coh) coh << [:];
+
+		def ec = coh?.findAll{ it.type == "encashment" }
+		ec?.each{ o->
+			def cbs = encashment.read([objid: o.objid], "encashment-cbs");
+			o.checkamount = cbs?.breakdown?.amount.sum();
+			if (!o.checkamount) o.checkamount = 0;
+		}
+
+		def amt1 = coh?.cashamount.sum();
+		if (!amt1) amt1 = 0;
+
+		def amt2 = coh?.checkamount.sum();
+		if (!amt2) amt2 = 0;
+
+		def totalcoh = amt1 + amt2;
+
+		def serverdate = dateSvc.serverDate;
+		def branch = branchSvc.open([:]);
+		def data = [
+			date_period 				: DATE_FORMAT1.format(serverdate),//startdate + " TO " + enddate,
+			dtprinted					: DATE_FORMAT2.format(serverdate),
+			printedby 					: env.NAME,
+			items						: list,
+			overages 					: overages,
+			cashonhand 					: coh,
+			totalcollection 			: totalcollection,
+			totaloverage 				: totaloverage,
+			totalcollectionwithoverage	: totalcollectionwithoverage,
+			totalcollectionfortheday	: totalcollectionfortheday,
+			totalcashonhand 			: totalcoh
+			//totalundeposited: totalundeposited,
+			//totalcashreceipt: totalcashreceipt,
+			//totalcashonhand : totalcashonhand,
+			//prevdate 		: prevdate,
+			//collectiondate 	: DATE_FORMAT3.format(txndate),
+			//otherreceipts 	: or,
+			//deposits 		: deposits,
+			//breakdown 		: breakdown
+		];
+		branch.each{ k, v->
+			data["branch_"+k] = v;
+		}
+
+		return data;
+	}
+
+}

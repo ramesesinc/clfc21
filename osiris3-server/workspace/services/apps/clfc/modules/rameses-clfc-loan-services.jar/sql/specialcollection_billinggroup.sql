@@ -47,6 +47,168 @@ INNER JOIN loan_route r ON a.route_code = r.code
 WHERE l.state = 'OPEN'
 	AND d.parentid = $P{objid}
 
+[getAccountsForBillingGroup]
+select b.objid as borrower_objid, b.name as borrower_name, b.address as borrower_address, a.objid as loanapp_objid,
+	a.appno as loanapp_appno, a.loanamount as loanapp_amount, l.objid as ledger_objid, ac.dtreleased as ledger_dtreleased, l.dtmatured as ledger_dtmatured,
+	(select txndate from followup_result where loanapp_objid=a.objid and txnstate='confirmed' order by txndate desc limit 1) as dtlastfollowup
+from (
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join borrower b on a.borrower_objid=b.objid
+	where l.state='open'
+		and b.name like $P{searchtext}
+	union
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	where l.state='open'
+		and a.appno like $P{searchtext}
+) q inner join loan_ledger l on q.objid=l.objid
+inner join loanapp a on l.appid=a.objid
+inner join borrower b on a.borrower_objid=b.objid
+left join loanapp_capture ac on a.objid=ac.objid
+where a.loantype <> 'branch'
+order by b.name, a.appno desc, ac.dtreleased desc
+
+[getAccountsSMC]
+select b.objid as borrower_objid, b.name as borrower_name, b.address as borrower_address, a.objid as loanapp_objid,
+	a.appno as loanapp_appno, a.loanamount as loanapp_amount, l.objid as ledger_objid, ac.dtreleased as ledger_dtreleased, l.dtmatured as ledger_dtmatured,
+	(select txndate from followup_result where loanapp_objid=a.objid and txnstate='confirmed' order by txndate desc limit 1) as dtlastfollowup
+from (
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join borrower b on a.borrower_objid=b.objid
+	left join (
+		select ac.*
+		from (
+			select *
+			from ledgeramnesty_active ac
+			where curdate() between dtstarted and ifnull(dtended, curdate())
+			order by dtfiled desc
+		) ac
+		group by ac.ledgerid
+	) ac on l.objid=ac.ledgerid
+	where l.state='open'
+		and b.name like $P{searchtext}
+		and ac.type='SMC'
+	union
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	left join (
+		select ac.*
+		from (
+			select *
+			from ledgeramnesty_active ac
+			where curdate() between dtstarted and ifnull(dtended, curdate())
+			order by dtfiled desc
+		) ac
+		group by ac.ledgerid
+	) ac on l.objid=ac.ledgerid
+	where l.state='open'
+		and a.appno like $P{searchtext}
+		and ac.type='SMC'
+) q inner join loan_ledger l on q.objid=l.objid
+inner join loanapp a on l.appid=a.objid
+inner join borrower b on a.borrower_objid=b.objid
+left join loanapp_capture ac on a.objid=ac.objid
+where a.loantype <> 'branch'
+order by b.name, a.appno desc, ac.dtreleased desc
+
+[getAccountsFixed]
+select b.objid as borrower_objid, b.name as borrower_name, b.address as borrower_address, a.objid as loanapp_objid,
+	a.appno as loanapp_appno, a.loanamount as loanapp_amount, l.objid as ledger_objid, ac.dtreleased as ledger_dtreleased, l.dtmatured as ledger_dtmatured,
+	(select txndate from followup_result where loanapp_objid=a.objid and txnstate='confirmed' order by txndate desc limit 1) as dtlastfollowup
+from (
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join borrower b on a.borrower_objid=b.objid
+	left join (
+		select ac.*
+		from (
+			select *
+			from ledgeramnesty_active ac
+			where curdate() between dtstarted and ifnull(dtended, curdate())
+			order by dtfiled desc
+		) ac
+		group by ac.ledgerid
+	) ac on l.objid=ac.ledgerid
+	where l.state='open'
+		and b.name like $P{searchtext}
+		and ac.type='FIX'
+	union
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	left join (
+		select ac.*
+		from (
+			select *
+			from ledgeramnesty_active ac
+			where curdate() between dtstarted and ifnull(dtended, curdate())
+			order by dtfiled desc
+		) ac
+		group by ac.ledgerid
+	) ac on l.objid=ac.ledgerid
+	where l.state='open'
+		and a.appno like $P{searchtext}
+		and ac.type='FIX'
+) q inner join loan_ledger l on q.objid=l.objid
+inner join loanapp a on l.appid=a.objid
+inner join borrower b on a.borrower_objid=b.objid
+left join loanapp_capture ac on a.objid=ac.objid
+where a.loantype <> 'branch'
+order by b.name, a.appno desc, ac.dtreleased desc
+
+[getAccountsBadDebt]
+select b.objid as borrower_objid, b.name as borrower_name, b.address as borrower_address, a.objid as loanapp_objid,
+	a.appno as loanapp_appno, a.loanamount as loanapp_amount, l.objid as ledger_objid, ac.dtreleased as ledger_dtreleased, l.dtmatured as ledger_dtmatured,
+	(select txndate from followup_result where loanapp_objid=a.objid and txnstate='confirmed' order by txndate desc limit 1) as dtlastfollowup
+from (
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join borrower b on a.borrower_objid=b.objid
+	left join (
+		select ac.*
+		from (
+			select *
+			from ledgeramnesty_active ac
+			where curdate() between dtstarted and ifnull(dtended, curdate())
+			order by dtfiled desc
+		) ac
+		group by ac.ledgerid
+	) ac on l.objid=ac.ledgerid
+	where l.state='open'
+		and b.name like $P{searchtext}
+		and ac.type='BAD_DEBT'
+	union
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	left join (
+		select ac.*
+		from (
+			select *
+			from ledgeramnesty_active ac
+			where curdate() between dtstarted and ifnull(dtended, curdate())
+			order by dtfiled desc
+		) ac
+		group by ac.ledgerid
+	) ac on l.objid=ac.ledgerid
+	where l.state='open'
+		and a.appno like $P{searchtext}
+		and ac.type='BAD_DEBT'
+) q inner join loan_ledger l on q.objid=l.objid
+inner join loanapp a on l.appid=a.objid
+inner join borrower b on a.borrower_objid=b.objid
+left join loanapp_capture ac on a.objid=ac.objid
+where a.loantype <> 'branch'
+order by b.name, a.appno desc, ac.dtreleased desc
+
 [getConferenceFollowup]
 SELECT q2.*
 FROM (
@@ -106,6 +268,21 @@ WHERE l.state = 'OPEN'
 	AND l.dtmatured < CURDATE()
 	AND b.name LIKE $P{searchtext}
 ORDER BY b.name
+
+[getPreviousBillingGroupByDate]
+select s.*
+from specialcollection_billinggroup s
+where s.dtstarted < $P{date}
+	and s.txntype=$P{type}
+	and s.txnstate="APPROVED"
+order by s.dtstarted desc
+
+[findBillingGroupByDateAndType]
+select s.*
+from specialcollection_billinggroup s
+where s.dtstarted=$P{date}
+	and s.txntype=$P{type}
+	and s.objid <> $P{objid}
 
 [changeState]
 UPDATE specialcollection_billinggroup SET txnstate = $P{txnstate}

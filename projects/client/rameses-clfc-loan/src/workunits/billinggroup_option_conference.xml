@@ -12,11 +12,10 @@
         
         class BillingGroupConferenceAccountListController extends BillingGroupListController
         {
-            //@Service('LoanBillingGroupOptionAccountsService')
-            //def service;
             String serviceName = 'LoanBillingGroupOptionAccountsService';
             String type = 'CONFERENCE';
-        
+            String entityName = "billing:group:conference";
+                
             def selectedOption;
             def optionsModel = [
                 getItems: {
@@ -25,7 +24,11 @@
                 }, 
                 onselect: { o->
                     query.state = o.state;
-                    reload();
+                    try {
+                        reloadAll();
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                    }
                 }
             ] as ListPaneModel;
         

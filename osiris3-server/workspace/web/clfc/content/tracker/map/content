@@ -34,16 +34,40 @@ var TrackerLogFetcher = new function() {
 		//	hasMoreResults = false;
 		//}
 
-		//hasMoreResults = false;
+		//hasMoreResults = true;
 		if (hasMoreResults == true) {
 			_page++; 
 			fetch_0(); 
 		} else {
 			_processing = false;
 			markLine(prevlocation, endlocation);
+
+			\$("#loader-box").hide();
+			\$("#error-box").hide();
+			\$("#info-box").hide(); 
+			/*
 			var loaderbox = RUI.find('#loader-box'); 
-			loaderbox.toggle('slide');
-			loaderbox.remove(); 
+			window.console.log(loaderbox);;
+			if (loaderbox) {
+				loaderbox.toggle('slide');
+				loaderbox.hide();
+				loaderbox.remove(); 
+			}
+
+			var errorbox = RUI.find("#error-box");
+			window.console.log(errorbox);
+			if (errorbox) {
+				errorbox.hide();
+				errorbox.remove();
+			}
+
+			var infobox = RUI.find("#info-box");
+			window.console.log(infobox);
+			if (infobox) {
+				infobox.hide();
+				infobox.remove();
+			}
+			*/
 		}
 	} 
 
@@ -90,16 +114,20 @@ function createMapObject(params) {
 		return; 
 	} 
 
+	var branchLocation = trackerSvc.getBranchLocation();
+	//window.console.log("create map object");
+	//window.console.log( branchLocation );
 	if (!params) params = {};			
 	if (!params.zoom) params.zoom = 14;
-	if (!params.lng || params.lng == 0) params.lng = 123.87636423110962;
-	if (!params.lat || params.lat == 0) params.lat = 10.309926522447359;
+	if (!params.lng || params.lng == 0) params.lng = branchLocation.lng; //params.lng = 123.87636423110962;
+	if (!params.lat || params.lat == 0) params.lat = branchLocation.lat; //params.lat = 10.309926522447359;
 
 	var mapOptions = { 
 		zoom      : params.zoom, 
-		center    : new google.maps.LatLng(params.lat, params.lng), 
-		mapTypeId : google.maps.MapTypeId.ROADMAP 
+		center    : new google.maps.LatLng(params.lat, params.lng)
+		//mapTypeId : google.maps.MapTypeId.HYBRID  
 	} 
+	//window.console.log("passing");
 
 	workspace.map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
 	workspace.markers = []; 
@@ -107,7 +135,8 @@ function createMapObject(params) {
 	if (workspace.tracker) { 
 		var tracker = workspace.tracker;
 
-		if (tracker.startlng && tracker.startlat && tracker.startlng != 0 && tracker.startlat != 0) { 
+		/*
+		if (tracker.reftype != 'START' && tracker.startlng && tracker.startlat && tracker.startlng != 0 && tracker.startlat != 0) { 
 			//coor.push({lat: tracker.startlat, lng: tracker.startlng});
 			startlocation.lat = tracker.startlat;
 			startlocation.lng = tracker.startlng;
@@ -123,7 +152,7 @@ function createMapObject(params) {
 			workspace.startlog = {lat: tracker.startlat, lng: tracker.startlng, objid: tracker.objid, type:'start'} 
 			new HeadWindowHandler(workspace, startMarker, workspace.startlog);
 		} 
-		if (tracker.state == 'CLOSED' && tracker.closedlat && tracker.closedlng && tracker.closedlat != 0 && tracker.closedlng != 0) { 
+		if (tracker.state == 'CLOSED' && tracker.reftype != 'STOP' && tracker.closedlat && tracker.closedlng && tracker.closedlat != 0 && tracker.closedlng != 0) { 
 			//coor.push({lat: tracker.closedlat, lng: tracker.closedlng});
 			endlocation.lat = tracker.closedlat;
 			endlocation.lng = tracker.closedlng;
@@ -138,6 +167,7 @@ function createMapObject(params) {
 			workspace.endlog = {lat: tracker.closedlat, lng: tracker.closedlng, objid: tracker.objid, type:'end'}
 			new HeadWindowHandler(workspace, endMarker, workspace.endlog);
 		}
+		*/
 
 		//markLine(startlocation, endlocation);
 
@@ -200,7 +230,8 @@ function initialize() {
 function loadScript() {
 	var script = document.createElement("script");
 	script.type = "text/javascript";
-	script.src = "http://maps.googleapis.com/maps/api/js?v=3.expr&key=${PROJECT.apikey}&sensor=true&callback=initialize"; 
+	//script.src = "http://maps.googleapis.com/maps/api/js?v=3.expr&key=${PROJECT.apikey}&sensor=true&callback=initialize"; 
+	script.src = "http://maps.googleapis.com/maps/api/js?key=${PROJECT.apikey}&callback=initialize"; 
 	document.body.appendChild(script); 
 } 
 
@@ -316,6 +347,123 @@ function MessageHandler(item) {
 		}
 	}
 }
+
+
+function addStartLog( item ) {
+	if (!isGoogleMapReady()) return; 
+	if (!workspace.logs) workspace.logs = [];
+	if (!workspace.trackercount) workspace.trackercount = 0;
+
+	var logs = workspace.logs;
+	var logitem = logs.find(function(o){ return (o.objid==item.objid? o: null); });  
+	if (logitem) return; 
+
+	updateCurrentLocation(item); 
+	logs.push(item);
+	workspace.trackercount++;
+
+	var logcount = workspace.trackercount;
+	window.console.log( item );
+
+	if (item.lat && item.lat != 0 && item.lng && item.lng != 0) {
+
+		startlocation.lat = item.lat;
+		startlocation.lng = item.lng;
+		prevlocation = startlocation;
+
+		var marker = new google.maps.Marker({ 
+			position 	: new google.maps.LatLng(item.lat, item.lng), 
+			title 		: "Starting Point", 
+			icon 		: '/images/mapicons/start.png', 				
+			map 		: workspace.map, 
+			draggable 	: false, 
+			zIndex 		: 1000
+		});	
+
+		item.marker = marker;
+		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/head?objid=' + item.objid + '&type=start');
+	}
+}
+
+function addStopLog( item ) {
+	if (!isGoogleMapReady()) return; 
+	if (!workspace.logs) workspace.logs = [];
+	if (!workspace.trackercount) workspace.trackercount = 0;
+
+	var logs = workspace.logs;
+	var logitem = logs.find(function(o){ return (o.objid==item.objid? o: null); });  
+	if (logitem) return; 
+
+	updateCurrentLocation(item); 
+	logs.push(item);
+	workspace.trackercount++;
+
+	var logcount = workspace.trackercount;
+
+	if (item.lat && item.lat != 0 && item.lng && item.lng != 0) {
+
+		var marker = new google.maps.Marker({ 
+			position 	: new google.maps.LatLng(item.lat, item.lng), 
+			title 		: "End Point", 
+			icon 		: '/images/mapicons/end.png', 				
+			map 		: workspace.map, 
+			draggable 	: false, 
+			zIndex 		: 1000
+		});	
+
+		item.marker = marker;
+		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/head?objid=' + item.objid + '&type=end');
+	}
+}
+
+function addDownloadLog( item ) {
+	if (!isGoogleMapReady()) return; 
+	if (!workspace.logs) workspace.logs = [];
+	if (!workspace.trackercount) workspace.trackercount = 0;
+
+	var logs = workspace.logs;
+	var logitem = logs.find(function(o){ return (o.objid==item.objid? o: null); });  
+	if (logitem) return; 
+
+	updateCurrentLocation(item); 
+	logs.push(item);
+	workspace.trackercount++;
+
+	var logcount = workspace.trackercount;
+
+	if (item.lat && item.lat != 0 && item.lng && item.lng != 0) {
+
+
+		/*
+		endlocation.lat = item.lat;
+		endlocation.lng = item.lng;
+		var endMarker = new google.maps.Marker({ 
+			position: new google.maps.LatLng(tracker.closedlat, tracker.closedlng), 
+			map 	: workspace.map, 
+			title 	: 'End Point',
+			icon 	: '/images/mapicons/end.png',
+			zIndex 	: 1000
+		});	
+		workspace.markers.push(endMarker);
+		workspace.endlog = {lat: tracker.closedlat, lng: tracker.closedlng, objid: tracker.objid, type:'end'}
+		new HeadWindowHandler(workspace, endMarker, workspace.endlog);
+		*/
+
+		var marker = new google.maps.Marker({ 
+			position 	: new google.maps.LatLng(item.lat, item.lng), 
+			title 		: "Downloaded", 
+			icon 		: '/images/mapicons/phone-icon.png', 				
+			map 		: workspace.map, 
+			draggable 	: false, 
+			zIndex 		: 1000
+		});	
+
+		item.marker = marker;
+		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/head?objid=' + item.objid + '&type=download'); 	
+	}
+}
+
+
 function addPaymentLog(item) {
 	if (!isGoogleMapReady()) return; 
 	//if (!item.lng || !item.lat || item.lng==0 || item.lat==0) return; 
@@ -447,7 +595,7 @@ function addTrackerLog( item ) {
 
 		//var iconpath = '/images/mapicons/map/' + iconname + '.png';	
 		var iconpath = '/images/mapicons/' + iconname + '.png';	
-		window.console.log(iconpath);
+		//window.console.log(iconpath);
 		var marker = new google.maps.Marker({ 
 			position 	: new google.maps.LatLng(item.lat, item.lng), 
 			title 		: title, 
@@ -512,16 +660,15 @@ function addStatusLog( item ) {
 	if (tracker_controller.displaystatus == true) {
 		addStatusMessage(item);
 	}
-
-
 }
 
 function addStatusMessage( item ) {
-	var htmlstring = '<p class="postedtitle">Tracking...</p>';
+	var htmlstring = '<p class="postedtitle">Mobile Status</p>';
 	htmlstring += 'WIFI: <b>'+ (item.wifi==1? 'enabled' : 'disabled') + '</b><br/>';
 	htmlstring += 'Mobile Data: <b>'+ (item.mobiledata==1? 'enabled' : 'disabled') + '</b><br/>';
 	htmlstring += 'GPS: <b>' + (item.gps==1? 'enabled' : 'disabled') + '</b></br>';
-	htmlstring += 'Network: <b>' + (item.network==1? 'enabled' : 'disabled') + '</b>';
+	htmlstring += 'Network: <b>' + (item.network==1? 'enabled' : 'disabled') + '</b><br/>';
+	htmlstring += 'Status: <b>' + (item.phonestatus!=null? item.phonestatus : '') + '</b>';
 	htmlstring += '<p class="postedon">tracked on <span class="txndate">'+ item.txndate +'</span></p>';
 	addMessage(htmlstring, new MessageHandler(item)); 
 }
@@ -581,6 +728,7 @@ function addNormalLog(item) {
 		workspace.previoustracklnglat = newlnglat; 
 	}
 }
+
 function addLog(item) {
 	//if (!isGoogleMapReady() || !item || (item.lat == 0 && item.lng == 0)) return; 
 	if (!isGoogleMapReady() || !item) return; 
@@ -596,11 +744,15 @@ function addLog(item) {
 		prevlocation = currentlocation;
 	}
 
+	//window.console.log( item.reftype );
 	switch (item.reftype.toLowerCase()) {
 		case "payment": addPaymentLog(item); break;
 		case "remarks": addRemarksLog(item); break;
 		case "track": addTrackerLog(item); break;
 		case "status": addStatusLog(item); break;
+		case "start": addStartLog( item ); break;
+		case "stop": addStopLog( item ); break;
+		case "download": addDownloadLog( item ); break;
 		//default: addNormalLog(item); break;
 	}
 
@@ -684,6 +836,7 @@ var tracker_controller = new function() {
 	this.getRoutes = function() {
 		var tracker = workspace.tracker;			
 		var buffer = '(Not Available)';
+		//window.console.log(tracker);
 		if (tracker) {
 			buffer = '';
 			var routes = trackerSvc.getRoutesString(tracker);
@@ -857,12 +1010,12 @@ function resizeMapCanvas() {
 	}
 </style>
 
+<div id="map-canvas"></div> 
 <div id="loader-box">
 	<img src="/images/loading.gif" border="0" height="16"/>
 	Loading tracker logs please wait...
 </div>
 <div id="error-box" style="display:none;"></div>
-<div id="map-canvas"></div> 
 
 <div r:dockto="header-action">
 	<table class="mainmenu">
@@ -873,13 +1026,13 @@ function resizeMapCanvas() {
 			</a>
 		</td> 
 		<td>
-			<span r:context="tracker" r:type="label">Colletion Date:&nbsp;&nbsp; #{getCollectionDate()}</span> 
+			<span r:context="tracker" r:type="label">Tracking Date:&nbsp;&nbsp; #{getCollectionDate()}</span> 
 		</td>
 		<td>
 			<span r:context="tracker" r:type="label">Routes:&nbsp;&nbsp; #{getRoutes()}</span> 
 		</td>
 		<td>
-			<span r:context="tracker" r:type="label">Status:&nbsp;&nbsp; #{getStatus()}</span> 
+			<span r:context="tracker" r:type="label">Tracking Status:&nbsp;&nbsp; #{getStatus()}</span> 
 		</td>
 		<td>
 			<a r:context="tracker" r:name="refreshWindow">Refresh</a>

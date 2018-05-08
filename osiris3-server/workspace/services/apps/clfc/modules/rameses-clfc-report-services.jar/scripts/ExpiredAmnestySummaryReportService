@@ -29,7 +29,7 @@ class ExpiredAmnestySummaryReportService
 			throw new Exception("Start date must not be greater than end date.");
 		}
 	}
-
+	@Async
 	@ProxyMethod
 	public def getReportData( params ) {
 		if (!params.startdate) throw new Exception("Please specify start date.");

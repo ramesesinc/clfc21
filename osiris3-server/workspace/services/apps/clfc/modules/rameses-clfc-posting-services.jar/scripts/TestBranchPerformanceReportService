@@ -1,0 +1,210 @@
+import com.rameses.annotations.*;
+import java.text.SimpleDateFormat;
+
+class TestBranchPerformanceReportService {
+
+	@Env
+	def env;
+
+	@ActiveDB("test_branch_performance")
+	def em;
+
+	@ActiveDB("loanapp")
+	def loanapp;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("BranchService")
+	def branchSvc;
+
+	private def DATE_FORMAT1 = new SimpleDateFormat("MMM-dd-yyyy");
+	private def DATE_FORMAT2 = new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a");
+
+	@ProxyMethod
+	public def getReportData() {
+		def sd = java.sql.Date.valueOf("2016-11-04");
+		def ed = java.sql.Date.valueOf("2016-11-04");
+
+
+		def cal = Calendar.getInstance();
+
+		def list = [];
+		def dates = em.getPaymentDates([startdate: sd, enddate: ed]);
+		dates?.each{ o->
+			def items = em.getLedgersWithPaymentsByDate([date: o.date]);
+			items?.each{ i->
+				def xlist = [];
+				def details = em.getLedgerDetailByDate([objid: i.objid, date: o.date]);
+				details?.each{ d->
+					def itm = [
+						interest: (d.interestpaid != 0)? d.interestpaid : 0.00,
+						penalty : d.penaltypaid
+					];
+
+					if (d.state == "RECEIVED") {
+					} else if (d.state == 'PROCEED' || d.state == 'ADJUSTMENT') {
+					} else if (d.state == 'PREPAIDINTEREST') {
+						itm.penalty = 0.00;
+					} else {	
+					}
+
+					xlist << itm;
+				}
+				def rev = em.getRevenueByDateAndTag([objid: i.objid, date: o.date, tag: "interest"]);
+
+				def interest = 0.00;
+				if (rev) {
+					interest = rev.amount.sum();
+					if (!interest) interest = 0.00;
+				}
+
+				rev = em.getRevenueByDateAndTag([objid: i.objid, date: o.date, tag: "penalty"]);
+
+				def penalty = 0.00;;
+				if (rev) {
+					penalty = rev.amount.sum();
+					if (!penalty) penalty = 0.00;
+				}
+				xlist << [interest: interest, penalty: penalty];
+
+				interest = xlist?.interest.sum();
+				if (!interest) interest = 0.00;
+
+				penalty = xlist?.penalty.sum();
+				if (!penalty) penalty = 0.00;
+
+
+				def principal = i.amount - interest - penalty;
+				if (!principal || principal < 0) principal = 0.00;
+
+				i.interest = interest;
+				i.penalty = penalty;
+				i.principal = principal;
+				//println 'total interest ' + interest + ' total penalty ' + penalty + ' payment ' + i;
+			}
+			list.addAll(items);
+			/*
+			o.items = items;
+
+			def amt = items?.interest.sum();
+			if (!amt) amt = 0.00;
+			o.totalinterest = amt;
+
+			amt = items?.penalty.sum();
+			if (!amt) amt = 0.00;
+			o.totalpenalty = amt;
+
+			amt = items?.principal.sum();
+			if (!amt) amt = 0.00;
+			o.totalprincipal = amt;
+			*/
+		}
+
+		//def list = em.getLedgersWithPaymentsByStartdateAndEnddate([startdate: sd, enddate: ed]);
+		/*
+		list?.each{ o->
+
+			def app = loanapp.read([objid: o.appid]);
+			def app_c = loanapp.read([objid: app?.objid], "loanapp_capture");
+
+			cal.setTime(parseDate(app_c?.dtreleased));
+			def details = em.getLedgerDetailByStartdateAndEnddate([objid: o.objid, startdate: sd, enddate: ed]);
+			details?.each{ d->
+
+			}
+		}
+		*/
+		//println 'list ' + list?.size();
+		/*
+		if (list) {
+			///def startCal = Calendar.getInstance();
+			//def endCal = Calendar.getInstance();
+			//endCal.setTime(parseDate(ed));
+
+			def xlist;
+			list.each{ o->
+
+				def payments  = em.getPaymentsByStartdateAndEnddate([objid: o.objid, startdate: sd, enddate: ed]);
+				payments?.each{ p->
+					def details = 
+				}
+
+				o.payments = 
+
+
+				def details = em.getLedgerDetailByStartdateAndEnddate([objid: o.objid, startdate: sd, enddate: ed]);
+				details?.each{ d->
+					def itm = [
+						interest: (d.interestpaid != 0)? d.interestpaid : 0,
+						penalty : d.penaltypaid
+					];
+
+					if (d.state == "RECEIVED") {
+					} else if (d.state == 'PROCEED' || d.state == 'ADJUSTMENT') {
+					} else if (d.state == 'PREPAIDINTEREST') {
+						itm.penalty = 0;
+					} else {	
+					}
+
+					xlist << itm;
+				}
+
+				def rev = em.getRevenueByStartdateAndEnddate([objid: o.objid, startdate: sd, enddate: ed, tag: "interest"]);
+
+				def interest = 0;
+				if (rev) {
+					interest = rev.amount.sum();
+					if (!interest) interest = 0;
+
+
+				}
+
+				rev = em.getRevenueByStartdateAndEnddate([objid: o.objid, startdate: sd, enddate: ed, tag: "penalty"]);
+
+				def penalty = 0;
+				if (rev) {
+					penalty = rev.amount.sum();
+					if (!penalty) penalty = 0;
+				}
+				xlist << [interest: interest, penalty: penalty];
+
+			}
+
+			def interest = xlist?.interest.sum();
+			if (!interest) interest = 0;
+
+			def penalty = xlist?.penalty.sum();
+			if (!penalty) penalty = 0;
+
+			println 'total interest ' + interest + ' total penalty ' + penalty;
+		}
+		*/
+
+		def serverdate = dateSvc.serverDate;
+		def branch = branchSvc.open([:]);
+		def data = [
+			date_period : DATE_FORMAT1.format(sd) + " TO " + DATE_FORMAT1.format(ed),//startdate + " TO " + enddate,
+			dtprinted	: DATE_FORMAT2.format(serverdate),
+			printedby 	: env.NAME,
+			items		: list
+		];
+		branch.each{ k, v->
+			data["branch_"+k] = v;
+		}
+
+		return data;
+	}
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf(date);
+		}
+	}
+
+
+}

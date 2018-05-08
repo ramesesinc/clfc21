@@ -1,40 +1,63 @@
 <workunit>
     <invokers>
+        <!--
         <invoker folderid="/menu/txn/collection" action="init" caption="Post Online Collection" role="CASHIER" index="4"/>
         <invoker type="quick_launcher" code="OCOL" action="init" caption="Post Online Collection" role="CASHIER"/> 
         <invoker folderid="/home/online/collection" action="init" caption="Post Online Collection" role="CASHIER"/>
+        -->
         
         <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w'
-            visibleWhen="#{action=='init'}" immediate='true' />
+            visibleWhen="#{page=='init'}" immediate='true' />
         <invoker type='formActions' action='next' caption='Next' mnemonic='n' shortcut='ctrl n'
-            visibleWhen="#{action=='init'}" />
+            visibleWhen="#{page=='init'}" />
         
         <invoker type='formActions' action='back' caption='Back' mnemonic='b' shortcut='ctrl b'
-            visibleWhen="#{action!='init' &amp;&amp; mode=='read'}" immediate='true' />
+            visibleWhen="#{page!='init' &amp;&amp; mode=='read'}" immediate='true' />
         <invoker type='formActions' action='remit' caption='Remit' mnemonic='r' shortcut='ctrl r'
-            visibleWhen="#{action!='init' &amp;&amp; mode=='read' &amp;&amp; entity?.state=='DRAFT'}" />
-            
+            visibleWhen="#{page!='init' &amp;&amp; mode=='read' &amp;&amp; entity?.state=='DRAFT'}" />            
         <invoker type='formActions' action='voidPayment' caption='Void Payment' mnemonic='v' shortcut='ctrl v'
-            visibleWhen="#{action!='init' &amp;&amp; mode=='read' &amp;&amp; entity?.state=='DRAFT' &amp;&amp; selectedPayment!=null}" 
-            immediate='true' />
+            visibleWhen="#{page!='init' &amp;&amp; mode=='read' &amp;&amp; entity?.state=='DRAFT' &amp;&amp; selectedPayment!=null}" 
+            immediate='true' depends="selectedPayment" />
         
         <invoker type='formActions' action='cancel' caption='Cancel' mnemonic='c' shortcut='ctrl c' 
-            visibleWhen="#{action!='init' &amp;&amp; mode!='read'}" immediate='true' />
+            visibleWhen="#{page!='init' &amp;&amp; mode!='read'}" immediate='true' />
         <invoker type='formActions' action='save' caption='Save' mnemonic='s' shortcut='ctrl s'
-            visibleWhen="#{action!='init' &amp;&amp; mode!='read'}" />
+            visibleWhen="#{page!='init' &amp;&amp; mode!='read'}" />
         
+        <invoker type="formActions" action="returnToDraft" caption="Return to Draft" icon="images/toolbars/arrow_left.png"
+            visibleWhen="${page=='main' &amp;&amp; mode=='read' &amp;&amp; entity.state=='REMITTED'}" immediate="true" />
         <invoker type='formActions' action='edit' caption='Edit' mnemonic='e' shortcut='ctrl e'
-            visibleWhen="#{action=='main' &amp;&amp; mode=='read' &amp;&amp; entity?.alloweditbreakdown==true}" />
-        <invoker type='formActions' action='post' caption='Post' mnemonic='p' shortcut='ctrl p'
-            visibleWhen="#{action=='main' &amp;&amp; mode=='read' &amp;&amp; ((entity.hasCash == true &amp;&amp; totalbreakdown==totalcash) || !entity.hasCash) &amp;&amp; entity?.allowpost==true}" />
+            visibleWhen="#{page=='main' &amp;&amp; mode=='read' &amp;&amp; entity?.alloweditbreakdown==true}" />
+            
+        <invoker type="formActions" action="submitForVerification" caption="Submit for Verification" mnemonic="s" shortcut="ctrl s"
+            visibleWhen="${page!='init' &amp;&amp; mode=='read' &amp;&amp; entity.state=='REMITTED'}" 
+            icon="images/toolbars/arrow_right.png" />
+                        
+        <invoker type="formActions" action="returnToDraft" caption="Return to Draft" icon="images/toolbars/arrow_left.png"
+            visibleWhen="${page!='init' &amp;&amp; mode=='read' &amp;&amp; entity.state=='FOR_VERIFICATION'}" immediate="true" 
+            role="ACCT_ASSISTANT" />
+        <invoker type="formActions" action="returnToRemittance" caption="Return to Remittance" icon="images/toolbars/arrow_left.png"
+            visibleWhen="${page!='init' &amp;&amp; mode=='read' &amp;&amp; entity.state=='FOR_VERIFICATION'}" immediate="true" 
+            role="ACCT_ASSISTANT" />
+        <invoker type="formActions" action="verify" caption="Verify" mnemonic="v" shortcut="ctrl v"
+            visibleWhen="${page!='init' &amp;&amp; mode=='read' &amp;&amp; entity.state=='FOR_VERIFICATION'}" 
+            role="ACCT_ASSISTANT" />
         
         <invoker type='formActions' action='submitCbsForVerification' caption='Submit CBS For Verification' mnemonic='s' shortcut='ctrl s' 
-            visibleWhen="#{mode=='read' &amp;&amp; action=='main' &amp;&amp; entity?.cashbreakdown?.allowcbssubmitforverification==true}" />
-
+            visibleWhen="#{mode=='read' &amp;&amp; action=='main' &amp;&amp; entity?.cashbreakdown?.allowcbssubmitforverification==true}" 
+            icon="images/toolbars/arrow_right.png" />
         <invoker type='formActions' action='viewCbsSendbackRemarks' caption='View CBS Send Back Remarks'
             visibleWhen="#{mode=='read' &amp;&amp; action=='main' &amp;&amp; entity?.cashbreakdown?.sendbackremarks}" />
         
         
+        <invoker type='formActions' action='post' caption='Post' mnemonic='p' shortcut='ctrl p'
+            visibleWhen="${page=='main' &amp;&amp; mode=='read' &amp;&amp; entity.allowpost==true &amp;&amp; ((entity.hasCash == true &amp;&amp; totalbreakdown==entity.consolidatedamount) || !entity.hasCash)}" />
+            <!-- visibleWhen="#{page=='main' &amp;&amp; mode=='read' &amp;&amp; ((entity.hasCash == true &amp;&amp; getTotalbreakdown()==entity.totalcash) || !entity.hasCash) &amp;&amp; entity?.allowpost==true}" /> -->
+        
+        <invoker type="formActions" action="shortage" caption="Shortages"
+            visibleWhen="${page=='main' &amp;&amp; mode=='read' &amp;&amp; entity.showshortage==true}" />
+        <invoker type="formActions" action="overage" caption="Overages"
+            visibleWhen="${page=='main' &amp;&amp; mode=='read' &amp;&amp; entity.showoverage==true}" />
         <!--
         <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl W"
             visibleWhen="#{mode == 'init'}" immediate="true"/>

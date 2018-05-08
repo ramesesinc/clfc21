@@ -1,5 +1,5 @@
 dialect=mysql
 driverClass=com.mysql.jdbc.Driver
-url=jdbc:mysql://localhost:3307/gingoog_migrationdb_20171102
+url=jdbc:mysql://localhost/migrationdb_new
 user=root
 pwd=1234

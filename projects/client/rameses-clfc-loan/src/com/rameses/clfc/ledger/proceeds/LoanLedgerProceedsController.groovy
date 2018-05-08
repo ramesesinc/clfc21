@@ -21,7 +21,7 @@ class LoanLedgerProceedsController extends CRUDController
     Map createPermission = [domain: 'LOAN', role: 'CAO_OFFICER'];
     
     boolean allowEdit = true;
-    boolean allowDelete = true;
+    boolean allowDelete = false;
     boolean allowApprove = false;
     
     def borrowerLookupHandler = Inv.lookupOpener('ledgerborrower:lookup', [
@@ -34,7 +34,7 @@ class LoanLedgerProceedsController extends CRUDController
     def loadingOpener = Inv.lookupOpener("popup:loading", [:]);
     
     Map createEntity() {
-        return [
+       return [
             objid   : 'LPROC' + new UID(),
             txnstate: 'DRAFT',
             txntype : 'ONLINE'
@@ -42,23 +42,34 @@ class LoanLedgerProceedsController extends CRUDController
     }
     
     void afterSave( data ) {
+        checkEditable( data );
         EventQueue.invokeLater({ caller?.reload(); });
     }
     
+    void checkEditable( data ) {
+        allowEdit = false;
+        if (data.txnstate=='DRAFT') {
+            allowEdit = true;
+        }
+        binding?.refresh();
+    }
+    
     void afterOpen( data ) {
+        checkEditable( data );
+        /*
         if (data.txnstate != 'DRAFT') {
             allowEdit = false;
             allowDelete = false;
             if (!data.txndate) data.txndate = dateSvc.getServerDateAsString().split(" ")[0];
         }
+        */
     }
     
     void submitForSelling() {
         if (!MsgBox.confirm("You are about to submit this proceed for selling. Continue?")) return;
         
         entity = service.submitForSelling(entity);
-        allowEdit = false;
-        allowDelete = false;
+        checkEditable( entity );
         EventQueue.invokeLater({ caller?.reload(); });
     }
     
@@ -92,13 +103,20 @@ class LoanLedgerProceedsController extends CRUDController
     }
     */
    
-    void sell() {        
+    void sold() {        
         if (!MsgBox.confirm("You are about to sell this proceed. Continue?")) return;
         
         entity = service.sold(entity);
+        checkEditable( entity );
         //binding?.refresh();
         MsgBox.alert("Successfully sold proceed!");
         EventQueue.invokeLater({ caller?.reload(); });
+    }
+    
+    def getStatus() {
+        def str = (entity.txntype? entity.txntype : '') + (entity.txnstate? ' - ' + entity.txnstate : '');
+        
+        return str;
     }
 }
 

@@ -30,7 +30,7 @@ class LegalAgingReportService
 		list.sort{ it.caption }
 		return list;
 	}
-
+	@Async
 	@ProxyMethod
 	public def getReportData( params ) {
 		if (!params.criteria) throw new Exception("Please specify criteria.");
@@ -48,16 +48,16 @@ class LegalAgingReportService
 		def usr = sys_user.read([objid: params.notedby?.objid]);
 		if (usr) {
 			notedby = [objid: usr.objid, title: usr.jobtitle];
-			notedby.name = usr.lastname + ', ' + usr.firstname;
-			if (usr.middlename) notedby.name += ' ' + usr.middlename;
+			notedby.name = usr.firstname + ' ' + usr.lastname;
+			if (usr.middlename) notedby.name = usr.firstname + ' '+ usr.middlename + ' ' + usr.lastname;
 		}
 
 		def preparedby;
 		usr = sys_user.read([objid: env.USERID]);
 		if (usr) {
 			preparedby = [objid: usr.objid, title: usr.jobtitle];
-			preparedby.name = usr.lastname + ', ' + usr.firstname;
-			if (usr.middlename) preparedby.name += ' ' + usr.middlename;
+			preparedby.name = usr.firstname + ' ' + usr.lastname;
+			if (usr.middlename) preparedby.name = usr.firstname + ' ' + usr.middlename + ' ' + usr.lastname;
 		}
 
 
@@ -73,7 +73,12 @@ class LegalAgingReportService
 		branch.each{ k, v->
 			data["branch_"+k] = v;
 		}
-
+		preparedby.each{ k, v ->
+			data["preparedby_" + k] = v;
+		}
+		notedby.each{ k, v ->
+			data["notedby_" + k] = v;
+		}
 		return data;
 	}
 
@@ -91,24 +96,24 @@ class LegalAgingReportService
 				if (xlist) {
 					xlist.unique{ it.loanapp.objid }
 					def d30list = xlist.findAll{ it.daysaged > 0 && it.daysaged <= 30 }
-					r.d30 = 0;
-					if (d30list) r.d30 = d30list.size();
+					r.d30acct = 0;
+					if (d30list) r.d30acct = d30list.size();
 
 					def d60list = xlist.findAll{ it.daysaged > 30 && it.daysaged <= 60 }
-					r.d60 = 0;
-					if (d60list) r.d60 = d60list.size();
+					r.d60acct = 0;
+					if (d60list) r.d60acct = d60list.size();
 
 					def d90list = xlist.findAll{ it.daysaged > 60 && it.daysaged <= 90 }
-					r.d90 = 0;
-					if (d90list) r.d90 = d90list.size();
+					r.d90acct = 0;
+					if (d90list) r.d90acct = d90list.size();
 
 					def d120list = xlist.findAll{ it.daysaged > 90 && it.daysaged <= 120 }
-					r.d120 = 0;
-					if (d120list) r.d120 = d120list.size();
+					r.d120acct = 0;
+					if (d120list) r.d120acct = d120list.size();
 
 					def overd120list = xlist.findAll{ it.daysaged > 120 }
-					r.overd120 = 0;
-					if (overd120list) r.overd120 = overd120list.size();
+					r.overd120acct = 0;
+					if (overd120list) r.overd120acct = overd120list.size();
 
 					r.totalaccounts = xlist.size();
 				}
@@ -134,42 +139,42 @@ class LegalAgingReportService
 				if (xlist) {
 					xlist.unique{ it.loanapp.objid }
 					def d30list = xlist.findAll{ it.daysaged > 0 && it.daysaged <= 30 }
-					r.d30 = 0;
+					r.d30amt = 0.0;
 					if (d30list) {
-						r.d30 = d30list.loanapp.balance.sum();
-						if (!r.d30) r.d30 = 0;
+						r.d30amt = d30list.loanapp.balance.sum();
+						if (!r.d30amt) r.d30amt = 0.0;
 					}
 
 					def d60list = xlist.findAll{ it.daysaged > 30 && it.daysaged <= 60 }
-					r.d60 = 0;
+					r.d60amt = 0.0;
 					if (d60list) {
-						r.d60 = d60list.loanapp.balance.sum();
-						if (!r.d60) r.d60 = 0;
+						r.d60amt = d60list.loanapp.balance.sum();
+						if (!r.d60amt) r.d60amt = 0.0;
 					}
 
 					def d90list = xlist.findAll{ it.daysaged > 60 && it.daysaged <= 90 }
-					r.d90 = 0;
+					r.d90amt = 0.0;
 					if (d90list) {
-						r.d90 = d90list.loanapp.balance.sum();
-						if (!r.d90) r.d90 = 0;
+						r.d90amt = d90list.loanapp.balance.sum();
+						if (!r.d90amt) r.d90amt = 0.0;
 					}
 
 					def d120list = xlist.findAll{ it.daysaged > 90 && it.daysaged <= 120 }
-					r.d120 = 0;
+					r.d120amt = 0.0;
 					if (d120list) {
-						r.d120 = d120list.loanapp.balance.sum();
-						if (!r.d120) r.d120 = 0;
+						r.d120amt = d120list.loanapp.balance.sum();
+						if (!r.d120amt) r.d120amt = 0.0;
 					}
 
 					def overd120list = xlist.findAll{ it.daysaged > 120 }
-					r.overd120 = 0;
+					r.overd120amt = 0.0;
 					if (overd120list) {
-						r.overd120 = overd120list.loanapp.balance.sum();
-						if (!r.overd120) r.overd120 = 0;
+						r.overd120amt = overd120list.loanapp.balance.sum();
+						if (!r.overd120amt) r.overd120amt = 0.0;
 					}
 
 					r.totalamount = xlist.loanapp.balance.sum();
-					if (!r.totalamount) r.totalamount = 0;
+					if (!r.totalamount) r.totalamount = 0.0;
 				}
 			}
 

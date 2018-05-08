@@ -41,6 +41,10 @@ def info = (data.info? data.info: [:]);
 		<td class="label">Network</td>
 		<td class="value">${data.network==1? 'enabled': 'disabled'}</td>
 	</tr>
+	<tr class="data-row">
+		<td class="label">Status</td>
+		<td class="value">${data.phonestatus!=null? data.phonestatus : ''}</td>
+	</tr>
 	<!--
 	<tr class="data-row">
 		<td class="label">Longitude</td>

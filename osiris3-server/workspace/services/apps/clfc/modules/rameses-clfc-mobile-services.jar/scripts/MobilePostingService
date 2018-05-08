@@ -276,6 +276,34 @@ class MobilePostingService {
 			}
 		}
 
+		def log = trackerSvc.openLogByRefid([refid: detail.objid]);
+		if (log) {
+			log = trackerSvc.openLog( log );
+			log.remarks = params.remarks;
+			//log.info?.remarks = params.remarks;
+			trackerSvc.updateLog( log );
+		} else {
+			def t = [
+				objid 		: detail.objid,
+				trackerid 	: params.trackerid,
+				txntype 	: (params.type? params.type : 'NORMAL'),
+				txndate 	: params.txndate,
+				refid 		: params.collectionsheet.detailid,
+				reftype 	: 'REMARKS',
+				lng 		: params.longitude,
+				lat  		: params.latitude,
+				remarks 	: params.remarks,
+				state 		: 1,
+				borrower 	: pb,
+				branch 		: branch,
+				route 		: route,
+				loanapp 	: app,
+				//info 		: [remarks: params.remarks],
+			];
+			//println 'log ' + t;
+			trackerSvc.log(t);
+		}
+		/*
 		def xitem = mobile_tracker.read([objid: params.trackerid]);
 		if (xitem) {
 			def t = [
@@ -298,6 +326,7 @@ class MobilePostingService {
 			//println 'log ' + t;
 			trackerSvc.log(t);
 		}
+		*/
 
 
 		def l = ledger.findByAppId([appid: loan?.loanapp?.objid]);
@@ -360,6 +389,8 @@ class MobilePostingService {
 			collector_remarks.delete(detail, "followup-remarks");
 			collector_remarks.delete(detail);
 		}
+
+		trackerSvc.removeLogByRefid([refid: params.detailid]);
 		//println "remove remarks";
 		return [response: "success"];
 	}
