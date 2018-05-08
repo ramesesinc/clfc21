@@ -45,6 +45,7 @@ class MobileStatusService {
 						mobiledata	: params.mobiledata,
 						gps 		: params.gps,
 						network 	: params.network,
+						phonestatus : params.statustext,
 						prevlng 	: prevlng,
 						prevlat 	: prevlat
 					];
@@ -61,6 +62,8 @@ class MobileStatusService {
 						statuschanged = true;
 					} else if (data.network != params.network) {
 						statuschanged = true;
+					} else if (params.statustext != null) {
+						statuschanged = true
 					}
 				}
 
@@ -70,6 +73,7 @@ class MobileStatusService {
 					data.mobiledata = params.mobiledata;
 					data.gps = params.gps;
 					data.network = params.network;
+					data.phonestatus = params.statustext;
 					data.prevlng = prevlng;
 					data.prevlat = prevlat;
 					mobile_status.update(data);
@@ -83,20 +87,25 @@ class MobileStatusService {
 						reftype		: 'STATUS',
 						lng 		: params.lng,
 						lat 		: params.lat,
+						remarks 	: data.phonestatus,
 						state 		: 1,
 						wifi 		: data.wifi,
 						mobiledata	: data.mobiledata,
 						gps 		: data.gps,
 						network 	: data.network,
 						prevlng 	: data.prevlng,
-						prevlat 	: data.prevlat
+						prevlat 	: data.prevlat,
+						phonestatus : data.phonestatus
 					];
 
 					trackerSvc.log(log);
 				}
 				response = "success";
+			} else {
+				response = "success";
 			}
 		}
+
 		return [ response: response ];
 	}
 }

@@ -135,33 +135,23 @@ class ProductTypeController {
     def cancel() {
         if (mode == "edit") {
             
-            if (preventity) {
-                entity = preventity;
-            }
+            entity = preventity;
             
             if (entity.generalinfo) {
-                if (prevgenattr) {
-                    entity.generalinfo.attributes = prevgenattr;
-                }
+                entity.generalinfo.attributes = prevgenattr;
                 entity.generalinfo._addedattr = [];
                 entity.generalinfo._removedattr = [];
             }
             
             if (entity.loaninfo) {
-                if (prevloanattr) {
-                    entity.loaninfo.attributes = prevloanattr;
-                }
+                entity.loaninfo.attributes = prevloanattr;
                 entity.loaninfo._addedattr = [];
                 entity.loaninfo._removedattr = [];
             }
             
             if (entity.postinginfo) {
-                if (prevpostingheader) {
-                    entity.postinginfo.postingheader = prevpostingheader;
-                }
-                if (prevpostingseq) {
-                    entity.postinginfo.postingsequence = prevpostingseq;
-                }
+                entity.postinginfo.postingheader = prevpostingheader;
+                entity.postinginfo.postingsequence = prevpostingseq;
             }
             
             mode = "read";

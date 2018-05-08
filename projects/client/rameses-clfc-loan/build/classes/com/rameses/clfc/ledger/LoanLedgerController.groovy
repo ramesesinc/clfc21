@@ -29,6 +29,7 @@ class LoanLedgerController
     }
 
     String title = "General Information";
+    String entityName = "loan:ledger";
     def entity, optionlist;
     def page = 'default';
     def rows = 30;
@@ -98,6 +99,13 @@ class LoanLedgerController
                                           break;
         }
         return str;
+    }
+    
+    def showActions() {
+        def list = Inv.lookupOpeners( entityName + ":actions", [ledgerid: entity.objid]);
+        def op = new PopupMenuOpener();
+        op.addAll( list );
+        return op;
     }
     
     def getOpener() {

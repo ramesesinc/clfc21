@@ -11,7 +11,7 @@ import java.util.LinkedList;
 
 public class SMSSenderService implements Runnable,SerialPortEventListener
 {
-	@ActiveDB('server_sms_log')
+	@ActiveDB(em='sms', value='server_sms_log')
 	def sms_log;
 
 
@@ -219,6 +219,18 @@ public class SMSSenderService implements Runnable,SerialPortEventListener
 			message.retry++;
 
 			if (message.retry <= NO_OF_RETRIES) {
+
+				/*
+				def log = [
+					objid	: 'LOG' + new UID(),
+					dtfiled : dateSvc.serverDate,
+					type 	: 'SEND',
+					remarks : 'Error in sending message for ' + data?.borrower?.name + ' after 3 tries.',
+					data 	: data
+				];
+				sms_log.create(log);
+				*/
+	
 				sendSMS();
 			} else {
 				//log error	

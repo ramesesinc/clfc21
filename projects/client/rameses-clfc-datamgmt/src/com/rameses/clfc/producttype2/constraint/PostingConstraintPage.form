@@ -26,29 +26,18 @@
                           <Group type="102" attributes="0">
                               <Group type="103" groupAlignment="0" attributes="0">
                                   <Component id="jLabel9" alignment="0" min="-2" pref="43" max="-2" attributes="0"/>
-                                  <Group type="102" alignment="0" attributes="0">
-                                      <Component id="xCheckBox3" min="-2" max="-2" attributes="0"/>
-                                      <EmptySpace max="-2" attributes="0"/>
-                                      <Component id="xCheckBox6" min="-2" max="-2" attributes="0"/>
-                                      <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                                      <Component id="xCheckBox7" min="-2" max="-2" attributes="0"/>
-                                  </Group>
                                   <Group type="102" attributes="0">
                                       <Component id="jLabel8" min="-2" pref="43" max="-2" attributes="0"/>
                                       <EmptySpace max="-2" attributes="0"/>
                                       <Component id="cmdAddConstraint1" min="-2" max="-2" attributes="0"/>
                                   </Group>
                                   <Group type="102" alignment="0" attributes="0">
-                                      <Component id="xCheckBox2" min="-2" max="-2" attributes="0"/>
-                                      <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                                      <Component id="xCheckBox1" min="-2" max="-2" attributes="0"/>
+                                      <Component id="xCheckBox3" min="-2" max="-2" attributes="0"/>
                                       <EmptySpace max="-2" attributes="0"/>
-                                      <Component id="xCheckBox4" min="-2" max="-2" attributes="0"/>
-                                      <EmptySpace max="-2" attributes="0"/>
-                                      <Component id="xCheckBox5" min="-2" max="-2" attributes="0"/>
+                                      <Component id="xCheckBox7" min="-2" max="-2" attributes="0"/>
                                   </Group>
                               </Group>
-                              <EmptySpace min="0" pref="164" max="32767" attributes="0"/>
+                              <EmptySpace min="0" pref="245" max="32767" attributes="0"/>
                           </Group>
                       </Group>
                       <EmptySpace max="-2" attributes="0"/>
@@ -76,6 +65,13 @@
                               <Group type="103" groupAlignment="0" attributes="0">
                                   <Component id="jLabel7" min="-2" pref="74" max="-2" attributes="0"/>
                                   <Component id="xDataTable1" alignment="0" min="-2" pref="441" max="-2" attributes="0"/>
+                                  <Group type="102" alignment="0" attributes="0">
+                                      <Component id="xCheckBox4" min="-2" max="-2" attributes="0"/>
+                                      <EmptySpace max="-2" attributes="0"/>
+                                      <Component id="xCheckBox5" min="-2" max="-2" attributes="0"/>
+                                      <EmptySpace max="-2" attributes="0"/>
+                                      <Component id="xCheckBox6" min="-2" max="-2" attributes="0"/>
+                                  </Group>
                               </Group>
                           </Group>
                           <Group type="102" alignment="0" attributes="0">
@@ -95,19 +91,17 @@
           <Group type="102" alignment="0" attributes="0">
               <EmptySpace max="-2" attributes="0"/>
               <Component id="xFormPanel1" min="-2" max="-2" attributes="0"/>
-              <EmptySpace max="-2" attributes="0"/>
+              <EmptySpace min="-2" pref="1" max="-2" attributes="0"/>
               <Component id="jLabel7" min="-2" pref="23" max="-2" attributes="0"/>
               <EmptySpace min="-2" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
-                  <Component id="xCheckBox2" alignment="3" max="32767" attributes="0"/>
-                  <Component id="xCheckBox1" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="xCheckBox4" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="xCheckBox5" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="xCheckBox6" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace min="-2" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
                   <Component id="xCheckBox3" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="xCheckBox6" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="xCheckBox7" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace max="-2" attributes="0"/>
@@ -238,7 +232,7 @@
             </Property>
             <Property name="expression" type="java.lang.String" value="${entity.title}"/>
             <Property name="handler" type="java.lang.String" value="attributeLookup"/>
-            <Property name="name" type="java.lang.String" value="entitiy.attribute" noResource="true"/>
+            <Property name="name" type="java.lang.String" value="entity.attribute" noResource="true"/>
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
               <Dimension value="[300, 20]"/>
             </Property>
@@ -255,15 +249,37 @@
             <Property name="spaceChar" type="char" value="_"/>
           </Properties>
         </Component>
-        <Component class="com.rameses.rcp.control.XComboBox" name="xComboBox1">
+        <Component class="com.rameses.rcp.control.XComboBox" name="xComboBox2">
           <Properties>
-            <Property name="caption" type="java.lang.String" value="Posting Group"/>
-            <Property name="items" type="java.lang.String" value="postingGroupList"/>
-            <Property name="name" type="java.lang.String" value="entity.postinggroup" noResource="true"/>
+            <Property name="caption" type="java.lang.String" value="Rule Set"/>
+            <Property name="items" type="java.lang.String" value="ruleSetList"/>
+            <Property name="name" type="java.lang.String" value="entity.ruleset" noResource="true"/>
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
               <Dimension value="[200, 20]"/>
             </Property>
             <Property name="required" type="boolean" value="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XComboBox" name="xComboBox1">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Rule Group"/>
+            <Property name="items" type="java.lang.String" value="ruleGroupList"/>
+            <Property name="name" type="java.lang.String" value="entity.rulegroup" noResource="true"/>
+            <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+              <Dimension value="[200, 20]"/>
+            </Property>
+            <Property name="required" type="boolean" value="true"/>
+          </Properties>
+        </Component>
+        <Component class="com.rameses.rcp.control.XComboBox" name="xComboBox3">
+          <Properties>
+            <Property name="caption" type="java.lang.String" value="Post to Header"/>
+            <Property name="expression" type="java.lang.String" value="${item.title}"/>
+            <Property name="items" type="java.lang.String" value="headerList"/>
+            <Property name="name" type="java.lang.String" value="entity.posttoheader" noResource="true"/>
+            <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+              <Dimension value="[200, 20]"/>
+            </Property>
           </Properties>
         </Component>
       </SubComponents>
@@ -331,21 +347,6 @@
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="cmdAddConstraint1ActionPerformed"/>
-      </Events>
-    </Component>
-    <Component class="com.rameses.rcp.control.XCheckBox" name="xCheckBox2">
-      <Properties>
-        <Property name="name" type="java.lang.String" value="entity.postperitem" noResource="true"/>
-        <Property name="text" type="java.lang.String" value="Post per item"/>
-      </Properties>
-    </Component>
-    <Component class="com.rameses.rcp.control.XCheckBox" name="xCheckBox1">
-      <Properties>
-        <Property name="name" type="java.lang.String" value="entity.postonlastitem" noResource="true"/>
-        <Property name="text" type="java.lang.String" value="Post on last item"/>
-      </Properties>
-      <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="xCheckBox1ActionPerformed"/>
       </Events>
     </Component>
     <Component class="com.rameses.rcp.control.XCheckBox" name="xCheckBox6">

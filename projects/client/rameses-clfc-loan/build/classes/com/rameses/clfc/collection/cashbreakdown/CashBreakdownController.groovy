@@ -22,7 +22,11 @@ class CashBreakdownController
     
     @PropertyChangeListener
     def listener = [
+        "entity.txndate": { o->
+            refreshRouteList();
+        },
         "entity.collector": { o->
+            /*
             if (o) {
                 def params = [txndate: entity.txndate];
                 params.collectorid = o.objid;
@@ -30,6 +34,8 @@ class CashBreakdownController
                 routeList = service.getRoutes(params);
                 binding.refresh('route');
             }
+            */
+            refreshRouteList();
         }
     ]
     
@@ -47,6 +53,12 @@ class CashBreakdownController
         route = null;
         mode = 'create';
         breakdownmode = 'read';
+    }
+    
+    void refreshRouteList() {
+        def params = [txndate: entity.txndate, collectorid: entity.collector.objid];
+        routeList = service.getRoutes( params );
+        binding?.refresh('route');
     }
 
     Map createEntity() {

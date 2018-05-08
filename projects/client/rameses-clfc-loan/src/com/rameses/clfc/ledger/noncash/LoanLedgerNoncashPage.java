@@ -36,12 +36,15 @@ public class LoanLedgerNoncashPage extends javax.swing.JPanel {
         xFormPanel1 = new com.rameses.rcp.control.XFormPanel();
         xLookupField1 = new com.rameses.rcp.control.XLookupField();
         xLabel1 = new com.rameses.rcp.control.XLabel();
+        xLabel2 = new com.rameses.rcp.control.XLabel();
         xDateField1 = new com.rameses.rcp.control.XDateField();
         xTextField1 = new com.rameses.rcp.control.XTextField();
         xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
         xTextField2 = new com.rameses.rcp.control.XTextField();
         xLabel3 = new com.rameses.rcp.control.XLabel();
         xLabel4 = new com.rameses.rcp.control.XLabel();
+
+        xFormPanel1.setCaptionWidth(100);
 
         xLookupField1.setCaption("Borrower");
         xLookupField1.setDisableWhen("#{mode=='read'}");
@@ -54,7 +57,6 @@ public class LoanLedgerNoncashPage extends javax.swing.JPanel {
         xLookupField1.setRequired(true);
         xFormPanel1.add(xLookupField1);
 
-        xLabel1.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(153, 153, 153)), javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1)));
         xLabel1.setCaption("Address");
         xLabel1.setDepends(new String[] {"entity.borrower"});
         xLabel1.setExpression("#{entity.borrower.address}");
@@ -62,7 +64,14 @@ public class LoanLedgerNoncashPage extends javax.swing.JPanel {
         xLabel1.setPreferredSize(new java.awt.Dimension(0, 20));
         xFormPanel1.add(xLabel1);
 
-        xDateField1.setCaption("Date");
+        xLabel2.setCaption("App. No.");
+        xLabel2.setDepends(new String[] {"entity.borrower"});
+        xLabel2.setExpression("${entity.appno}");
+        xLabel2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        xLabel2.setPreferredSize(new java.awt.Dimension(0, 20));
+        xFormPanel1.add(xLabel2);
+
+        xDateField1.setCaption("Date Collected");
         xDateField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
         xDateField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xDateField1.setName("entity.txndate"); // NOI18N
@@ -130,6 +139,7 @@ public class LoanLedgerNoncashPage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XDecimalField xDecimalField1;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
     private com.rameses.rcp.control.XLabel xLabel1;
+    private com.rameses.rcp.control.XLabel xLabel2;
     private com.rameses.rcp.control.XLabel xLabel3;
     private com.rameses.rcp.control.XLabel xLabel4;
     private com.rameses.rcp.control.XLookupField xLookupField1;

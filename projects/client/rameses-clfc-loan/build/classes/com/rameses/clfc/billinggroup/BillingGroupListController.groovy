@@ -55,12 +55,14 @@ abstract class BillingGroupListController extends BasicListController
         return getService().getList(params);
     }
     
+    /*
     def getList( params ) {
         def qrymap = getQuery();
         if (qrymap) params.putAll(query);
         params.type = getType();
         return getService().getList(params);
     }
+    */
         
     void beforeGetColumns( Map params ) {
     }

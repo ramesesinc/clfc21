@@ -289,7 +289,7 @@ public class DownloadBillingController
 					params.put("name", collectorid + "-" + billdate);
 					params.put("value", billingid);
 					clfcdb.insert("sys_var", params);
-//				}
+				}
 				
 //				boolean flag = systemSvc.hasBillingByCollector( collectorid );
 //				billingid = s

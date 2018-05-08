@@ -37,9 +37,8 @@ public class FieldCollectionPage extends javax.swing.JPanel {
         xFormPanel2 = new com.rameses.rcp.control.XFormPanel();
         xDateField1 = new com.rameses.rcp.control.XDateField();
         xLabel2 = new com.rameses.rcp.control.XLabel();
-        xTextField3 = new com.rameses.rcp.control.XTextField();
-        xTextField1 = new com.rameses.rcp.control.XTextField();
-        xTextField2 = new com.rameses.rcp.control.XTextField();
+        xLabel3 = new com.rameses.rcp.control.XLabel();
+        xLabel4 = new com.rameses.rcp.control.XLabel();
         xDecimalField2 = new com.rameses.rcp.control.XDecimalField();
         xDecimalField3 = new com.rameses.rcp.control.XDecimalField();
         xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
@@ -72,7 +71,6 @@ public class FieldCollectionPage extends javax.swing.JPanel {
         xDateField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xDateField1.setName("entity.billdate"); // NOI18N
         xDateField1.setOutputFormat("MMM-dd-yyyy");
-        xDateField1.setPreferredSize(new java.awt.Dimension(150, 20));
         xFormPanel2.add(xDateField1);
 
         xLabel2.setCaption("CBS No.");
@@ -82,32 +80,15 @@ public class FieldCollectionPage extends javax.swing.JPanel {
         xLabel2.setPreferredSize(new java.awt.Dimension(0, 20));
         xFormPanel2.add(xLabel2);
 
-        xTextField3.setCaption("Collection");
-        xTextField3.setCaptionWidth(90);
-        xTextField3.setEnabled(false);
-        xTextField3.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xTextField3.setName("entity.collection"); // NOI18N
-        xTextField3.setPreferredSize(new java.awt.Dimension(0, 20));
-        xTextField3.setReadonly(true);
-        xFormPanel2.add(xTextField3);
+        xLabel3.setCaption("Collection");
+        xLabel3.setExpression("${entity.collection}");
+        xLabel3.setPreferredSize(new java.awt.Dimension(0, 20));
+        xFormPanel2.add(xLabel3);
 
-        xTextField1.setCaption("Description");
-        xTextField1.setCaptionWidth(90);
-        xTextField1.setEnabled(false);
-        xTextField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xTextField1.setName("entity.route.description"); // NOI18N
-        xTextField1.setPreferredSize(new java.awt.Dimension(0, 20));
-        xTextField1.setReadonly(true);
-        xFormPanel2.add(xTextField1);
-
-        xTextField2.setCaption("Area");
-        xTextField2.setCaptionWidth(90);
-        xTextField2.setEnabled(false);
-        xTextField2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xTextField2.setName("entity.route.area"); // NOI18N
-        xTextField2.setPreferredSize(new java.awt.Dimension(0, 20));
-        xTextField2.setReadonly(true);
-        xFormPanel2.add(xTextField2);
+        xLabel4.setCaption("Description");
+        xLabel4.setExpression("${entity.route.description} ${entity.route.area? entity.route.area : ''}");
+        xLabel4.setPreferredSize(new java.awt.Dimension(0, 20));
+        xFormPanel2.add(xLabel4);
 
         xDecimalField2.setCaption("Shortages");
         xDecimalField2.setDisabledTextColor(new java.awt.Color(0, 0, 0));
@@ -174,7 +155,7 @@ public class FieldCollectionPage extends javax.swing.JPanel {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(xSubFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(126, Short.MAX_VALUE))
+                .addContainerGap(35, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -208,7 +189,7 @@ public class FieldCollectionPage extends javax.swing.JPanel {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(xSubFormPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(126, Short.MAX_VALUE))
+                .addContainerGap(35, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -242,7 +223,7 @@ public class FieldCollectionPage extends javax.swing.JPanel {
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(xSubFormPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(126, Short.MAX_VALUE))
+                .addContainerGap(35, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -265,8 +246,8 @@ public class FieldCollectionPage extends javax.swing.JPanel {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(xPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 565, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(24, Short.MAX_VALUE))
+                        .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 474, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(32, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -293,13 +274,12 @@ public class FieldCollectionPage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XFormPanel xFormPanel2;
     private com.rameses.rcp.control.XLabel xLabel1;
     private com.rameses.rcp.control.XLabel xLabel2;
+    private com.rameses.rcp.control.XLabel xLabel3;
+    private com.rameses.rcp.control.XLabel xLabel4;
     private com.rameses.rcp.control.XPanel xPanel1;
     private com.rameses.rcp.control.XSubFormPanel xSubFormPanel1;
     private com.rameses.rcp.control.XSubFormPanel xSubFormPanel2;
     private com.rameses.rcp.control.XSubFormPanel xSubFormPanel3;
-    private com.rameses.rcp.control.XTextField xTextField1;
-    private com.rameses.rcp.control.XTextField xTextField2;
-    private com.rameses.rcp.control.XTextField xTextField3;
     // End of variables declaration//GEN-END:variables
     
 }

@@ -210,6 +210,11 @@ class SMCAmnestyController {
         EventQueue.invokeLater({ caller?.reload(); });
     }
     
+    void returnToDraft() {
+        entity = service.returnToDraft( entity );
+        EventQueue.invokeLater({ caller?.reload() });
+    }
+    
     void disapprove() {
         if (!MsgBox.confirm('You are about to disapprove this document. Continue?')) return;
         
@@ -222,6 +227,11 @@ class SMCAmnestyController {
         
         entity = service.approveDocument(entity);
         EventQueue.invokeLater({ caller?.reload(); });
+    }
+    
+    void returnToApproved() {
+        entity = service.returnToApproved( entity );
+        EventQueue.invokeLater({ caller?.reload() });
     }
     
     void submitForVerification() {

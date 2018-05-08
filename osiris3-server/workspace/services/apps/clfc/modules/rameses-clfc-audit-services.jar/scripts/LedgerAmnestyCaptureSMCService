@@ -940,6 +940,15 @@ class LedgerAmnestyCaptureSMCService extends ActiveCrudListService
 		return open(data);
 	}
 
+	@ProxyMethod
+	public def returnToDraft( params ) {
+		def data = changeState( params, "DRAFT" );
+
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+		return data;
+	}
+
+
 	private def changeState( params, state ) {
 		def data = em.read(params);
 		if (!data) throw new Exception('Capture SMC record does not exist or has already been deleted.');
@@ -959,11 +968,14 @@ class LedgerAmnestyCaptureSMCService extends ActiveCrudListService
 
 		def action, remarks;
 		switch (state) {
+			case 'DRAFT'			: action = 'Draft';
+									  remarks = 'Submit to draft document with Ref. No. ' + data.refno;
+									  break;
 			case 'FOR_APPROVAL'		: action = 'For Approval';
 									  remarks = 'Submit for approval document with Ref. No. ' + data.refno;
 									  break;
 			case 'APPROVED' 		: action = 'Approve';
-									  remarks = 'Approvd document with Ref. No. ' + data.refno;
+									  remarks = 'Approved document with Ref. No. ' + data.refno;
 									  break;
 			case 'DISAPPROVED'		: action = 'Disapprove';
 									  remarks = 'Disapprove document with Ref. No. ' + data.refno;
@@ -1178,6 +1190,15 @@ class LedgerAmnestyCaptureSMCService extends ActiveCrudListService
 
 		return open(data);
 	}	
+
+	@ProxyMethod
+	public def returnToApproved( params ) {
+		def data = changeState( params, 'APPROVED' );
+		
+		inboxSvc.removeMessageByRefid([refid: data.objid]);
+		
+		return data;
+	}
 
 	@ProxyMethod
 	public def verifyDocument( params ) {

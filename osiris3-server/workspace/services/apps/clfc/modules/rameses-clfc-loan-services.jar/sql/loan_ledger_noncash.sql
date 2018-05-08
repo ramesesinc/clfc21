@@ -1,4 +1,49 @@
 [getList]
+select n.*, a.objid as loanapp_objid, a.appno as loanapp_appno
+from (
+	select objid
+	from loan_ledger_noncash
+	where borrower_name like $P{searchtext}
+	union
+	select objid
+	from loan_ledger_noncash 
+	where refno like $P{searchtext}
+	union
+	select n.objid
+	from loan_ledger_noncash n
+	inner join loan_ledger l on n.parentid=l.objid
+	inner join loanapp a on l.appid=a.objid
+	where a.appno like $P{searchtext}
+) q inner join loan_ledger_noncash n on q.objid=n.objid
+inner join loan_ledger l on n.parentid=l.objid
+inner join loanapp a on l.appid=a.objid
+order by n.dtcreated desc
+
+[getListByState]
+select n.*, a.objid as loanapp_objid, a.appno as loanapp_appno
+from (
+	select objid
+	from loan_ledger_noncash
+	where borrower_name like $P{searchtext}
+		and txnstate = $P{state}
+	union
+	select objid
+	from loan_ledger_noncash 
+	where refno like $P{searchtext}
+		and txnstate = $P{state}
+	union
+	select n.objid
+	from loan_ledger_noncash n
+	inner join loan_ledger l on n.parentid=l.objid
+	inner join loanapp a on l.appid=a.objid
+	where a.appno like $P{searchtext}
+		and n.txnstate = $P{state}
+) q inner join loan_ledger_noncash n on q.objid=n.objid
+inner join loan_ledger l on n.parentid=l.objid
+inner join loanapp a on l.appid=a.objid
+order by n.dtcreated desc
+
+[xxxgetList]
 SELECT n.*
 FROM (
 	SELECT n.objid
@@ -39,7 +84,7 @@ FROM (
 ) a INNER JOIN loan_ledger_noncash n ON a.objid = n.objid
 ORDER BY n.dtcreated DESC
 
-[getListByState]
+[xxgetListByState]
 SELECT n.*
 FROM (
 	SELECT n.objid

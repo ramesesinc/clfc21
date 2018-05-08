@@ -7,6 +7,9 @@ class ServerSMSService
 	@ActiveDB(em='sms', value='server_sms_for_sending')
 	def server_sms_for_sending;
 
+	@ActiveDB(em="sms", value="sms_provider")
+	def sms_provider;
+
 	@Service('DateService')
 	def dateSvc;
 
@@ -21,44 +24,75 @@ class ServerSMSService
 
 		def list = params.list;
 
-		list?.each{ o->
-			def mobileno = o.mobileno;
-			if (mobileno.matches(REGEX)) {
-				o.message = createSMSMessage(o);
+		def allowCreate;
 
-				def messagelist = convertPduMessage(o.mobileno, o.message);
-				def size = messagelist.size();
-				messagelist?.each{ m->
-					def objid = o.objid + o.branch?.code + m.idx;
-					//def item = server_sms_for_sending.findByRefidAndPart([refid: o.objid, part: m.idx]);
-					def item = server_sms_for_sending.read([objid: objid]);
+		list?.each{ o->
+			try {
+				allowCreate = false;
+				def mobileno = o.mobileno;
+
+				if (mobileno.matches(REGEX)) {
+					mobileno = mobileno.replaceFirst("\\+63", "0");
+					def prefix = mobileno.substring(0, 4);
+
+					//println 'prefix-> ' + prefix;
+
+					def i = sms_provider.read([prefix: prefix], "prefix");
+					//println 'item-> ' + i;
+					if (i) {
+						allowCreate = true;
+					} else {
+						throw new RuntimeException("Invalid Mobile Number.");
+					}
+
+				}
+
+				//println 'mobileno-> ' + o.mobileno + ' allow create-> ' + allowCreate;
+
+				if (allowCreate == true) {
+
+						o.message = createSMSMessage(o);
+
+						def messagelist = convertPduMessage(o.mobileno, o.message);
+						def size = messagelist.size();
+						messagelist?.each{ m->
+							def objid = o.objid + o.branch?.code + m.idx;
+							//def item = server_sms_for_sending.findByRefidAndPart([refid: o.objid, part: m.idx]);
+							def item = server_sms_for_sending.read([objid: objid]);
+							if (!item) {
+								item = [:];
+								item.putAll(o);
+								item.putAll(m);
+								item.objid = objid;
+								item.refid = objid;
+								item.part = m.idx;
+								item.totalpart = size;
+								item.message = 'CLLCI:\n' + m.text;
+								item.pdumessage = m.pdu.message;
+								item.dtfiled = dateSvc.serverDate;
+								server_sms_for_sending.create(item);
+							}
+						}
+						o._created = true;
+					/*
+					def item = server_sms_for_sending.read([objid: o.objid]);
 					if (!item) {
-						item = [:];
-						item.putAll(o);
-						item.putAll(m);
-						item.objid = objid;
-						item.refid = objid;
-						item.part = m.idx;
-						item.totalpart = size;
-						item.message = 'CLLCI:\n' + m.text;
-						item.pdumessage = m.pdu.message;
+						item = o;
 						item.dtfiled = dateSvc.serverDate;
+						//item.dtfiled = o.dtpaid;
 						server_sms_for_sending.create(item);
 					}
+					o._created = true;
+					*/
+					
 				}
-				o._created = true;
-				/*
-				def item = server_sms_for_sending.read([objid: o.objid]);
-				if (!item) {
-					item = o;
-					item.dtfiled = dateSvc.serverDate;
-					//item.dtfiled = o.dtpaid;
-					server_sms_for_sending.create(item);
-				}
-				o._created = true;
-				*/
+
+			} catch (Exception e) {
+				o._error = true;
+				o._errormsg = e.getMessage();
 			}
 		}
+
 
 		return list;
 	}
@@ -99,12 +133,18 @@ class ServerSMSService
 		//if (data?.reftype) msg += 'CLLCI:\n';
 
 		if (data?.reftype == 'PAYMENT') {
+			/*
 			msg += 'Received payment for the loan of ' + data?.borrower?.lastname + ', ' + data?.borrower?.firstname;
 			//msg += ' with Loan No. ' + data?.loanapp?.appno;
 			msg += ' with the amount of ' + data?.amount;
 			msg += ' with Ref. No. ' + data?.refno;
 			msg += ' paid by ' + data?.paidby + ' on ' + data?.dtpaid;
 			msg += ' received by collector ' + data?.collector?.name + '.';
+			*/
+
+			msg += 'Thank you Maam/Sir ' +  data?.borrower?.firstname + ' ' + data?.borrower?.lastname + ' ';
+            msg += 'for the payment we have recieved amounting Php ' + data?.amount + ' Ref No. ' +  data?.refno + ' ';
+			msg += 'on ' + data?.dtpaid + '.';
 		} else if (data?.reftype == 'VOID') {
 			msg += 'Voided payment for the loan of ' + data?.borrower?.lastname + ', ' + data?.borrower?.firstname;
 			//msg += ' with Loan No. ' + data?.loanapp?.appno;

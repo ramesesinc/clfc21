@@ -110,16 +110,27 @@ class LoanSpecialCollectionService extends ActiveListService
 	private def DATE_FORMAT2 = new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a");
 	private def DEC_FORMAT = new DecimalFormat("#,##0.00");
 
+	private final TASK_STATES = [
+		[state: "DRAFT", level: 1],
+		[state: "FOR_APPROVAL", prevstate: "DRAFT", level: 2],
+		[state: "FOR_DOWNLOAD", prevstate: "FOR_APPROVAL", level: 3],
+		[state: "DISAPPROVED", prevstate: "FOR_APPROVAL", level: 3],
+		[state: "DOWNLOADED", prevstate: "FOR_DOWNLOAD", level: 4],
+		//[state: "", prevstate: "", level: ],
+		//[state: "", prevstate: "", level: ],
+		//[state: "", prevstate: "", level: ],
+	];
+
 
 	@ProxyMethod
 	public def getOptions() {
 		return [
 			[caption: 'All'],
 			[caption: 'DRAFT', state: 'DRAFT'],
-			[caption: 'FOR VERIFICATION', state: 'FOR_VERIFICATION'],
-			[caption: 'VERIFIED', state: 'VERIFIED'],
+			//[caption: 'FOR VERIFICATION', state: 'FOR_VERIFICATION'],
+			//[caption: 'VERIFIED', state: 'VERIFIED'],
 			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
-			[caption: 'APPROVED', state: 'APPROVED'],
+			//[caption: 'APPROVED', state: 'APPROVED'],
 			[caption: 'DISAPPROVED', state: 'DISAPPROVED'],
 			[caption: 'FOR DOWNLOAD', state: 'FOR_DOWNLOAD'],
 			[caption: 'DOWNLOADED', state: 'DOWNLOADED'],
@@ -198,17 +209,24 @@ class LoanSpecialCollectionService extends ActiveListService
 	//@Async
 	@ProxyMethod
 	public def create( data ) {
-		validate(data);
-		validateLedgers(data);
+		validate( data );
+		validateLedgers( data );
+		updateBillingid( data );
+
+		if (!data.name) {
+			def list = em.getListByCollectoridAndDate([collectorid: data.collector.objid, date: data.txndate]);
+			if (!list) list = [];
+			data.name = "Special " + (list.size() + 1);
+		}
 
 		data.dtfiled = dateSvc.serverDate;
 		data.author = [objid: env.USERID, name: env.NAME];
 		if (!data.state) data.state = 'DRAFT';
 
-		em.create(data);
-		updateDetails(data);
+		em.create( data );
+		updateDetails( data );
 
-		return open(data);
+		return open( data );
 	}
 
 	@ProxyMethod
@@ -301,13 +319,20 @@ class LoanSpecialCollectionService extends ActiveListService
 	//@Async
 	@ProxyMethod
 	public def update( data ) {
-		validate(data);
-		validateLedgers(data);
+		validate( data );
+		validateLedgers( data );
+		updateBillingid( data );
+		em.update( data );
+		updateDetails( data );
 
-		em.update(data);
-		updateDetails(data);
+		return open( data );
+	}
 
-		return open(data);
+	private void updateBillingid( data ) {
+		def billing = em.findBillingByCollectoridAndDate([collectorid: data.collector.objid, date: data.txndate]);
+		if (billing) {
+			data.billingid = billing.objid;
+		}
 	}
 
 	private void updateDetails( params ) {
@@ -420,11 +445,30 @@ class LoanSpecialCollectionService extends ActiveListService
 		return open(data);
 	}
 
-	//@Async
+	@Async
 	@ProxyMethod
 	public def approveDocument( params ) {
-		return approveImpl(params, 'APPROVED');
+		return approveDocumentImpl( params );
+		/*
+		println 'sc params ' + params;
+		println 'pass 1';
+		def data = approveImpl(params, 'APPROVED');
+
+		println 'pass 2';
+		data = createNewBilling( data );
 		//return createImpl(data);
+
+		println 'pass 3';
+		return open( data );
+		*/
+	}
+
+	@ProxyMethod
+	public def approveDocumentImpl( params ) {
+		def data = approveImpl(params, 'APPROVED');
+
+		data = createNewBilling( data );
+		return open( data );
 	}
 
 	@ProxyMethod
@@ -1063,7 +1107,11 @@ class LoanSpecialCollectionService extends ActiveListService
 		if ((c.get(Calendar.DAY_OF_WEEK) == 1)) hassunday = true;
 
 		def avgamount = data.dailydue;
-		if (data.paymentmethod == 'over') avgamount = ledger_billing.findAvgOverpaymentAmount([parentid: data.objid]).groupbaseamount;
+		if (data.paymentmethod == 'over') {
+			avgamount = data.overpaymentamount;
+			def i = ledger_billing.findAvgOverpaymentAmount([parentid: data.objid]);
+			if (i) avgamount = i.groupbaseamount;
+		}
 		
 		def item = [
 			ledgerid 		: data.objid,
@@ -1185,8 +1233,13 @@ class LoanSpecialCollectionService extends ActiveListService
 				bal += params.days*params.interestamount;
 			} else {
 				def avgamount = params.dailydue;
-				if (params.paymentmethod == 'over') avgamount = em.findAvgOverpaymentAmount([parentid: params.ledgerid]).groupbaseamount;
-				if (!avgamount) avgamount = params.dailydue;
+				if (params.paymentmethod == 'over') {
+					def xl = loan_ledger.read([objid: params.ledgerid]);
+					avgamount = xl.overpaymentamount;
+					def i = em.findAvgOverpaymentAmount([parentid: params.ledgerid]);
+					if (i) avgamount = i.groupbaseamount;
+				}
+				//if (!avgamount) avgamount = params.dailydue;
 
 				BigDecimal b = new BigDecimal(avgamount+'').setScale(2);
 				b = b.subtract(new BigDecimal(params.interestamount+'').setScale(2));

@@ -1,9 +1,56 @@
-<workunit extends='wtemplates/ExplorerViewController.xml' defaultFileType='loanledger' >
+<workunit extends='wtemplates/ListController.xml' >
     <invokers>
         <invoker folderid='/home/online/loan' caption='Ledgers' role='ACCT_OFFICER' />
     </invokers>
     
-    <code class='com.rameses.clfc.ledger.LoanLedgerExplorerViewController' />
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.common.*;
+        import com.rameses.osiris2.client.*;
+        import java.text.DecimalFormat;
+        
+        class LedgerListController extends ListController {
+            
+            @Binding
+            def binding;
+        
+            @Service("LoanLedgerService")
+            def svc;
+        
+            def numberFormat = new DecimalFormat("#,##0");
+        
+            String getTitle() {
+                def params = [segregationid: selectedOption?.segregationid];
+                def accounts = svc.getTotalAccounts( params );
+                def str = "Ledgers";
+                if (selectedOption) {
+                    str += ": " + selectedOption.caption + " " + numberFormat.format(accounts) + " account(s)";
+                }
+                return str;
+            }
+        
+            String serviceName = "LoanLedgerService";
+            String entityName = "loanledger";
+            boolean allowCreate = false;
+        
+            def selectedOption;
+            def optionsModel = [
+                getItems: {
+                    return svc.getSegregation();
+                }, 
+                onselect: { o->
+                    query.segregationid = o.typeid;
+                    query.segregationtype = o.type;
+                    reload();
+                }
+            ] as ListPaneModel;
+        }
+    </code>
+    
+    <pages>
+        <page template="com.rameses.clfc.ui.ListPage" />
+    </pages>
 </workunit>
 
 <!--

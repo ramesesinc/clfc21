@@ -2,6 +2,7 @@ import com.rameses.annotations.*;
 import com.rameses.services.extended.*;
 import com.rameses.rules.common.*;
 import java.rmi.server.UID;
+import java.text.SimpleDateFormat;
 
 class NewLoanProductTypeService extends ActiveCrudListService {
 
@@ -50,7 +51,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 	@Service
 	def selfSvc;
 
-	private final def POSTING_RULESET = ["postperitem", "postonlastitem"];
+	private final def POSTING_RULESET = ["postprepaid", "postperitem", "postonlastitem"];
 	private final def POSTING_RULEGROUP = ["before", "during", "after"];
 
 	/*
@@ -223,13 +224,18 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 	public def getFieldList( params ) {
 		if (!params.factid) throw new RuntimeException("Please specify factid.");
 		//if (!params.category) throw new RuntimeException("Please specify category.");
-
+		//return [];
 		return em.getFieldListByFactid(params).collect{ [objid: it.objid, name: it.name, title: it.name, handler: it.handler] };
 	}
 
 	@ProxyMethod
 	public def getPostingRuleGroup() {
 		return POSTING_RULEGROUP;
+	}
+
+	@ProxyMethod
+	public def getPostingRuleSet() {
+		return POSTING_RULESET;
 	}
 
 	@ProxyMethod
@@ -363,9 +369,10 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		return list;
 	}
 
+
 	@ProxyMethod
 	public def getFields( params ) {
-		def list = postingheader.getFields([objid: params.objid]);
+		def list = []; //postingheader.getFields([objid: params.objid]);
 
 		println 'fields ' + list;
 
@@ -529,7 +536,6 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 	@ProxyMethod
 	public def xxtestExpression( params ) {
-		println 'test expression';
 
 		def ref = [executingBase: true, executingRuleset: false];
 		def base = [
@@ -573,7 +579,6 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 	}
 
-
 	@ProxyMethod
 	public def testExpression( params ) {
 		def data = open(params);
@@ -585,10 +590,15 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		def xparams = [
 			appid		: "LOAN7385099b:15c0faf1736:-7ff6",
 			ledgerid	: "LEDGER-7d4c2fc0:145c6219f8c:-77c6",
-			payments 	: [[paymentid: "LLP70b6b5f0:145ebcbaa08:-d6f"]]
+			payments 	: [
+				[paymentid: "LLP-4da142a:145c7c7e749:1632"],
+				[paymentid: "LLP70b6b5f0:145ebcbaa08:-d71"],
+				[paymentid: "LLP70b6b5f0:145ebcbaa08:-d6f"]
+			]
 		];
 
 		//LLP-4da142a:145c7c7e749:1632 2000-03-17
+		//LLP70b6b5f0:145ebcbaa08:-d71 2000-03-21
 		//LLP70b6b5f0:145ebcbaa08:-d6f 2000-03-23
 
 		//do not remove 
@@ -624,12 +634,14 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			list.sort{ it.index }
 			list.each{ o->
 				def res = executeApplicationRule(bindings, o);
+				//println 'result-> ' + res;
 				bindings[o.attribute.varname] = res[o.attribute.fieldname];
 			}
 
 			//def app = [:];
 			app = loanapp.read([objid: xparams.appid]);
 			list.each{
+				//println it.attribute.fieldname + '-> ' + bindings[it.attribute.varname];
 				app[it.attribute.fieldname] = bindings[it.attribute.varname]
 			}
 
@@ -660,7 +672,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			//loanbindings.each{ println it }
 			//println '';
 			xparams.payments?.each{ p->
-				def xprm = [appid: xparams.appid, ledgerid: xparams.ledgerid, paymentid: p.paymentid];
+				def xprm = [appid: xparams.appid, ledgerid: xparams.ledgerid, paymentid: p.paymentid]; 
 				def result = executePostingRule( bindings2, geninfo, appinfo, info, xprm );
 				/*
 				info.postingsequence.each{
@@ -741,7 +753,16 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 		//throw new RuntimeException("stop");
 		def pyt = loan_ledger.read([objid: params.paymentid], "payment");
+		//println 'payment';
+		//println pyt;
+		//println '';
 		def ledger = loan_ledger.read([objid: params.ledgerid]);
+		ledger.dtlastpaid = pyt.txndate;
+
+		pyt.previous = [
+			balance 	: ledger.balance,
+			dtschedule 	: ledger.dtcurrentschedule
+		];
 
 		def totaldays = getTotalDays( params );
 		//println 'total days ' +  totaldays;
@@ -800,9 +821,13 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			dbParams				: params,
 			totalDays 				: totaldays
 		];
+
+		//println 'posting sequence';
+		//item.postingsequence?.each{ println it }
+
 		def posting = [index: 0, sequence: item.postingsequence, postingItems: [], daysCount: 1, incrementAfterPosting: [:]];
 		def loan = [index: 0, attributes: applist, bindings: loanBindings];
-		def payment = [amount: 0.0d, deductableToAmount: 0.0d, date: pyt?.txndate, totalPaid: [:], total: [:], lacking: [:]];
+		def payment = [amount: 0.0d, deductableToAmount: 0.0d, date: pyt?.txndate, current: [:], totalPaid: [:], total: [:], lacking: [:]];
 		if (pyt?.amount) {
 			payment.amount = ((BigDecimal) pyt.amount).toDouble();
 		}
@@ -849,15 +874,65 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			throw e;
 		}
 
+		def items = posting.postingItems;
+
+		items.sort{ it.idx };
+		if (items) {
+			def i = items[items.size() - 1];
+			//if (i) {
+			//}
+		}
+
+
+
+		pyt.totalpaid = payment.totalPayment;
+		pyt.lacking = payment.lacking;
+		pyt.current = payment.current;
+
+
+		if (posting.incrementAfterPosting?.dtschedule) {
+			def cal = Calendar.getInstance();
+			cal.setTime( parseDate(ledger.dtcurrentschedule) );
+
+			cal.add(Calendar.DATE, posting.incrementAfterPosting.dtschedule);
+			ledger.dtcurrentschedule = parseDate( new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime()) );
+			//edger.dtcurrentschedule = pyt.current?.dtschedule;
+		}
+
+		if (pyt.current?.balance) {
+			ledger.balance = pyt.current?.balance;
+		}
+
+		//println 'increment after posting-> ' + posting.incrementAfterPosting
+
+		//println 'balance-> ' + ledger.balance;
+		//println 'dtcurrentschedule-> ' + ledger.dtcurrentschedule;
+
+		//loan_ledger.update(pyt, "payment");
+		//loan_ledger.update(ledger);
+
+		/*
+		println 'payment';
+		pyt?.each{ println it }
+		println '';
+		*/
+
+		/*
+		println 'bindings';
+		bindings?.each{ println it }
+		println '';
+		*/
+
 		/*
 		println 'payment';
 		payment.each{ println it }
 		println '';
+		*/
 
 		println 'posting items ';
 		posting.postingItems.each{ println it };
 		println '';
-		*/
+
 		//println 'result-> ' + result;
 
 
@@ -1053,5 +1128,15 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		//println 'bindings';
 		//bindings.each{ println it }
 		return bindings;
+	}
+
+	private def parseDate( date ) {
+		if (!date) return null;
+
+		if (date instanceof Date) {
+			return date;
+		} else {
+			return java.sql.Date.valueOf( date );
+		}
 	}
 }

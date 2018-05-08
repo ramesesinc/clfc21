@@ -10,6 +10,7 @@
 */nbproject/genfiles.properties
 */temp
 */tmp
+Thumbs.db
 
 android/*/_tmp
 android/*/.settings
@@ -41,3 +42,5 @@ _dev
 /**/nbproject/groovy-build.xml
 /**/.terminal
 /**/Thumbs.db
+/projects/client/rameses-clfc-reporttemplate/build/
+/projects/client/rameses-clfc-reporttemplate/dist/

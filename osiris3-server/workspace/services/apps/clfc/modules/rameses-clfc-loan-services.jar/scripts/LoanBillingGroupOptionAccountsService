@@ -12,7 +12,7 @@ class LoanBillingGroupOptionAccountsService extends ActiveListService
 	public def getColumns( params ) {
 		def cols = [];
 
-		if (params.type == 'CONFERENCE') cols << [name: 'dtconferenced', caption: 'Conference Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		//if (params.type == 'CONFERENCE') cols << [name: 'dtconferenced', caption: 'Conference Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
 		cols << [name: 'borrower.name', caption: 'Borrower'];
 		cols << [name: 'loanapp.appno', caption: 'App. No.'];
 		cols << [name: 'loanapp.amount', caption: 'Loan Amount', type: 'decimal', format: '#,##0.00'];
@@ -26,20 +26,39 @@ class LoanBillingGroupOptionAccountsService extends ActiveListService
 	@ProxyMethod
 	public def getStates( params ) {
 		def list = [];
+
+		println 'params ' + params;
+
+		list << [caption: "All"];
+		list << [caption: "Conferenced", type: "CONFERENCED"];
+		list << [caption: "FIXED", type: "FIXED"];
+		list << [caption: "SMC", type: "SMC"];
+		list << [caption: "Bad Debt", type: "BAD_DEBT"];
+
+
+		/*
 		if (params.type == 'CONFERENCE') {
 			list = [
 				[caption: 'For Follow-up', state: 'FOR_FOLLOWUP'],
 				[caption: 'Follow-up', state: 'FOLLOWUP']
 			];
 		}
+		*/
 		return list;
 	}
 
 	void beforeList( params ) {
 		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
-		def state = params.state;
-		def type = params.type;
-		def lm;
+		//def state = params.state;
+		//def type = params.type;
+		def lm = "getAccountsForBillingGroup";
+		switch (params.listtype) {
+			case "CONFERENCED"	: break; //lm = "getAccountsConferenced"; break;
+			case "SMC"			: lm = "getAccountsSMC"; break;
+			case "FIXED"		: lm = "getAccountsFixed"; break;
+			case "BAD_DEBT"		: lm = "getAccountsBadDebt"; break;
+		}
+		/*
 		if (type == 'CONFERENCE') {
 			if (state == 'FOR_FOLLOWUP') {
 				lm = 'getConferenceForFollowup';
@@ -51,7 +70,16 @@ class LoanBillingGroupOptionAccountsService extends ActiveListService
 		} else if (type == 'DELINQUENT') {
 			lm = 'getDelinquent';
 		}
+		*/
 		if (lm) params._listMethod = lm;
+	}
+
+	void afterList( params, list ) {
+		/*
+		if (!params.listtype) {
+			list?.each{ println it }
+		}
+		*/
 	}
 
 }

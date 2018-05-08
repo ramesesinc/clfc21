@@ -27,7 +27,7 @@ class NoteService extends ActiveCrudListService
 
 	String getListMethod() { 
 		return listMethodName; 
-	} 
+	}
 
 	@ProxyMethod
 	public def getColumns( params ) { 

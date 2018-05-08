@@ -46,12 +46,6 @@ public class SupplyFieldValue implements RuleActionHandler {
 		//println 'bindings--> ' + params.bindings;
 	}
 
-	def parse( def pattern, def date ) {
-		if (!pattern) pattern = "yyyy-MM-dd";
-
-		return parse(new SimpleDateFormat(pattern).format(parse(date)));
-	}
-
 	def parse( def date ) {
 		if (!date) return null;
 
@@ -60,6 +54,12 @@ public class SupplyFieldValue implements RuleActionHandler {
 		} else {
 			return java.sql.Date.valueOf(date);
 		}
+	}
+
+	def parse( def pattern, def date ) {
+		if (!pattern) pattern = "yyyy-MM-dd";
+
+		return parse(new SimpleDateFormat(pattern).format(parse(date)));
 	}
 
 

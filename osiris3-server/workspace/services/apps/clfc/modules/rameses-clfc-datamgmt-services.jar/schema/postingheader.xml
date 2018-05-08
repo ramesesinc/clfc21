@@ -12,9 +12,10 @@
 		<field name="type" />
 		<field name="datatype" required="true" />
 		<field name="format" />
-		<field name="postingexpr" />
+		<!-- <field name="postingexpr" /> -->
 	</element>
 
+	<!--
 	<element name="factfield" tablename="postingheader_factfield">
 		<field name="objid" primary="true" />
 		<field name="parentid" required="true" />
@@ -26,5 +27,6 @@
 		<field name="field_title" required="true" />
 		<field name="field_handler" required="true" />
 	</element>
+	-->
 
 </schema>

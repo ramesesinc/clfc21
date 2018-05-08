@@ -49,9 +49,10 @@ rule "calculate date"
 
 		Map params = new HashMap();
 		params.put("key", fieldname);
-		params.put(fieldname, (new ActionExpression(expr, bindings)) );
+		System.out.println("field name-> " + fieldname);
+		//params.put(fieldname, (new ActionExpression(expr, bindings)) );
 
-		action.execute("calcDate", params, drools);
+		//action.execute("calcDate", params, drools);
 end
 
 rule "compute total days"

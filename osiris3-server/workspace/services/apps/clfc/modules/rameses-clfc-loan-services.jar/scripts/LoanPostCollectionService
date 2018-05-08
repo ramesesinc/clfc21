@@ -1,0 +1,93 @@
+import com.rameses.annotations.*;
+
+class LoanPostCollectionService {
+	
+	@ActiveDB("loan_post_collection")
+	def em;
+
+	@ActiveDB("onlinecollection")
+	def onlinecollection;
+
+	@ActiveDB("specialcollection")
+	def specialcollection;
+
+	@ActiveDB("loan_route")
+	def loan_route;
+
+	@ProxyMethod
+	public def getCollectionColumns( params ) {
+		def cols = [];
+
+		cols << [name: "description", caption: "Collection"];
+		cols << [name: "collector.name", caption: "Collector"];
+		cols << [name: "totalcollection", caption: "Total Collection", type: "decimal", format: "#,##0.00"];
+		cols << [name: "type", caption: "Type"];
+		cols << [name: "state", caption: "Status"];
+
+		return cols;
+	}
+
+	@ProxyMethod
+	public def getCollections( params ) {
+		def list = em.getCollectionByDate( params );
+		if (list) {
+			def cl = [];
+			cl.addAll( list.findAll{ it.grouptype=='online' } );
+			if (cl) {
+				cl.unique{ it.collector.objid }
+				cl.each{ c->
+					def mlist = list.findAll{ it.collector.objid == c.collector.objid && it.grouptype=='online' }
+					if (mlist) {
+						mlist.sort{ it.dtfiled }
+						mlist.eachWithIndex{ itm, idx-> 
+							def oc = onlinecollection.read( [objid: itm.groupid] );
+							if (oc?.name) itm.description = oc.name;
+							if (!itm.description) itm.description = "Direct " + (idx + 1);
+						}
+					}
+				}	
+			}
+
+			cl = [];
+			cl.addAll( list.findAll{ it.grouptype=='followup' } );
+			if (cl) {
+				cl.unique{ it.collector.objid }
+				cl.each{ c->
+					def mlist = list.findAll{ it.collector.objid == c.collector.objid && it.grouptype=='followup' }
+					if (mlist) {
+						mlist.sort{ it.dtfiled }
+						mlist.eachWithIndex{ itm, idx->
+							def sc = specialcollection.read( [objid: itm.groupid] );
+							if (sc?.name) itm.description = sc.name;
+							if (!itm.description) itm.description = "Follow-up " + (idx + 1);
+						}
+					}
+				}	
+			}
+
+			cl = [];
+			cl.addAll( list.findAll{ it.grouptype=='special' } );
+			if (cl) {
+				cl.unique{ it.collector.objid }
+				cl.each{ c->
+					def mlist = list.findAll{ it.collector.objid == c.collector.objid && it.grouptype=='special' }
+					if (mlist) {
+						mlist.sort{ it.dtfiled }
+						mlist.eachWithIndex{ itm, idx->
+							def sc = specialcollection.read( [objid: itm.groupid] );
+							if (sc?.name) itm.description = sc.name;
+							if (!itm.description) itm.description = "Special " + (idx + 1);
+						}
+					}
+				}
+			}
+
+			def mlist = list.findAll{ it.grouptype=='route' }
+			mlist?.each{ 
+				def route = loan_route.read( [code: it.groupid] );
+				if (route) it.description = route.description;
+			}
+		}
+		return list;
+	}
+}

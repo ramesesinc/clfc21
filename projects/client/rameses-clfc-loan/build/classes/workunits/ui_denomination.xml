@@ -33,6 +33,7 @@
                 }
                 
                 def denominationHandler = [
+                    getRows: { return 12; },
                     isAllowAdd: { return false; },
                     fetchList: {
                         return entries;

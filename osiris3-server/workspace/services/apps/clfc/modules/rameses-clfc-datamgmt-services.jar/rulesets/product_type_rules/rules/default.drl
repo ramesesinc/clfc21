@@ -54,6 +54,7 @@ declare Payment
 	amount 				: Double
 	deductableToAmount	: Double
 	date 				: Date
+	current 			: Map
 	totalPaid 			: Map
 	total 				: Map
 	lacking 			: Map
@@ -93,9 +94,9 @@ rule "execute rulegroup"
 		eval( idx < list.size() )
 	then
 		String rulegroup = list.get( idx ).toString();
-		println("rulegroup-> " + rulegroup);
+		//println("rulegroup-> " + rulegroup);
 
-		r.setExecutingRulegroup( false );;
+		r.setExecutingRulegroup( false );
 		r.setExecutingRuleset( true );
 		update( r );
 
@@ -112,9 +113,9 @@ rule "proceed add to posting"
 		eval( idx >= list.size() )
 	then
 		println("proceed add to posting");
-		//r.setExecutingRulegroup( false );
-		//r.setAllowPosting( true );
-		//update( r );
+		r.setExecutingRulegroup( false );
+		r.setAllowPosting( true );
+		update( r );
 end
 
 rule "execute ruleset"
@@ -126,7 +127,7 @@ rule "execute ruleset"
 		eval( idx < list.size() )
 	then
 		String ruleset = list.get( idx ).toString();
-		println("ruleset-> " + ruleset);
+		//println("ruleset-> " + ruleset);
 
 		r.setExecutingRuleset( false );
 		r.setLoanAppSupplyOnPosting( true );
@@ -308,9 +309,18 @@ rule "supply value"
 		Object val = null;
 
 		String fieldname = "";
+		/*
 		if (item.containsKey("name")) {
 			val = item.get("name");
 			if (val != null) fieldname = val.toString();
+		}
+		*/
+		if (item.containsKey("posttoheader")) {
+			Map header = (Map) item.get("posttoheader");
+			if (header != null && header.containsKey("name")) {
+				val = header.get("name");
+				if (val != null) fieldname = val.toString();
+			}
 		}
 
 		String expr = "";
@@ -406,7 +416,8 @@ rule "posting: item"
 
 		String ruleset = rslist.get( rsidx ).toString();
 		String rulegroup = rglist.get( rgidx ).toString();
-		
+
+
 		//println("ruleset " + ruleset);
 		//println("rulegroup " + rulegroup);
 		/*
@@ -417,6 +428,25 @@ rule "posting: item"
 		*/
 
 		Boolean allowPost = false;
+		String rsval = "", rgval = "";
+		Object val;
+
+		if (item.containsKey("rulegroup")) {
+			val = item.get("rulegroup");
+			if (val != null) rgval = val.toString();
+		}
+
+		if (item.containsKey("ruleset")) {
+			val = item.get("ruleset");
+			if (val != null) rsval = val.toString();
+		}
+
+		if (rulegroup.equals( rgval ) && ruleset.equals( rsval )) {
+			allowPost = true;
+		}
+
+
+		/*
 		String postinggroup = "";
 		if (item.containsKey("postinggroup")) {
 			Object val = item.get("postinggroup");
@@ -424,6 +454,8 @@ rule "posting: item"
 				postinggroup = val.toString();
 			}
 		}
+
+		//println("posting group-> " + postinggroup);
 
 		if (rulegroup.equals( postinggroup )) {
 			if (item.containsKey( ruleset )) {
@@ -433,6 +465,7 @@ rule "posting: item"
 				}
 			}	
 		}
+		*/
 		//println("ruleset-> " + ruleset + " rulegroup-> " + rulegroup + " allow post-> " + allowPost);
 		//println("rulegroup equals postinggroup-> " + rulegroup.equals( postinggroup ));
 		/*
@@ -442,6 +475,13 @@ rule "posting: item"
 				allowPost = Boolean.valueOf(val.toString());
 			}
 			//allowPost = Boolean.valueOf(item.get("postperitem").toString());
+		}
+		*/
+
+
+		/*
+		if ("postonlastitem".equals( ruleset )) {
+			println("allow post-> " + allowPost + " item-> " + item.get("name").toString());
 		}
 		*/
 
@@ -469,6 +509,7 @@ rule "posting: item"
 		//println("contains allow repost-> " + params.containsKey("allowRepost"));
 		if (params.containsKey("allowRepost")) {
 			Boolean allowRepost = Boolean.valueOf(params.get("allowRepost").toString());
+			//println("allow repost-> " + allowRepost);
 			if (totaldays > 1 && allowRepost == true) {
 				//r.setOnPostPerItem( false ); 
 				//println("allow repost");
@@ -500,27 +541,73 @@ rule "proceed to execute ruleset"
 	when
 		r: References( onPostItem == true, totaldays: totalDays )
 		rs: Ruleset( rsidx: index, rslist: sequence )
-		Rulegroup( rgidx: index, rglist: sequence )
+		rg: Rulegroup( rgidx: index, rglist: sequence )
 		p: Posting( idx: index, list: sequence, dayscount: daysCount )
-		eval( idx >= list.size() )
-		eval( rsidx < rslist.size() )
+		eval( idx >= list.size() && dayscount < totaldays )
+		//eval( rsidx < rslist.size() )
 		//eval( rgidx < (rglist.size() - 1) )
 		//eval( (rsidx + 1) < (rslist.size() - 1) )
 	then
 
-		println("proceed to execute ruleset");
-		println("rulegroup index-> " + rgidx);
-		println("ruleset index-> " + rsidx);
-		println("dayscount-> " + dayscount + " totaldays-> " + totaldays);
+		//println("proceed to execute ruleset");
+		//println("rulegroup index-> " + rg.getIndex());
+		//println("ruleset index-> " + rsidx);
+		//println("dayscount-> " + dayscount + " totaldays-> " + totaldays);
 
 		r.setOnPostItem( false );
-		r.setExecutingRuleset( true );
-		update( r );
 
-		rs.setIndex( rs.getIndex() + 1 );
-		update( rs ); 
+		if ((rsidx + 1) < (rslist.size() - 1)) {
+			r.setExecutingRuleset( true );
+			rs.setIndex( rsidx + 1 );
+			update( rs );
+		} else {
+
+			if (rgidx < (rglist.size() - 1)) {
+				r.setExecutingRulegroup( true );
+				rg.setIndex( rg.getIndex() + 1 );
+				update( rg );
+			} else {
+				r.setAllowPosting( true );
+			}
+		}
+		//r.setExecutingRuleset( true );
+
+		//rs.setIndex( rs.getIndex() + 1 );
+		//update( rs ); 
+		update( r );
 end
 
+rule "proceed to execute ruleset 2"
+	salience 90
+	when
+		r: References( onPostItem == true, totaldays: totalDays )
+		rs: Ruleset( rsidx: index, rslist: sequence )
+		rg: Rulegroup( )
+		p: Posting( idx: index, list: sequence, dayscount: daysCount )
+		eval( idx >= list.size() && dayscount >= totaldays )
+	then
+
+		//println("proceed to execute ruleset 2");
+		//println("rulegroup index-> " + rg.getIndex());
+		//println("ruleset index-> " + rsidx);
+		//println("dayscount-> " + dayscount + " totaldays-> " + totaldays);
+
+		r.setOnPostItem( false );
+
+		if (rsidx < rslist.size()) {
+			r.setExecutingRuleset( true );
+			rs.setIndex( rsidx + 1 );
+			update( rs );
+		} else {
+			r.setExecutingRulegroup( true );
+			rg.setIndex( rg.getIndex() + 1 );
+			update( rg );
+		}
+
+		update( r );
+end
+
+/*
 rule "proceed to add posting list from rulegroup"
 	salience 90
 	when
@@ -542,12 +629,14 @@ rule "proceed to add posting list from rulegroup"
 		r.setAllowPosting( true );
 		update( r );
 end
+*/
 
 rule "add to posting list"
 	salience 70
 	when
 		r: References( allowPosting == true, totaldays: totalDays )
-		rs: Ruleset( rsidx: index, rslist: sequence )
+		//rs: Ruleset( rsidx: index, rslist: sequence )
+		rg: Rulegroup(  )
 		p: Posting( item: item, postingitems: postingItems, dayscount: daysCount, incrementafterposting: incrementAfterPosting )
 		pyt: Payment()
 	then
@@ -559,7 +648,7 @@ rule "add to posting list"
 
 		//println("increment after posting-> " + incrementafterposting);
 
-		if (item != null) {
+		if (item != null && !item.isEmpty()) {
 			if (!item.containsKey("idx")) {
 				item.put("idx", postingitems.size());	
 			}
@@ -571,7 +660,8 @@ rule "add to posting list"
 		//println("posting items-> " + postingitems);
 
 		if (dayscount < totaldays) {
-			r.setExecutingRuleset( true );
+			//r.setExecutingRuleset( true );
+			r.setExecutingRulegroup( true );
 
 			p.setValues( new HashMap() );
 			p.setItem( new HashMap() );
@@ -579,8 +669,8 @@ rule "add to posting list"
 			p.setDaysCount( dayscount + 1 );
 			p.setIndex( 0 );
 
-			rs.setIndex( 0 );
-			update( rs );
+			rg.setIndex( 0 );
+			update( rg );
 		} else {
 			//println("last item");
 		}

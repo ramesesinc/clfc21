@@ -7,26 +7,14 @@ class NewPostingHeaderService extends ActiveCrudListService {
 	@Env
 	def env;
 
-	@ActiveDB( dynamic=true )
-	def db;
-
 	@ActiveDB("postingheader")
 	def em;
-
-	@ActiveDB("ils_fact")
-	def ils_fact;
-
-	@Resource("RuleService")
-	def ruleSvc;
 
 	@Service("LOVService")
 	def lovSvc;
 
 	@Service("DateService")
 	def dateSvc;
-
-	@Service("NumberService")
-	def numSvc;
 
 	@ProxyMethod
 	public def getColumns( params ) {
@@ -49,25 +37,6 @@ class NewPostingHeaderService extends ActiveCrudListService {
 	void beforeCreate( data ) {
 		data.dtcreated = dateSvc.serverDate;
 		data.author = getUser();
-	}
-
-	void afterCreate( data ) {
-		updateInfo(data);
-	}
-
-	void afterUpdate( data ) {
-		updateInfo(data);
-	}
-
-	void updateInfo( data ) {
-		em.removeFields(data);
-		data.fields?.each{ o->
-			em.create(o, "factfield");
-		}
-	}
-
-	void afterOpen( data ) {
-		data.fields = em.getFields(data);
 	}
 
 	@ProxyMethod
@@ -110,64 +79,5 @@ class NewPostingHeaderService extends ActiveCrudListService {
 		//if (!params.category) throw new RuntimeException("Please specify category.");
 
 		return em.getFieldListByFactid(params).collect{ [objid: it.objid, name: it.name, title: it.name, handler: it.handler] };
-	}
-
-	@ProxyMethod
-	public def testExpression( params ) {
-		def data = em.read(params);
-
-		def prm = [
-			appid	: "LOAN-13d6f34:14b2fb4b5f3:-7ff9",
-			ledgerid: "LEDGER227d9b69:14b38c960c9:-7ff8"
-		]
-
-		def bindings = [:];
-
-		def fields = em.getFields(data);
-		fields.each{ o->
-
-			def factfield = ils_fact.read([objid: o.field.objid], "factfield");
-			if (factfield) {
-				def schema  = db.lookup("main", factfield.schemaname);
-				def xprm = [:];
-				xprm[factfield.primarykey] = prm[factfield.paramkey];
-				def f = schema.read(xprm);
-				bindings[o.title] = f[factfield.fieldname];
-			}
-		}
-
-		def result = [:];
-
-		def ref = [isDecimal: false, isDate: false, isBuildBindings: false];
-		switch (data.datatype) {
-			case 'decimal'	: ref.isDecimal = true; break;
-			case 'date'		: ref.isDate = true; break;
-		}
-
-		if (fields) ref.isBuildBindings = true;
-
-		def req = new RuleRequest("general_rules");
-		req.addFact('general_rules', 'References', ref);
-
-		def actions = new RuleAction(); 
-		actions.addCommand( 'calcAmount', new ils_rules.general.actions.CalcAmount( NS: numSvc, data: result ) );
-		actions.addCommand( 'calcDate', new ils_rules.general.actions.CalcDate( DS: dateSvc, data: result ) );
-		actions.addCommand( 'buildBindings', new ils_rules.general.actions.BuildBindings( data: result ) );
-
-		req.addGlobal("bindings", bindings);
-		req.addGlobal("action", actions);
-		req.addGlobal("fieldname", data.name);
-		req.addGlobal("expr", data.postingexpr);
-
-		try {
-
-			ruleSvc.execute(req);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw e;
-		}
-
-		println 'result-> ' + result;
-
 	}
 }

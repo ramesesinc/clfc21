@@ -268,7 +268,69 @@ abstract class AbstractFollowupCollectionController {
         entity = service.submitForApproval(entity);
     }
     
-    void approveDocument() {
+    def approveDocument() {        
+        if (!MsgBox.confirm("You are about to approve this document. Continue?")) return;
+                
+        def onMessageImpl = { o->
+            //println 'onMessage '  + o;
+            //println 'EOF ' + AsyncHandler.EOF;
+            //loadingOpener.handle.binding.fireNavigation("_close");
+
+            if (o == AsyncHandler.EOF) {
+                //loadingOpener.handle.binding.fireNavigation("_close");
+                return;
+            }
+            entity = o;
+            generatePDFFile();
+            loadingOpener.handle.closeForm();
+            //entity.putAll(o);
+            //def msg = ;
+            //if (mode == 'edit') msg = "Follow-up collection updated successfully!";
+            //mode = 'read';
+            MsgBox.alert("Follow-up collection billing created successfully!");
+            EventQueue.invokeLater({
+                binding?.refresh();
+                listHandler?.reload();
+            });
+        }
+        
+        loadingOpener = Inv.lookupOpener('popup:loading', [:]);
+        def handler = [
+            onMessage   : onMessageImpl,
+            onError     : { p->
+                //loadingOpener.handle.binding.fireNavigation('_close');
+                loadingOpener.handle.closeForm();
+                
+                if (showconfirmation==true) {
+                    def msg = p.message;
+                    msg += '\nDo you still want to continue to create this billing?';
+                    if (MsgBox.confirm(msg)) {
+                        showconfirmation = false;
+                        def xhandler = { i->
+                            def handler2 = [
+                                onMessage   : onMessageImpl,
+                                onError     : { o->
+                                    //loadingOpener.handle.binding.fireNavigation('_close');  
+                                    loadingOpener.handle.closeForm();
+                                    MsgBox.err(o.message); 
+                                }
+                            ] as AsyncHandler;
+                            service.createNewBillingWithoutLedgerValidation(entity, handler2);
+                        }
+                        loadingOpener = Inv.lookupOpener('popup:loading', [handler: xhandler]);
+                        binding.fireNavigation(loadingOpener);
+                    }
+                } else {
+                    MsgBox.err(p.message);
+                }
+            }
+        ] as AsyncHandler;
+        service.approveDocument(entity, handler);
+        
+        return loadingOpener;
+    }
+    
+    void xapproveDocument() {
         if (!MsgBox.confirm("You are about to approve this document. Continue?")) return;
         
         entity = service.approveDocument(entity);

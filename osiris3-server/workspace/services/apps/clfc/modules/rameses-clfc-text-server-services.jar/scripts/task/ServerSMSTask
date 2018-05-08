@@ -34,6 +34,7 @@ class ServerSMSTask
 
 	@Schedule(interval=1, timeUnit='SECONDS')
 	public def sendSMS( task ) {
+		println 'send sms';
 		def xlist = em.getList([_limit: 1]);
 		if (!xlist) return;
 
@@ -119,7 +120,7 @@ class ServerSMSTask
 						em.delete([objid: message.objid]);
 						println 'sent to borrower: ' + data?.borrower?.name + ' branch: ' + data?.branch?.code + ' part ' + data?.part + ' of ' + data?.totalpart;
 					}
-
+					/*
 					if (message.retry > 3) {
 						def log = [
 							objid	: 'LOG' + new UID(),
@@ -133,6 +134,7 @@ class ServerSMSTask
 						data.dtfiled = log.dtfiled;
 						em.update(data);
 					}
+					*/
 					println 'disconnecting'
 					sender.disconnect();
 				}
@@ -198,6 +200,7 @@ class ServerSMSTask
 							em.delete([objid: o.objid]);
 							println 'sent to borrower: ' + data?.borrower?.name + ' branch: ' + data?.branch?.code + ' part ' + o.part + ' of ' + o.totalpart;
 						}
+						/*
 						if (o.retry > 3) {
 							def log = [
 								objid	: 'LOG' + new UID(),
@@ -211,6 +214,7 @@ class ServerSMSTask
 							data.dtfiled = log.dtfiled;
 							em.update(data);
 						}
+						*/
 					}
 					println 'disconnecting'
 					sender.disconnect();

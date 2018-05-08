@@ -1,6 +1,8 @@
 <workunit extends='wtemplates/BillingGroupListController.xml'>
     <invokers>
+        <!--
         <invoker type='billinggroup-option' action='init' caption='Delinquent Accounts' index='3' />
+        -->
     </invokers>
     
     <code>
@@ -14,6 +16,8 @@
         {
             String serviceName = 'LoanBillingGroupOptionAccountsService';
             String type = 'DELINQUENT';
+            String entityName = "billing:group:delinquent";
+        
         }
     </code>
 </workunit>

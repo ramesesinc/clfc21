@@ -4,6 +4,7 @@
         
         <invoker type='formActions' action='close' caption='Close' mnemonic='c' shorcut='ctrl w'
             immediate='true' />
+        <invoker type="formActions" action="showActions" caption="Actions" immediate="true" />
         <!--
         <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl W"
             immediate="true" visibleWhen="#{isDefault}" />

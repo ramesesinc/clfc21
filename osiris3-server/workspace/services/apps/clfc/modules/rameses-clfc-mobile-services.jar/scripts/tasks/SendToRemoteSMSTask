@@ -29,8 +29,14 @@ class SendToRemoteSMSTask
 	@ActiveDB('entityindividual')
 	def entityindividual;
 
+	@ActiveDB("sms_log")
+	def sms_log;
+
 	@Service(value='ServerSMSService', connection='remote_proxy')
 	def serverSmsSvc;
+
+	@Service("DateService")
+	def dateSvc;
 
 	private def SPLITTER = ',';
 	private def REGEX = '^[0|\\+63]+(9)+(\\d{9})';
@@ -64,6 +70,19 @@ class SendToRemoteSMSTask
 		xlist?.each{ o->
 			if (o._created == true) {
 				sms_for_sending.delete([objid: o.objid]);
+			}
+			if (o._error == true) {
+				def i = sms_for_sending.read([objid: o.objid]);
+				if (i) {
+					def log = sms_log.read([objid: o.objid]);
+					if (!log) {
+						log = [:];
+						log.putAll( i );
+						log.dtfiled = dateSvc.serverDate;
+						log.remarks = o._errormsg;
+						sms_log.create( log );
+					}
+				}
 			}
 		}
 	}

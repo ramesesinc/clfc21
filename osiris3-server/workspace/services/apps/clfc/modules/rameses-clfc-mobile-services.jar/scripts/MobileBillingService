@@ -38,7 +38,7 @@ class MobileBillingService
 	public def getForDownloadBilling(params) {
 		if (!params.collectorid) throw new Exception("Please specify collectorid.");
 
-		def result = [
+		def result = [     
 			routes 		: [],
 			followups	: [],
 			specials	: []
@@ -47,12 +47,20 @@ class MobileBillingService
 
 		def prm = [
 			objid 	: params.collectorid,
-			date 	: date
+			date 	: date//"2017-08-03"
 		];
 
 		def routes = ledger_billing.getRouteBillingByCollector(prm);
-		routes?.each{ result.routes << it }
-		result.routes?.sort{ it.billdate.toString() + it.description }
+		if (routes) {
+			routes?.each{ 
+				it.allowdownload = false;
+				if (it.itemstate=='FOR_DOWNLOAD') {
+					it.allowdownload = true;
+				}
+				result.routes << it 
+			}
+			result.routes?.sort{ it.billdate.toString() + it.description }	
+		}
 
 		prm.itemtype = 'followup';
 		def followups = ledger_billing.getSpecialBillingByCollector(prm);
@@ -63,6 +71,10 @@ class MobileBillingService
 			xxlist = followups.findAll{ it.billdate == o.billdate }
 			xxlist?.eachWithIndex{ itm, idx->
 				itm.name = 'Follow-up ' + (idx+1);
+				itm.allowdownload = false;
+				if (itm.itemstate=='FOR_DOWNLOAD') {
+					itm.allowdownload = true;
+				}
 				result.followups << itm;
 			}
 		}
@@ -79,6 +91,10 @@ class MobileBillingService
 			xxlist = specials.findAll{ it.billdate == o.billdate }
 			xxlist?.eachWithIndex{ itm, idx->
 				itm.name = 'Special ' + (idx+1);
+				itm.allowdownload = false;
+				if (itm.itemstate=='FOR_DOWNLOAD') {
+					itm.allowdownload = true;
+				}
 				result.specials << itm;
 			}
 		}
@@ -137,17 +153,21 @@ class MobileBillingService
 		*/
 		list = buildList(list, billing.billdate);
 		
+		/*
 		def t = trackerSvc.open([objid: params.trackerid]);
 		if (!t) {
-			def param = [
-				trackerid	: params.trackerid,
-				terminalid	: params.terminalid,
-				userid		: params.userid,
-				lng 		: params.lng,
-				lat 		: params.lat
-			];
-			trackerSvc.start(param);
 		}
+		*/
+		def param = [
+			trackerid	: params.trackerid,
+			terminalid	: params.terminalid,
+			itemid 		: billing_item.objid,
+			userid		: params.userid,
+			lng 		: params.lng,
+			lat 		: params.lat
+		];
+		trackerSvc.start(param);
+
 		def prm = [
 			//objid 		: "TRKRR" + new UID(),
 			parentid 	: params.trackerid,
@@ -156,6 +176,7 @@ class MobileBillingService
 		];
 		//trackerSvc.addRoute(prm);
 		trackerSvc.addItem(prm);
+
 
 		def result = [billings: list, item: billing_item];
 		return result;
@@ -448,17 +469,22 @@ class MobileBillingService
 		def billing = ledger_billing.read([objid: data.parentid]);
 		if (!billing) throw new Exception("Billing record does not exist or has already been deleted.");
 
+		/*
 		def t = trackerSvc.open([objid: params.trackerid]);
 		if (!t) {
-			def param = [
-				trackerid	: params.trackerid,
-				terminalid	: params.terminalid,
-				userid		: params.userid,
-				lng 		: params.lng,
-				lat 		: params.lat
-			];
-			trackerSvc.start(param);
 		}
+		*/
+
+		def param = [
+			trackerid	: params.trackerid,
+			terminalid	: params.terminalid,
+			itemid 		: data.objid,
+			userid		: params.userid,
+			lng 		: params.lng,
+			lat 		: params.lat
+		];
+		trackerSvc.start(param);
+
 		/*if (!params.trackerid) {
 			def prm = [
 				lng 		: params.lng,
@@ -512,6 +538,7 @@ class MobileBillingService
 
 		def session = trackerSvc.open([objid: params.trackerid]);
 		if (session) {
+			params.itemid = data.objid;
 			trackerSvc.start(params);
 		}
 	}

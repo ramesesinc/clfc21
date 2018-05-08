@@ -6,6 +6,7 @@
         <!--
         <invoker folderid="/home/online/loan" caption="Closed Ledger Listing" role="ACCT_OFFICER" />
         -->
+        <invoker folderid="/home/online/loan" caption="Closed Ledgers" role="ACCT_OFFICER" />
     </invokers>
     
     <code>
@@ -14,7 +15,7 @@
         import com.rameses.osiris2.client.*;
         import com.rameses.osiris2.common.*;
         
-        class ClosedLoanLedgerListController extends ListController
+        class ClosedLedgerListController extends ListController
         {
             String serviceName = "LoanLedgerService";
             String entityName = "loanledger";

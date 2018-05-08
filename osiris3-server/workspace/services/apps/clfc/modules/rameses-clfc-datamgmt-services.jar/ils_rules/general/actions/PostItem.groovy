@@ -15,15 +15,19 @@ public class PostItem implements RuleActionHandler {
 			def postingitem = params.postingitem;
 			def listitem = params.listitem;
 			def values = params.values;
+			def header = listitem.posttoheader;
 
 			//params.isposted = true;
 
-			postingitem[listitem.name] = values[listitem.name];
+			if (values[header.name]) {
+				postingitem[header.name] = values[header.name];
+				params.PAYMENT.current[header.name] = values[header.name];
+			}
 			//println 'item-> ' + listitem.name + ' value-> ' + values[listitem.name];
 
 			switch (listitem.datatype) {
-				case 'decimal'	: decimalProcess( params, listitem ); break;
-				case 'date'		: dateProcess( params, listitem ); break;
+				case 'decimal'	: decimalProcess( params, listitem, header ); break;
+				case 'date'		: dateProcess( params, listitem, header ); break;
 			}
 
 			//params.isPosted = true;
@@ -37,39 +41,39 @@ public class PostItem implements RuleActionHandler {
 
 	}
 
-	void decimalProcess( params, item ) {
+	void decimalProcess( params, item, header ) {
 		//println 'item ' + item;
-		if (item.isdeductabletoamount == true) {
-			def postingamount = params.values[item.name];
+		if (item.isdeductabletoamount == true && params.values[header.name]) {
+			def postingamount = params.values[header.name];
 
 			if (!params.PAYMENT.deductableToAmount) params.PAYMENT.deductableToAmount = 0;
 			def paymentamount = params.PAYMENT.amount - params.PAYMENT.deductableToAmount;
 
-			if (!params.PAYMENT.totalPaid[item.name]) params.PAYMENT.totalPaid[item.name] = 0;
-			if (!params.PAYMENT.total[item.name]) params.PAYMENT.total[item.name] = 0;
-			if (!params.PAYMENT.lacking[item.name]) params.PAYMENT.lacking[item.name] = 0;
+			if (!params.PAYMENT.totalPaid[header.name]) params.PAYMENT.totalPaid[header.name] = 0;
+			if (!params.PAYMENT.total[header.name]) params.PAYMENT.total[header.name] = 0;
+			if (!params.PAYMENT.lacking[header.name]) params.PAYMENT.lacking[header.name] = 0;
 
-			params.PAYMENT.total[item.name] += postingamount;
+			params.PAYMENT.total[header.name] += postingamount;
 
 			if (paymentamount >= postingamount) {
 				//params.PAYMENT.amount -= postingamount;
 				params.PAYMENT.deductableToAmount += postingamount;
 				params.PAYMENT.totalPaid[item.name] += postingamount;
-				params.postingitem[item.name] = postingamount;
+				params.postingitem[header.name] = postingamount;
 				//params.PAYMENT.total[item.name] += postingamount;
 			} else {
 				def lackingamount = postingamount - paymentamount;
 
 				//params.PAYMENT.amount -= paymentamount;
 				params.PAYMENT.deductableToAmount += paymentamount;
-				params.PAYMENT.totalPaid[item.name] += paymentamount;
-				params.postingitem[item.name] = paymentamount;
+				params.PAYMENT.totalPaid[header.name] += paymentamount;
+				params.postingitem[header.name] = paymentamount;
 				//params.PAYMENT.total[item.name] += paymentamount;
 				if (lackingamount > 0) {
 					if (params.totaldays > 1 && item.recalculateifnotenough == true) {
 						params.allowRepost = true;
 					}
-					params.PAYMENT.lacking[item.name] += lackingamount;
+					params.PAYMENT.lacking[header.name] += lackingamount;
 				}
 			}
 
@@ -77,10 +81,19 @@ public class PostItem implements RuleActionHandler {
 		}
 	}
 
-	void dateProcess( params, item ) {
-		if (item.isincrementafterposting == true) {
-			if (!params.incrementAfterPosting[item.name]) params.incrementAfterPosting[item.name] = 0;
-			params.incrementAfterPosting[item.name] += 1;
+	void dateProcess( params, item, header ) {
+		if (item.isincrementafterposting == true && params.values[header.name]) {
+			if (!params.incrementAfterPosting[header.name]) params.incrementAfterPosting[header.name] = 0;
+			params.incrementAfterPosting[header.name] += 1;
+
+			/*
+			def val = params.values[item.name];
+			if (val && params.PAYMENT) {
+				params.PAYMENT.current[item.name] = val;
+			}
+			*/
+			//println 'name-> ' + item.name + ' val-> ' + val;
+
 			//params.PAYMENT.addToCurrentSchedule += 1;
 		}
 	}

@@ -32,6 +32,19 @@ class MobileTrackerService
 	
 	def FORMATTER = new java.text.SimpleDateFormat('yyyy-MMM-dd'); 
 	
+	@ProxyMethod
+	public def getBranchLocation() {
+		def branch = branchSvc.open([:]);
+
+		if (!branch) branch = [:];
+		branch.location = [:];
+		branch.location.lng = (branch.lng? branch.lng : 0);
+		branch.location.lat = (branch.lat? branch.lat : 0);
+		//if (!branch.location) branch.location = [lng: 123.87636423110962, lat: 10.309926522447359];
+
+		return branch.location;
+	}
+
     @ProxyMethod
     public Map create(Map params) {
     	def branch = branchSvc.open([:]);
@@ -43,8 +56,8 @@ class MobileTrackerService
 			branch 		: branch,
 			userid 		: params.userid, 
 			dtstart 	: dateSvc.serverDate,
-			startlng	: params.lng, 
-			startlat	: params.lat ,
+			startlng	: branch?.lng? branch.lng : params.lng, 
+			startlat	: branch?.lat? branch.lat : params.lat,
 			user 		: getUser(params.userid)
 		];
 		em.create(entity); 
@@ -107,7 +120,6 @@ class MobileTrackerService
     }
 
     def getUser( userid ) {
-    println 'userid-> ' + userid;
     	def user = sys_user.read([objid: userid]);
     	if (!user) return null;
 
@@ -130,6 +142,7 @@ class MobileTrackerService
 		}//throw new Exception("'"+params.trackerid+"' trackerid not found"); 
 		entity.user = getUser(entity?.userid);
 
+		def branch = branchSvc.open([:]);
 
 		def prm = [
 			objid 	: entity.objid,
@@ -137,7 +150,6 @@ class MobileTrackerService
 		]
 		def isStarted = em.findBeginDetailByPrimary(prm);
 		if (!isStarted) {
-			def branch = branchSvc.open([:]);
 			def item = [
 				objid 		: "TRKRI" + new UID(), 
 				parentid 	: entity.objid, 
@@ -146,14 +158,34 @@ class MobileTrackerService
 				txndate 	: entity.dtstart, 
 				txntype 	: 'NORMAL', 
 				refid 		: 'RID' + new UID(), 
-				reftype		: 'TRACK', 
-				lng 		: entity.startlng,  
-				lat 		: entity.startlat,
+				reftype		: 'START', 
+				lng 		: branch?.lng? branch.lng : entity.startlng,//entity.startlng,  
+				lat 		: branch?.lat? branch.lat : entity.startlat,//entity.startlat,
 				remarks 	: 'BEGIN MOBILE TRACKING',   
 				state 		: 1
 			]; 
 			em.create(item, 'detail'); 
 		}
+
+		def item = em.findDetailByRefid( [refid: params.itemid] );
+		if (!item) {
+			item = [		
+				objid 		: "TRKRI" + new UID(), 
+				parentid 	: entity.objid, 
+				dtfiled 	: dateSvc.serverDate,
+				branch 		: branch,
+				txndate 	: entity.dtstart, 
+				txntype 	: 'NORMAL', 
+				refid 		: params.itemid, 
+				reftype		: 'DOWNLOAD', 
+				lng 		: entity.startlng,  
+				lat 		: entity.startlat,
+				remarks 	: 'DOWNLOADED BILLING',   
+				state 		: 1
+			];
+			em.create(item, 'detail'); 
+		}
+
 		return entity; 
 	}
 
@@ -164,17 +196,16 @@ class MobileTrackerService
 		if (!entity) throw new Exception("'"+params.trackerid+"' trackerid not found"); 
 		if (entity.state == 'CLOSED') throw new Exception('This session has already been closed'); 
 
+		def brancgh = branchSvc.open( [:] );
 		entity.user = getUser(entity.userid);
 
 		entity.dtclosed 	= dateSvc.serverDate;
 		entity.closedby 	= params.username;
 		entity.closedremarks = 'SESSION CLOSED';
-		entity.closedlng	= params.lng;
-		entity.closedlat 	= params.lat;
+		entity.closedlng	= branch?.lng? branch.lng : params.lng;//params.lng;
+		entity.closedlat 	= branch?.lat? branch.lat : params.lat;//params.lat;
 		entity.state 		= 'CLOSED';
 		em.update(entity, 'close-tracker'); 
-
-		def branch = branchSvc.open([:]);
 
 		def item = [
 			objid 		: "TRKRI" + new UID(), 
@@ -183,7 +214,7 @@ class MobileTrackerService
 			txndate 	: entity.dtclosed, 
 			txntype 	: 'NORMAL', 
 			refid 		: 'RID' + new UID(), 
-			reftype		: 'TRACK', 
+			reftype		: 'STOP', 
 			lng 		: entity.closedlng,  
 			lat 		: entity.closedlat, 
 			remarks 	: 'END MOBILE TRACKING', 
@@ -222,6 +253,44 @@ class MobileTrackerService
 	} 
 
 	@ProxyMethod
+	public def updateLog( params ) {
+		def log = em.read([objid: params.objid], "detail");
+		if (log) {
+			log.putAll( params );
+			em.update( log, "detail" );
+		}
+		return log;
+	}
+
+	@ProxyMethod
+	public def updateLogByRefid( params ) {
+		def log = em.findDetailByRefid([refid: params.refid]);
+		if (log) {
+			def item = params;
+			item.objid = log.objid;
+			em.update( item, "detail" );
+			log = em.read( item, "detail" );
+		}
+		return log;
+	}
+
+	@ProxyMethod
+	public void removeLog( params ) {
+		def log = em.read([objid: params.objid], "detail");
+		if (log) {
+			em.delete([objid: log.objid], "detail");
+		}
+	}
+
+	@ProxyMethod
+	public void removeLogByRefid( params ) {
+		def log = em.findDetailByRefid([refid: params.refid]);
+		if (log) {
+			em.delete([objid: log.objid], "detail");
+		}
+	}
+
+	@ProxyMethod
 	public Map open(Map params) { 
 		//return em.findByPrimary([objid: params.objid]); 
 		def data = em.read([objid: params.objid]);
@@ -237,6 +306,12 @@ class MobileTrackerService
 		def log = em.read([objid: params.objid], "detail");
 		return log;
 	} 
+
+	@ProxyMethod
+	public def openLogByRefid( params ) {
+		def log = em.findDetailByRefid([refid: params.refid]);
+		return log;
+	}
 	
 	@ProxyMethod 	
 	public List getLogs(Map params) {
@@ -302,11 +377,24 @@ class MobileTrackerService
 	public String getRoutesString( params ) {
 		//def routes = em.getRoutes([parentid: params.objid]).collect{ it.route.description }
 		//return routes.join(", ");
+		/*
 		def m = em.read([objid: params.objid]);
-		if (m) {
+		println 'params ' + params;
+		if (m?.description) {
 			return m.description;
+		}*/
+		def items = em.getItems([objid: params.objid]);
+		def desc = "";
+
+		items?.each{ i->
+			def d = em.read([objid: i.objid], "item");
+			if (d && d.description) {
+				if (desc.trim().length() > 0) desc += ", ";
+				desc += d.description;
+			}
 		}
-		return "";
+
+		return desc;
 	}
 
 
@@ -348,6 +436,7 @@ class MobileTrackerService
 				if (desc) item.description = desc;
 				//def routes = em.getRoutes([parentid: o.objid]).collect{ it.route.description }; 
 				//o.routes = routes.join(", ");
+		
 				item.txndate = FORMATTER.format(item.dtstart);
 				list << item;
 			}

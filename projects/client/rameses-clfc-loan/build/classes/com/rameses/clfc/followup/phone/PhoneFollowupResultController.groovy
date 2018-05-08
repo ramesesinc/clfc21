@@ -26,17 +26,16 @@ class PhoneFollowupResultController extends CRUDController {
     boolean allowEdit = true;
     boolean allowDelete = false;
     boolean allowApprove = false;
-        
+
     Map createEntity() {
         def data = [
-            objid   : 'PFR' + new UID(),
+            objid   : 'OFR' + new UID(),
             txnstate: 'DRAFT',
             txndate : dateSvc.getServerDateAsString()
         ];
         return data;
     }
 
-    
     def selectedOption;
     def optionsHandler = [
         fetchList: { 
@@ -53,8 +52,8 @@ class PhoneFollowupResultController extends CRUDController {
         onselect: { o->  
             binding?.refresh('opener');
         }
-    ] as ListPaneModel; 
-    
+    ] as ListPaneModel;
+
     def getOpener() {
         if (!selectedOption) return null;
         
@@ -83,7 +82,7 @@ class PhoneFollowupResultController extends CRUDController {
         return op;
     }
     */
-    
+
     void checkEditable( data ) {
         allowEdit = false;
         if (data.txnstate == 'DRAFT') {
