@@ -43,7 +43,7 @@ public class CIReportPage extends javax.swing.JPanel {
         xLabel4.setFontStyle("font-weight:bold;");
         xLabel4.setPadding(new java.awt.Insets(1, 0, 1, 1));
         xLabel4.setPreferredSize(new java.awt.Dimension(95, 20));
-        xLabel4.setText("Business Evaluation");
+        xLabel4.setText("Evaluation");
         add(xLabel4, java.awt.BorderLayout.NORTH);
 
         xTextArea1.setCaption("Business Evaluation");

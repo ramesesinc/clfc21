@@ -60,6 +60,20 @@ class CollateralPropertyController
     }
     
     def getHtmlview() {
-        return htmlbuilder.buildProperty(selectedProperty);
+        def m = [:]; 
+        if ( selectedProperty ) m.putAll( selectedProperty ); 
+        
+        m.ci = collateral.ci; 
+        return htmlbuilder.buildProperty( m );
     }
+    
+    def addCiReport() {
+        if ( collateral.ci == null ) collateral.ci = [:]; 
+        
+        def params = [mode: mode, caller: this]; 
+        params.handler = { collateral.ci.property = it } 
+        params.entity = collateral.ci.property; 
+        if ( params.entity == null ) params.entity = [:]; 
+        return InvokerUtil.lookupOpener("cireport:edit", params);
+    }     
 }

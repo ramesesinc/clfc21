@@ -1,0 +1,9 @@
+<workunit>
+    <invokers>
+        <invoker type="cireport:review" action="init" caption="Review CI Reports" target="popup"/>
+    </invokers>
+    <code class="com.rameses.clfc.loan.models.CIReportReviewModel"/>
+    <pages>
+        <page template="com.rameses.clfc.loan.views.CIReportReviewPage"/>
+    </pages>
+</workunit>

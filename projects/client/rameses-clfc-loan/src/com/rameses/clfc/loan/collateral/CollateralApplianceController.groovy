@@ -25,7 +25,6 @@ class CollateralApplianceController
     def selectedAppliance;
     def applianceHandler = [
         fetchList: {o->
-            println collateral;
             if( !collateral?.appliances ) collateral.appliances = [];
             collateral.appliances.each{ it._filetype = "appliance"; } 
             return collateral.appliances;
@@ -63,6 +62,20 @@ class CollateralApplianceController
     }
     
     def getHtmlview() {
-        return htmlbuilder.buildAppliance(selectedAppliance);
+        def m = [:]; 
+        if ( selectedAppliance ) m.putAll( selectedAppliance ); 
+        
+        m.ci = collateral.ci; 
+        return htmlbuilder.buildAppliance( m );
     }
+    
+    def addCiReport() {
+        if ( collateral.ci == null ) collateral.ci = [:]; 
+        
+        def params = [mode: mode, caller: this]; 
+        params.handler = { collateral.ci.appliance = it } 
+        params.entity = collateral.ci.appliance; 
+        if ( params.entity == null ) params.entity = [:]; 
+        return InvokerUtil.lookupOpener("cireport:edit", params);
+    }    
 }

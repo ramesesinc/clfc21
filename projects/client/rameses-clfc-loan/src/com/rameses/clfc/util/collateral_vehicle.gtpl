@@ -1,3 +1,4 @@
+<% if ( vehicle._filetype ) { %> 
 <font class="bold">General Information</font>
 <table>
 <tr>
@@ -55,3 +56,15 @@
     <td> <p>$vehicle.remarks</p> </td>
 </tr>
 </table>
+<br>
+<% } %>
+
+<font class="bold">Credit Investigation Report</font>
+<table style="width:100%;"> 
+<tr>
+    <td>
+        ${ifNull(vehicle.ci?.vehicle?.evaluation, '-')}
+    </td>
+</tr>
+</table>
+<br/> 

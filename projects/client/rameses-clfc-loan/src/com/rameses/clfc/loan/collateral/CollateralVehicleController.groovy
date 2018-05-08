@@ -61,6 +61,20 @@ class CollateralVehicleController
     }
     
     def getHtmlview() {
-        return htmlbuilder.buildVehicle(selectedVehicle);
+        def m = [:]; 
+        if ( selectedVehicle ) m.putAll( selectedVehicle ); 
+        
+        m.ci = collateral.ci; 
+        return htmlbuilder.buildVehicle( m );
     }
+    
+    def addCiReport() {
+        if ( collateral.ci == null ) collateral.ci = [:]; 
+        
+        def params = [mode: mode, caller: this]; 
+        params.handler = { collateral.ci.vehicle = it } 
+        params.entity = collateral.ci.vehicle; 
+        if ( params.entity == null ) params.entity = [:]; 
+        return InvokerUtil.lookupOpener("cireport:edit", params);
+    }     
 }

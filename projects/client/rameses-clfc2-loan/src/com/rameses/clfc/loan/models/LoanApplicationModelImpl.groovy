@@ -63,6 +63,7 @@ public class LoanApplicationModelImpl {
             items << [name:'otherlending', caption:'Other Lending'];
             items << [name:'attachment', caption:'Attachments'];
         }
+        items << [name:'cireport', caption:'CI Reports'];
         items << [name:'recommendation', caption:'Recommendations'];
         items << [name:'comment', caption:'Logs'];
         /*
@@ -142,38 +143,33 @@ public class LoanApplicationModelImpl {
         } else {
             if (!entity.route.code) throw new Exception('Route for loan application is required.');
         }
-        
-        if (!entity.businesses) entity.businesses = appSvc.getBusinesses([objid: entity.objid]);
 
-        def business = entity.businesses.find{ it.ci?.evaluation == null }
-        if (business) throw new Exception("CI Report for business $business.tradename is required.");
+        appSvc.verifyCIReport([ objid: entity.objid ]); 
         
-        def handler = {o->
-            o.objid = entity.objid; 
-            entity.state = appSvc.submitForCrecom(o).state;
+        def p = [ loanapp: entity ]; 
+        p.handler = { 
+            entity.state = appSvc.submitForCrecom([ objid: entity.objid ]).state;
             binding.refresh('title|formActions|opener');
-            if(selectedMenu.opener.properties.key.matches('recommendation')) {
+            if ( selectedMenu ) {
                 selectedMenu.opener = null;
                 subFormHandler.refresh();
             }
         } 
-        return InvokerUtil.lookupOpener("application-forcrecom:create", [handler:handler]);
+        return Inv.lookupOpener("cireport:review", p);
     }
     
     boolean getIsForCrecom() {
         return (entity.state == 'FOR_CRECOM' && entity.appmode != 'CAPTURE');
     }
-    def submitForApproval() {
-        def handler = {o->
-            o.objid = entity.objid; 
-            entity.state = appSvc.submitForApproval(o).state;
+    void submitForApproval() {
+        if ( MsgBox.confirm('You are about to submit this application for approval. Continue?')) {
+            entity.state = appSvc.submitForApproval([ objid: entity.objid ]).state;
             binding.refresh('title|formActions|opener');
-            if(selectedMenu.opener.properties.key.matches('recommendation')) {
+            if ( selectedMenu ) {
                 selectedMenu.opener = null;
                 subFormHandler.refresh();
             }
-        }
-        return InvokerUtil.lookupOpener("application-forapproval:create", [handler:handler]);
+        } 
     }
     
     def returnForCi() {
