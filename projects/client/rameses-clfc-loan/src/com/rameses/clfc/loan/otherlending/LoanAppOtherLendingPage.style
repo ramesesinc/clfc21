@@ -1,6 +1,6 @@
-"addOtherLending" [caller.mode != 'read'] {
+"addOtherLending" [mode != 'read'] {
     enabled:true;
 }
-"addOtherLending" [caller.mode == 'read'] {
+"addOtherLending" [mode == 'read'] {
     enabled:false;
 }

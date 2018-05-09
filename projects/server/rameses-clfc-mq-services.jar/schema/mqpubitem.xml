@@ -1,0 +1,9 @@
+<schema>
+	<element tablename="mqpubitem">
+		<field name="objid" primary="true" prefix="MQPI"/> 
+		<field name="parentid" required="true"/> 
+		<field name="reftype" required="true"/> 
+		<field name="refid" required="true"/> 
+		<field name="indexno" required="true"/> 
+	</element>
+</schema>

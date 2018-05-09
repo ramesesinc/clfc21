@@ -1,3 +1,4 @@
+<% if ( appliance._filetype ) { %> 
 <font class="bold">General Information</font>
 <table>
 <tr>
@@ -31,3 +32,15 @@
     </td>
 </tr>
 </table>
+<br/> 
+<% } %>
+
+<font class="bold">Credit Investigation Report</font>
+<table style="width:100%;"> 
+<tr>
+    <td>
+        ${ifNull(appliance.ci?.appliance?.evaluation, '-')}
+    </td>
+</tr>
+</table>
+<br/> 

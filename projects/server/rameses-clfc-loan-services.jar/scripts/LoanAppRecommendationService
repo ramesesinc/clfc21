@@ -2,15 +2,33 @@ import com.rameses.annotations.*;
 import com.rameses.common.*;
 import com.rameses.services.extended.*;
 
-class LoanAppRecommendationService extends ActiveCrudService 
-{	
+class LoanAppRecommendationService extends ActiveCrudService {
+
 	@ActiveDB(value='loanapp_recommendation')
 	def em;
-
 	
+	@DataContext('loanapp_recommendation_ci') 
+	def recom_ci_db;
+
+	@DataContext('loanapp_recommendation_crecom') 
+	def recom_crecom_db;
+
 	public Object open(Object params) {
 		def data = em.read(params);
 		if(data == null) data = [:];
 		return data;
+	}
+
+	@ProxyMethod 
+	public def updateCI( param ) {
+		println param;
+		recom_ci_db.save([ objid: param.objid, ciremarks: param.ciremarks ]); 
+		return open( param ); 
+	}
+
+	@ProxyMethod 
+	public def updateCRECOM( param ) {
+		recom_crecom_db.save( param ); 
+		return open( param ); 
 	}
 }

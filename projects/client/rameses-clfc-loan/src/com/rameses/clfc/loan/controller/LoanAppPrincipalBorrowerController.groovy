@@ -5,29 +5,35 @@ import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import com.rameses.clfc.loan.controller.*;
-import com.rameses.clfc.borrower.*;
+import com.rameses.clfc.borrower.BorrowerContext;
 
 class LoanAppPrincipalBorrowerController   
 {
     //feed by the caller
-    def caller, selectedMenu, loanapp; 
+    def caller, loanapp, menuitem; 
     
     @Service('PrincipalBorrowerService') 
     def service;
     
     private def beforeSaveHandlers = [:];
     private def dataChangeHandlers = [:];
+    
+    def mode;
+    def snapshot;
+    def base64;
 
-    void init() {
+    void init() { 
+        mode = "read"; 
         if (loanapp.objid == null) return;
-        
-        selectedMenu.saveHandler = { save(); }
-        selectedMenu.dataChangeHandler = { dataChange(); }
+
+        base64 = new com.rameses.util.Base64Cipher();         
+        menuitem.saveHandler = { save(); }
+        menuitem.dataChangeHandler = { dataChange(); }
         dataChange();
     }
 
     def createOpenerParams() {
-        def ctx = new BorrowerContext(caller, this, service, loanapp);
+        def ctx = new com.rameses.clfc.borrower.BorrowerContext(caller, this, service, loanapp);
         ctx.beforeSaveHandlers = beforeSaveHandlers;
         ctx.dataChangeHandlers = dataChangeHandlers;
         return [borrowerContext: ctx]; 
@@ -35,10 +41,10 @@ class LoanAppPrincipalBorrowerController
     
     def tabHandler = [
         getOpeners: {
-            if (!loanapp.borrower.entitytype) return [];
+            if (!loanapp.borrower.type) return [];
                       
-            def type = loanapp.borrower.entitytype.toLowerCase();
-            return InvokerUtil.lookupOpeners('loanapp-borrower' + type + ':plugin', createOpenerParams());
+            def type = loanapp.borrower.type.toLowerCase();
+            return InvokerUtil.lookupOpeners('loanapp-borrower:plugin', createOpenerParams());
         },
         getOpenerParams: {
             return createOpenerParams(); 
@@ -57,13 +63,30 @@ class LoanAppPrincipalBorrowerController
 
         def data = [objid: loanapp.objid, borrower: loanapp.borrower]; 
         service.update(data);
+        mode = 'read'; 
     }
     
     void dataChange() {
-        def data = service.open([objid: loanapp.objid]);
+        def data = service.open([objid: loanapp.objid, itemname: menuitem.name]);
         data.borrower.type = 'PRINCIPAL'
         loanapp.clear();
         loanapp.putAll(data); 
         tabHandler?.reload();
+    }
+    
+    void edit() {
+        snapshot = base64.encode( loanapp ); 
+        mode = 'edit'; 
+    }
+    void cancelEdit() { 
+        if (MsgBox.confirm('Are you sure you want to cancel any changes made?')) { 
+            def o = base64.decode( snapshot ); 
+            if ( o ) {
+                loanapp.clear();
+                loanapp.putAll( o ); 
+                tabHandler?.reload();
+            }
+            mode = 'read'; 
+        }
     }
 }

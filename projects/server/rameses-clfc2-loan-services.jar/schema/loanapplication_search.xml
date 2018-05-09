@@ -1,0 +1,16 @@
+<schema>
+
+	<element tablename="loanapp_search">
+		<field name="objid" primary="true"/> 
+		<field name="state" required="true"/>
+		<field name="appno" required="true"/>
+		<field name="branchcode" required="true"/>
+		<field name="branchname" required="true"/>
+		<field name="routecode" />
+		<field name="fullborrowername" required="true"/>
+		<field name="loanamount" required="true"/>
+		<field name="dtposted" required="true"/>
+		<field name="postedby" required="true"/>		
+	</element> 
+
+</schema>

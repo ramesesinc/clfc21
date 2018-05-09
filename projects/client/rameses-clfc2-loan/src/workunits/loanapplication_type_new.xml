@@ -1,0 +1,25 @@
+<workunit>
+    <invokers>
+        <invoker xfolderid="/home/app" caption="New Loan" action="init" target="window" />
+        
+        <invoker type="formActions" caption="Cancel" action="doCancel" mnemonic="C" 
+                 visibleWhen="#{mode == 'init'}" immediate="true"/>
+        <invoker type="formActions" caption="Submit" action="doSubmit" mnemonic="S" 
+                 visibleWhen="#{mode == 'init'}"/>
+
+        <invoker type="formActions" caption="Close" action="doClose" mnemonic="C" 
+                 visibleWhen="#{mode == 'success'}" immediate="true"/>
+        <invoker type="formActions" caption="Add Another" action="doAddAnother" 
+                 visibleWhen="#{mode == 'success'}" immediate="true" mnemonic="A"/>
+        <invoker type="formActions" caption="Open Application" action="doOpen" 
+                 visibleWhen="#{mode == 'success'}" immediate="true" mnemonic="O"/>
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.models.NewLoanApplicationModel" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.views.LoanAppNewInitialPage"/>
+        <page name="success" template="com.rameses.clfc.loan.views.LoanAppSuccessPage"/>
+    </pages>
+    
+</workunit>

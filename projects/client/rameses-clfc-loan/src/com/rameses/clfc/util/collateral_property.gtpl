@@ -1,3 +1,4 @@
+<% if ( property._filetype ) { %> 
 <font class="bold">General Information</font>
 <table>
 <tr>
@@ -41,3 +42,15 @@
     <td> <p>$property.remarks</p> </td>
 </tr>
 </table>
+<br/>
+<% } %> 
+
+<font class="bold">Credit Investigation Report</font>
+<table style="width:100%;"> 
+<tr>
+    <td>
+        ${ifNull(property.ci?.property?.evaluation, '-')}
+    </td>
+</tr>
+</table>
+<br/> 

@@ -1,0 +1,28 @@
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+
+class LoanApplicationCIReportService {
+
+	@DataContext('loanapplication')
+	def loanapp_db; 
+
+	@DataContext('loanapplication_online')
+	def loanapp_online;
+
+	@DataContext('loanapp_cireport')
+	def cireport_db; 
+
+	@ProxyMethod 
+	public def open( params ) { 
+
+		def app = loanapp_db.find([ objid: params.objid ]).first(); 
+		if ( !app ) throw new Exception('loan application not found'); 
+
+		def o = loanapp_online.find([ objid: app.objid ]).first(); 
+		if ( o ) app.putAll( o ); 
+
+		params.parentid = params.objid; 
+		app.items = cireport_db.getListByParent( params );
+		return app;  
+	}
+} 

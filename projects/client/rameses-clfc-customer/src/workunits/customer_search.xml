@@ -1,6 +1,6 @@
 <workunit>
     <invokers>
-        <invoker type="customer:search" caption="Search Customer" action="init"/>
+        <invoker type="customer:search" caption="Search Customer" action="init" width="800" height="630"/>
         
         <invoker type="navActions" caption="" action="moveFirstPage" icon="images/navbar/first.png" immediate="true"/>
         <invoker type="navActions" caption="" action="moveBackPage" icon="images/navbar/previous.png" immediate="true"/>

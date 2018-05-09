@@ -24,7 +24,6 @@ class BorrowerSpouseInfoController
         initEntity();
         borrowerContext.addDataChangeHandler('spouseinfo', { initEntity() });
         borrowerContext.addBeforeSaveHandler('spouseinfo', {
-            println 'entity.objid != null = '+(entity.objid != null);
             if(entity.objid != null) {
                 if(entity.residency.type == 'RENTED') {
                     if(!entity.residency.renttype) throw new Exception('Residency: Rent Type is required.');
@@ -44,7 +43,11 @@ class BorrowerSpouseInfoController
             borrowerContext.borrower.spouse = [:]; 
             entity = borrowerContext.borrower.spouse;
         }
+        if ( entity.residency == null ) entity.residency = [:]; 
+        if ( entity.occupancy == null ) entity.occupancy = [:]; 
     }
+    
+    def getBorrower() { return entity; }
     
     def getLookupBorrower() { 
         def params = [ 
@@ -55,6 +58,9 @@ class BorrowerSpouseInfoController
                     def addresstext = entity.address.text;
                     entity.address = addresstext; 
                 } 
+                if ( entity.residency == null ) entity.residency = [:]; 
+                if ( entity.occupancy == null ) entity.occupancy = [:]; 
+                
                 binding.refresh('entity.residency.*|entity.occupancy.*');
             },
             onempty: {

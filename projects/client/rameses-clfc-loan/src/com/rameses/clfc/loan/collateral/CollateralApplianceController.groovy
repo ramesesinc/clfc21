@@ -10,21 +10,29 @@ class CollateralApplianceController
 {
     @Binding
     def binding;
-    def loanappid, collateral, mode, beforeSaveHandlers;
+    def loanappid, collateral, caller, beforeSaveHandlers;
     
+    def htmlbuilder = new CollateralHtmlBuilder();
+
+    def getMode() {
+        try { 
+            return caller.mode; 
+        } catch(Throwable t) {
+            return null; 
+        }
+    }
     
-    def htmlbuilder=new CollateralHtmlBuilder();
     def selectedAppliance;
     def applianceHandler = [
         fetchList: {o->
             if( !collateral?.appliances ) collateral.appliances = [];
-            collateral.appliances.each{ it._filetype = "appliance" }
+            collateral.appliances.each{ it._filetype = "appliance"; } 
             return collateral.appliances;
         },
         onRemoveItem: {o->
             return removeApplianceImpl(o); 
         },
-        getOpenerParams: {o->
+        getOpenerParams: {o-> 
             return [mode: mode, caller:this];
         }
     ] as EditorListModel;
@@ -54,6 +62,20 @@ class CollateralApplianceController
     }
     
     def getHtmlview() {
-        return htmlbuilder.buildAppliance(selectedAppliance);
+        def m = [:]; 
+        if ( selectedAppliance ) m.putAll( selectedAppliance ); 
+        
+        m.ci = collateral.ci; 
+        return htmlbuilder.buildAppliance( m );
     }
+    
+    def addCiReport() {
+        if ( collateral.ci == null ) collateral.ci = [:]; 
+        
+        def params = [mode: mode, caller: this]; 
+        params.handler = { collateral.ci.appliance = it } 
+        params.entity = collateral.ci.appliance; 
+        if ( params.entity == null ) params.entity = [:]; 
+        return InvokerUtil.lookupOpener("cireport:edit", params);
+    }    
 }

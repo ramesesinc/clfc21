@@ -1,0 +1,283 @@
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+
+class LoanApplicationService {
+
+	@DataContext('loanapplication')
+	def loanapp_db; 
+
+	@DataContext('loanapplication_online')
+	def loanapp_online;
+
+	@DataContext('loanapplication_borrower')
+	def loanapp_borrower;
+
+	@DataContext('borrower')
+	def borrower_db;
+
+	@DataContext('loan_type') 
+	def loantype_db;
+
+	@DataContext('loan_route') 
+	def loanroute_db;
+
+	@DataContext('loan_product_type') 
+	def loan_product_type_db;
+
+	@Service('PersistenceService') 
+	def persistSvc; 
+
+	@Service('LoanAppUtil')
+	def loanAppUtil;	
+
+	@Service('LoanAppService')
+	def loanAppSvc;	
+
+	@Service("LoanTypeService")
+	def loanTypeSvc;
+
+	@Service("BranchService")
+	def branchSvc;
+
+	@Service("BorrowerService")
+	def borrowerSvc;
+
+	@Service("SequenceService")
+	def seqSvc;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('Var')
+	def varSvc;
+
+	@Service 
+	def self; 
+
+	@Env 
+	def env; 
+
+	@ProxyMethod 
+	public void checkBorrowerForExistingLoan( params ) {
+		loanAppUtil.checkBorrowerForExistingLoan( params ); 
+	}	
+
+	@ProxyMethod
+	public def getLoanTypes() {
+		def list = loantype_db.where('1=1').list();
+		if ( !list ) return list; 
+
+		return list.collect{ it.name }	
+	}
+
+	@ProxyMethod
+	public def getProductTypes() {
+		return loan_product_type_db.where('1=1').list(); 
+	}
+
+
+	@ProxyMethod
+	public def create( data ) {
+		validate( data );
+
+		data.branch = [code: varSvc.branch_code, name: varSvc.branch_name];
+		if ( !data.branch?.code ) throw new Exception('branch code is required'); 
+
+		def rundate = dateSvc.getServerDate();
+		def apptype = data.apptype.toString().toUpperCase();
+		if ( apptype == 'NEW' ) {
+			data.version = data.loancount = 1;
+
+			def sdf = new java.text.SimpleDateFormat('yyyyMM');
+			def ymstr = sdf.format( rundate ); 
+			def prefix = 'L'+ data.branch.code + ymstr; 
+			def seqkey = 'loanapp'+ ymstr;
+
+			def appno = new StringBuilder(); 
+			appno.append( prefix ).append( seqSvc.getNextFormattedSeriesA( seqkey, 3 )); 
+			appno.append('-' + data.loancount ).append('N'); 
+			data.appno = appno.toString(); 
+
+		} else {
+			data.loancount += 1; 
+			data.version = data.loancount; 
+			data.appno = data.loanaccount.acctno +'-'+ data.loancount +'R'; 
+		}
+
+
+		data.state = 'PENDING'; 
+		data.loanno = data.appno; 
+		data.author = [objid: env.USERID, name: env.FULLNAME]; 
+		data.createdby = env.USER; 
+		data.dtcreated = rundate;
+		data.dtfiled = rundate; 
+
+		loanapp_db.create(data); 
+
+		data.borrower._allow_items_update = false;  
+		borrowerSvc.save( data.borrower ); 
+
+		loanapp_online.create([ 
+			objid: data.objid, 
+			dtfiled: data.dtcreated, 
+			loanno: data.appno, 
+			loancount: data.loancount,
+			version: data.version, 
+			clienttype: data.clienttype, 
+			marketedby: data.marketedby, 
+			prevappid: data.prevappid 
+		]);
+
+		loanapp_borrower.create([ 
+			objid: 'LB' + new UID(), 
+			parentid: data.objid, 
+			borrowerid: data.borrower.objid, 
+			borrowername: data.borrower.name,
+			principalid: data.borrower.objid, 
+			type: 'PRINCIPAL'  
+		]);
+
+		return data; 
+	} 
+
+	private void validate( data ) {
+		checkBorrowerForExistingLoan([borrowerid: data.borrower.objid, objid: data?.objid]); 
+
+		if (data.clienttype=='MARKETED' && !data.marketedby) {
+			throw new RuntimeException("Please specify marketed by.");
+		}
+	}	
+
+	@ProxyMethod 
+	public def open( params ) { 
+		if ( !params.objid ) throw new Exception('objid parameter is required'); 
+
+		def app = loanapp_db.find([ objid: params.objid ]).first(); 
+		if ( !app ) throw new Exception('loan application not found'); 
+
+		def o = loanapp_online.find([ objid: app.objid ]).first(); 
+		if ( o ) app.putAll( o ); 
+
+		o = borrowerSvc.open([ objid: app.borrower?.objid ]); 
+		if ( o ) app.borrower = o; 
+
+		return app;   
+	} 
+
+	@ProxyMethod
+	public def getOpenLoans( params ) {
+		if ( !params.borrowerid ) throw new Exception('borrowerid parameter is required'); 
+
+
+		def adb = loanapp_borrower.find([ borrowerid: params.borrowerid, type: 'PRINCIPAL']); 
+		adb.where(" app.state not in ('DISAPPROVED','DISQUALIFIED_OUT','CANCELLED_OUT','BACK_OUT','CLOSED') "); 
+		adb.orderBy(" app.dtcreated desc "); 
+		return adb.list(0, 20); 
+	} 
+
+	@ProxyMethod
+	public def getLoanApps( params ) {
+		if ( !params.borrowerid ) throw new Exception('borrowerid parameter is required'); 
+
+		def adb = loanapp_borrower.find([ borrowerid: params.borrowerid, type: 'PRINCIPAL']); 
+		adb.orderBy(" app.dtcreated desc "); 
+		return adb.list(0, 30); 
+	} 
+
+	@ProxyMethod 
+	public def getCurrentLoan( params ) {
+		if ( !params.borrowerid ) return null; 
+
+		def adb = loanapp_db.find([ 'borrower_objid': params.borrowerid ]); 
+		def o = adb.select("icount:{COUNT(*)}").where(" state in ('RELEASED','CLOSED') ").first(); 
+		def loancount = o.icount + 1; 
+
+		adb = loanapp_db.find([ 'borrower_objid': params.borrowerid ]); 
+		o = adb.where(" state in ('RELEASED','CLOSED') ").orderBy(" dtcreated desc ").first(1); 
+		if ( o ) {
+			def route = loanroute_db.find([ code: o.route?.code.toString() ]).first();
+			if ( route ) o.route = route; 
+
+			o.loancount = loancount; 
+		}
+		return o; 
+	} 
+
+	@ProxyMethod 
+	public def submitForInspection( params ) { 
+		return loanAppSvc.submitForInspection( params ); 
+	} 
+
+	@ProxyMethod 
+	public def submitForCrecom( params ) { 
+		return loanAppSvc.submitForCrecom( params ); 
+	} 	
+
+	@ProxyMethod 
+	public def returnForCI( params ) { 
+		return loanAppSvc.returnForCI( params ); 
+	} 	
+
+	@ProxyMethod 
+	public def submitForApproval( params ) { 
+		try {
+			return loanAppSvc.submitForApproval( params );  
+		} finally {
+			self.uploadToMQ([ appid: params.objid ]); 
+		}
+	}
+
+	@Async 
+	@ProxyMethod 
+	public void uploadToMQ( param ) {		
+	}
+
+	@ProxyMethod
+	public def sendBack( params ) {
+		return loanAppSvc.sendBack( params ); 
+	}
+
+	@ProxyMethod
+	public def approve( params ) {
+		return loanAppSvc.approve( params ); 
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		return loanAppSvc.disapprove( params ); 
+	}
+
+	@ProxyMethod
+	public def submitForRequirement( params ) {
+		return loanAppSvc.submitForRequirement( params ); 
+	}
+
+	@ProxyMethod
+	public def submitForProcessing( params ) {
+		return loanAppSvc.submitForProcessing( params ); 
+	}
+
+	@ProxyMethod
+	public def submitForRelease( params ) {
+		return loanAppSvc.submitForRelease( params ); 
+	}
+
+	@ProxyMethod
+	public def release( params ) {
+		return loanAppSvc.release( params ); 
+	}
+
+	@ProxyMethod
+	public def getBusinesses( params ) {
+		return loanAppSvc.getBusinesses( params ); 
+	}	
+
+	@ProxyMethod
+	public def getCollaterals( params ) {
+		return []; 		
+	}		
+
+	@ProxyMethod 
+	public void verifyCIReport( params ) {
+	}
+} 

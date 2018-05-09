@@ -13,9 +13,9 @@ public class PopupMasterController
     def changeLog
     
     def entity = [:];
-    def handler
-    def mode
-    def caller
+    def mode = 'read';
+    def handler;
+    def caller;
 
     public def createEntity() {
         return [:]
@@ -25,15 +25,20 @@ public class PopupMasterController
         entity = createEntity()
     }
     
-    public void afterCreate(data) {        
-    }
+    public void afterCreate(data) {}
+    public void afterOpen( data ) {}
     
     public def create() {
-        init()
-        mode = 'create'
+        init();
+        mode = 'create';
         afterCreate(entity); 
-        return null
+        return null;
     }
+    
+    public def open() { 
+        afterOpen( entity );
+        return null; 
+    } 
     
     public def doOk() {
         if( handler ) handler(entity)
@@ -42,7 +47,7 @@ public class PopupMasterController
     }
 
     public def doCancel() {
-        if( mode == 'edit' ) {
+        if( mode.toString().matches('create|edit')) {
             if( !MsgBox.confirm("Changes will be discarded. Continue?") ) return null
 
             if( changeLog.hasChanges() ) {

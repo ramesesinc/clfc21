@@ -21,6 +21,7 @@ class VehicleFormController extends PopupMasterController
 
     public void afterCreate(data) {
         if (entity.orcr == null) entity.orcr = [:];
+        if (entity.attachments == null) entity.attachments = [];
     }
             
     public def open() {

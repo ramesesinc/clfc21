@@ -1,0 +1,44 @@
+import com.rameses.annotations.*;
+
+class LoanAppCIReportVerificationInterceptor {
+	
+	@DataContext('loanapp_business') 
+	def business_db; 
+
+	@DataContext('loanapp_collateral_appliance') 
+	def appliance_db; 
+
+	@DataContext('loanapp_collateral_vehicle') 
+	def vehicle_db; 
+
+	@DataContext('loanapp_collateral_property') 
+	def property_db; 
+
+	@DataContext('loanapp_cireport') 
+	def cireport_db; 
+
+	@Before( pattern="LoanApplicationService.verifyCIReport" ) 
+	public void verifyCIReport( evt ) {
+		def param = evt.args[0]; 
+		def parentparam = [ parentid: param.objid ]; 
+		business_db.find( parentparam ).list().each{ o-> 
+			if ( !o.ci?.evaluation ) 
+				throw new Exception('CI Report is required for business '+ o.tradename); 
+		}
+
+		def o = appliance_db.find( parentparam ).select('objid').first(); 
+		if ( o?.objid ) verifyCollateralCIReport( param.objid, 'appliance' ); 
+
+		o = vehicle_db.find( parentparam ).select('objid').first(); 
+		if ( o?.objid ) verifyCollateralCIReport( param.objid, 'vehicle' ); 
+
+		o = property_db.find( parentparam ).select('objid').first(); 
+		if ( o?.objid ) verifyCollateralCIReport( param.objid, 'property' ); 
+	}
+
+	void verifyCollateralCIReport( parentid, reftype ) {
+		def o = cireport_db.find([ parentid: parentid, reftype: reftype ]).first(); 
+		if ( !o?.evaluation ) 
+			throw new Exception('CI Report is required for '+ reftype +' collateral'); 
+	}
+}

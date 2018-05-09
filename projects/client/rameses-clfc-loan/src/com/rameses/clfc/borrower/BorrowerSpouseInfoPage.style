@@ -1,27 +1,12 @@
-"entity.*" [borrowerContext.mode != 'edit']{
+"entity.*|borrower.*" [ 1==1 ] { 
     enabled: false; 
 }
-"entity.residency.*|entity.occupancy.*" [borrowerContext.mode == 'edit' && entity.objid != null] {
-    enabled: true;
+"entity.*|borrower" [ borrowerContext.mode == 'edit' ] {
+    enabled: true; 
 }
-"entity.residency.*|entity.occupancy.*" [borrowerContext.mode == 'edit' && entity.objid == null] {
+"entity.residency.rent.*" [borrowerContext.mode == 'edit' && entity.residency?.type != 'RENTED' ] {
     enabled: false;
 }
-"borrower" [borrowerContext.mode != 'edit']{
+"entity.occupancy.rent.*" [borrowerContext.mode == 'edit' && entity.occupancy?.type != 'RENTED' ] {
     enabled: false;
-}
-"borrower" [borrowerContext.mode == 'edit']{
-    enabled: true;
-}
-"entity.residency.rent.*" [borrowerContext.mode == 'edit' && entity.residency?.type == 'RENTED' && entity.objid != null] {
-    enabled:true;
-}
-"entity.residency.rent.*" [borrowerContext.mode == 'edit' && entity.residency?.type != 'RENTED' && entity.objid != null] {
-    enabled:false;
-}
-"entity.occupancy.rent.*" [borrowerContext.mode == 'edit' && entity.occupancy?.type == 'RENTED' && entity.objid != null] {
-    enabled:true;
-}
-"entity.occupancy.rent.*" [borrowerContext.mode == 'edit' && entity.occupancy?.type != 'RENTED' && entity.objid != null] {
-    enabled:false;
 }
