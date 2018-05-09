@@ -1,8 +1,6 @@
 <workunit extends="wtemplates/BillingGroupListController.xml">
     <invokers>
-        <!--
-        <invoker type='billinggroup-option' action='init' caption='Accounts' />
-        -->
+        <invoker type='billinggroup-option' action='init' caption='Accounts' index="4" />
     </invokers>
     
     <code>
@@ -24,15 +22,11 @@
                 }, 
                 onselect: { o->
                     query.listtype = o.type;
-                    try {
-                        reloadAll();
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
+                    reloadAll();
                 }
             ] as ListPaneModel;
         
-            void beforeGetColumns( params ) {
+            void beforeGetColumns( Map params ) {
                 params.listtype = selectedOption?.type;
             }
         }

@@ -1,0 +1,22 @@
+<workunit>
+    <invokers>
+        <invoker type="legal:followup:report:create" action="create" caption="Follow-up Report" target="popup" />
+        <invoker type="legal:followup:report:open" action="open" caption="Follow-up Report" target="popup" />
+        
+        <invoker type="formActions" action="preview" caption="Preview" mnemonic="v" shortcut="ctrl v"
+            visibleWhen="${mode=='read'}" immediate="true" />
+        <!--
+        <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl w"
+                 immediate="true" visibleWhen="#{mode=='init'}" />
+        <invoker type="formActions" action="preview" caption="Preview" mnemonic="v" shortcut="ctrl v"
+                 visibleWhen="#{mode=='init'}" />
+        
+        <invoker type="formActions" action="back" caption="Back" mnemonic="b" shortcut="ctrl b"
+                 immediate="true" visibleWhen="#{mode=='preview'}" />
+        -->
+    </invokers>
+    <code class="com.rameses.clfc.report.legal.followup.LegalFollowUpReportController" />
+    <pages>
+        <page template="com.rameses.clfc.report.legal.followup.FollowupReportPage" />
+    </pages>
+</workunit>

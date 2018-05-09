@@ -1,15 +1,7 @@
 [getList]
-SELECT
-	objid,
-	txndate,
-	dtcreated,
-	dtmodified,
-	modifiedby_objid,
-	modifiedby_name,
-	author_objid,
-	author_name,
-	reportnote
-FROM followup_report
+select *
+from followup_report
+order by dtcreated desc
 
 [getMergeFollowUpReportDetail]
 SELECT 
@@ -22,5 +14,6 @@ SELECT
 	confirmedby_name
 FROM followup_result 
 WHERE txndate = $P{date} 
+	AND txnstate='CONFIRMED'
 GROUP BY ledgerid, refid 
 ORDER BY borrower_name

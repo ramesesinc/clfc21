@@ -22,27 +22,40 @@ class LegalFollowUpReportService extends ActiveCrudListService {
 	private def DATE_FORMAT2 = new SimpleDateFormat("MMM-dd-yyyy hh:mm:ss a");
 
 	@ProxyMethod
-	public def getColumns( params ){
-		return [
-			[name: 'txndate', caption: 'Transaction Date'],
-			[name: 'dtcreated', caption: 'Date Created'],
-			[name: 'dtmodified', caption: 'Date Modified'],
-			[name: 'modifiedby.objid', caption: 'Modified By Objid'],
-			[name: 'modifiedby.name', caption: 'Modified By Name'],
-			[name: 'author.objid', caption: 'Author Objid'],
-			[name: 'author.name', caption: 'Author Name'],
-			[name: 'reportnote', caption: 'Note']
-		]
+	public def getColumns( params ) {
+		def list = [];
+		list << [name: 'txndate', caption: 'Report Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		list << [name: 'author.name', caption: 'Created By'];
+		list << [name: 'modifiedby.name', caption: 'Last Modified By'];
+		//list << [name: 'dtcreated', caption: 'Date Created'];
+		//list << [name: 'dtmodified', caption: 'Date Modified'];
+		//list << [name: 'modifiedby.objid', caption: 'Modified By Objid'];
+		//list << [name: 'modifiedby.name', caption: 'Modified By Name'];
+		//list << [name: 'author.objid', caption: 'Author Objid'];
+		//list << [name: 'author.name', caption: 'Author Name'];
+		//list << [name: 'reportnote', caption: 'Note'];
+
+		return list;
 	}	
+
+	void validate( data ) {
+		def serverdate = java.sql.Date.valueOf( dateService.getServerDateAsString().split(" ")[0] );
+		def date = java.sql.Date.valueOf( data.txndate.toString() );
+		if (date.after( serverdate )) {
+			throw new RuntimeException("Cannot create note beyond current date.");
+		}
+	}
 
 	void beforeCreate( entity ){
 		entity.dtcreated = dateService.serverDate;
 		entity.author = [objid: env.USERID, name: env.NAME];
+		validate( entity );
 	}
 
 	void beforeUpdate( entity ){
 		entity.dtmodified = dateService.serverDate;
 		entity.modifiedby = [objid: env.USERID, name: env.NAME];
+		validate( entity );
 	}
 
 	@ProxyMethod
@@ -54,7 +67,7 @@ class LegalFollowUpReportService extends ActiveCrudListService {
 
 		def list = em.getMergeFollowUpReportDetail([date: txndate]);
 		if (!list) {
-			throw new RuntimeException("No Follow-up Report for " + txndate + ".");
+			throw new RuntimeException("No Follow-up Result for " + txndate + ".");
 		}
 		
 		def serverdate = dateService.serverDate;
