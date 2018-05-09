@@ -1,6 +1,0 @@
-"addProperty" [mode != 'read'] {
-    enabled:true;
-}
-"addProperty" [mode == 'read'] {
-    enabled:false;
-}

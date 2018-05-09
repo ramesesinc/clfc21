@@ -1,0 +1,9 @@
+<schema>
+	<element tablename="borrowerindividual_education"> 
+		<field name="objid" primary="true" prefix="EDU"/> 
+		<field name="borrowerid" required="true"/>
+		<field name="attainment" required="true"/> 
+		<field name="school" required="true"/> 
+		<field name="remarks"/> 
+	</element>		
+</schema>

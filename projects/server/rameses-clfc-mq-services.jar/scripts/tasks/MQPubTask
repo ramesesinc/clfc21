@@ -1,0 +1,89 @@
+import com.rameses.annotations.*; 
+
+class MQPubTask {
+	
+	@DataContext('mqpub') 
+	def mqpub_db;
+
+	@DataContext('mqpubitem') 
+	def mqpubitem_db;
+
+	@DataContext('mqpub_pending') 
+	def mqpubpending_db;
+
+	@Service('LoanApplicationService') 
+	def loanAppSvc; 
+
+	@DataContext('loanapplication_business') 
+	def business_db;
+
+	@DataContext('loanapplication_collateral_appliance') 
+	def appliance_db;
+
+	@DataContext('loanapplication_collateral_vehicle') 
+	def vehicle_db;
+
+	@DataContext('loanapplication_collateral_property') 
+	def property_db;
+
+	@DataContext('loanapplication_collateral_other') 
+	def other_db;
+
+	@DataContext('loanapp_cireport') 
+	def cireport_db;
+
+	@DataContext('loanapp_recommendation') 
+	def recom_db;
+
+	@Service(value='MQRemoteService', connection="mq_remote")
+	def remoteSvc;
+
+	@Schedule(interval=1)
+	public void upload( task ) { 
+		def o = mqpub_db.findPending();
+		if ( !o ) return; 
+
+		def mqpub = mqpub_db.find([ objid: o.parentid ]).first();
+
+		def content = getContent( o ); 
+		if ( content == null ) content = [:]; 
+
+		if ( o.indexno == 0 ) { 
+			remoteSvc.create( mqpub ); 
+		} 
+
+		o.content = content; 
+		remoteSvc.createItem( o ); 
+
+		if ( o.reftype == 'end' ) { 
+			def pp = [ objid: o.parentid ]; 
+			mqpubpending_db.find( pp ).delete();
+			mqpub_db.find( pp ).update([ state: 'COMPLETED' ]); 
+		} else { 
+			mqpubpending_db.find([ objid: o.parentid ]).update([ indexno: o.indexno+1 ]); 	
+		}
+	} 
+
+	def getContent( param ) {
+		if ( param.reftype.toString().matches('begin|end')) {
+			return [:]; 
+		} else if ( param.reftype == 'loanapp' ) {
+			return loanAppSvc.open([ objid: param.refid ]);  
+		} else if (param.reftype == 'business') {
+			return business_db.find([ parentid: param.refid ]).list();  
+		} else if (param.reftype == 'collateral_appliance') {
+			return appliance_db.find([ parentid: param.refid ]).list();  
+		} else if (param.reftype == 'collateral_vehicle') {
+			return vehicle_db.find([ parentid: param.refid ]).list();  
+		} else if (param.reftype == 'collateral_property') {
+			return property_db.find([ parentid: param.refid ]).list();  
+		} else if (param.reftype == 'collateral_other') {
+			return other_db.find([ objid: param.refid ]).list();  
+		} else if (param.reftype == 'cireport') {
+			return cireport_db.find([ parentid: param.refid ]).list();  
+		} else if (param.reftype == 'recommendation') {
+			return recom_db.find([ objid: param.refid ]).list();  
+		} 
+	}
+
+}

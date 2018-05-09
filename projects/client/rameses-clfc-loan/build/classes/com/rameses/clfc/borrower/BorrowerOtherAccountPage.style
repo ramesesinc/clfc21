@@ -1,6 +1,0 @@
-"entity.*" [borrowerContext.mode != 'edit']{
-    enabled: false; 
-}
-"entity.*" [borrowerContext.mode == 'edit']{
-    enabled: true; 
-}

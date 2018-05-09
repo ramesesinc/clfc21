@@ -1,6 +1,0 @@
-"addEducation|removeEducation" [borrowerContext.mode != 'edit']{
-    enabled: false; 
-}
-"addEducation|removeEducation" [borrowerContext.mode == 'edit']{
-    enabled: true;
-}

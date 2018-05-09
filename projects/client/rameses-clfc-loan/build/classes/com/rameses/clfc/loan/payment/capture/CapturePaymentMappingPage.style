@@ -1,6 +1,0 @@
-"entity.cbsno" [entity?.state != 'VERIFIED'] {
-    enabled: false;
-}
-"entity.cbsno" [entity?.state == 'VERIFIED'] {
-    enabled: true;
-}

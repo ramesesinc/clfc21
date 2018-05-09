@@ -1,6 +1,0 @@
-"doOk" [mode != 'read'] {
-    enabled:true;
-}
-"doOk" [mode == 'read'] {
-    enabled:false;
-}

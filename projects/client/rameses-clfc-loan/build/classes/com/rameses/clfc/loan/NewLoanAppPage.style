@@ -1,7 +1,0 @@
-"entity.marketedby" [entity.clienttype != 'MARKETED'] {
-    enabled:false;
-}
-
-"entity.marketedby" [entity.clienttype == 'MARKETED'] {
-    enabled:true;
-}

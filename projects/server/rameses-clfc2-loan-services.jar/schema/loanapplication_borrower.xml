@@ -1,0 +1,19 @@
+<schema>
+
+	<element tablename="loanapp_borrower">
+		<field name="objid" primary="true"/> 
+		<field name="parentid" required="true"/> 
+		<field name="borrowerid" required="true"/> 
+		<field name="borrowername" required="true"/> 
+		<field name="principalid" required="true"/> 
+		<field name="relaterid" /> 
+		<field name="type" required="true"/> 
+		<field name="relation"/> 
+
+		<complex name="app" ref="loanapplication" jointype="many-to-one" required="false" 
+				 includefields="state,appno,apptype,appmode,dtcreated,loanamount,loantype,route.*,producttype.*"> 
+			<key field="parentid" target="objid"/> 
+		</complex> 
+	</element>	
+
+</schema>

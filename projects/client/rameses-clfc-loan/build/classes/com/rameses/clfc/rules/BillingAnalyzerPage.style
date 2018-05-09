@@ -1,6 +1,0 @@
-"entity.amnesty.*" [entity.hasamnesty == true] {
-    enabled: true;
-}
-"entity.amnesty.*" [entity.hasamnesty != true] {
-    enabled: false;
-}

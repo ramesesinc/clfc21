@@ -1,0 +1,12 @@
+<schema>
+
+	<element tablename="loanapp_new">
+		<field name="objid" primary="true"/>
+		<field name="version" required="true"/> 
+		<field name="loanno" required="true"/> 
+		<field name="loanamount" required="true"/> 
+		<field name="clienttype" required="true"/> 
+		<field name="marketedby" /> 
+	</element>
+
+</schema>

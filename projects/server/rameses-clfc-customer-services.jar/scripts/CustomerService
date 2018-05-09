@@ -4,8 +4,8 @@ import com.rameses.services.extended.*;
 import org.joda.time.*;
 import java.rmi.server.UID;
 
-class CustomerService 
-{	
+class CustomerService {
+	
 	@Env
 	def env;
 
@@ -38,35 +38,47 @@ class CustomerService
 		}
 	}
 
-	@ProxyMethod
-	public def create(data) {
-		if (!data.type) throw new Exception("Please specify type.");
-		data.dtcreated = dateSvc.serverDate;
-		
+	@ProxyMethod 
+	public def initCreate( data ) {
+		if ( data == null ) data = [:]; 
+
+		data.dtcreated = dateSvc.getServerDate();
+		data.createdby = env.USER; 
 		data.state = 'ACTIVE';
 		data.mode = 'ONLINE';
-		data.createdby = env.USER; 
+
+		if (data.address == null) data.address = [:];
+		if (!data.address.type) data.address.type='LOCAL'; 
+		if (!data.address.street) data.address.street = data.address.text;
 
 		def branch = branchSvc.open([:]);
 		data.branchid = branch?.objid;
-		if (!data.address.type) data.address.type='LOCAL'; 
-		if (!data.address.street) data.address.stress = data.address.text;
 
 		def seqname = 'customer'+data.branchid;
 		data.custno = data.branchid + sequenceSvc.getNextFormattedSeriesA(seqname,7);
 		data.entityno = data.custno;
 		data.dtmodified = data.dtcreated;
 		data.modifiedby = data.createdby;
-		if (data.type == 'INDIVIDUAL') {
-			if (!data.name) {
+
+		if ( !data.name ) {
+			if (data.type == 'INDIVIDUAL') {
 				data.name = data.lastname + ', ' + data.firstname;
 				if (data.middlename) data.name += ' ' + data.middlename;
 			}
-			em.create(data);
-			return custIndividualSvc.create(data);
 		}
-		if (data.type == 'JURIDICAL') {
-			em.create(data);
+		return data; 
+	} 
+
+	@ProxyMethod
+	public def create(data) {
+		if (!data.type) throw new Exception("Please specify type.");
+
+		initCreate( data );  
+		em.create( data );  
+
+		if (data.type == 'INDIVIDUAL') {
+			return custIndividualSvc.create(data);
+		} else if (data.type == 'JURIDICAL') {
 			return custJuridicalSvc.create(data);
 		}
 	} 

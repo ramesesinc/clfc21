@@ -5,8 +5,8 @@ import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 
-class LoanAppController 
-{
+public class LoanAppController { 
+    
     @Service('LoanAppService')
     def service;
     
@@ -30,12 +30,9 @@ class LoanAppController
     
     void open() {
         source = entity;
-        //println 'entity ' + source?.objid;
         def data = service.open([objid: source?.objid]);
         entity = [:];
         entity.putAll(data);
-        //println 'open borrower ' + entity.borrower;
-        //println 'entity type ' + entity?.borrower?.entitytype;
         loanappid = entity.objid;
     }
     
@@ -50,19 +47,19 @@ class LoanAppController
     }
     
     def getMenuItems() {
-        def type = entity?.borrower?.entitytype;
-        //println 'menu items type ' + type;
         def items = [];
         items << [name:'principalborrower', caption:'Principal Borrower'];
         items << [name:'loandetail', caption:'Loan Details'];
-        if (type == 'INDIVIDUAL') {
+
+        //def type = entity?.borrower?.entitytype.toString();
+        //if ( 'INDIVIDUAL'.equalsIgnoreCase( type )) { 
             items << [name:'business', caption:'Business'];
             items << [name:'collateral', caption:'Collateral'];
             items << [name:'otherlending', caption:'Other Lending'];
             items << [name:'jointborrower', caption:'Joint Borrower'];
             items << [name:'comaker', caption:'Co-Maker'];
             items << [name:'attachment', caption:'Attachments'];
-        }
+        //}
         items << [name:'comment', caption:'Comments'];
         items << [name:'recommendation', caption:'Recommendations'];
             /*
@@ -172,12 +169,17 @@ class LoanAppController
         return false;
     }
     
-    def submitForCrecom() {
-        if(!entity.route.code) throw new Exception('Route for loan application is required.');
-        if(!entity.businesses) 
-            entity.businesses = service.getBusinesses([objid: entity.objid]);
+    def submitForCrecom() { 
+        if ( entity.appmode.toString().equalsIgnoreCase("ONLINE")) {
+            //do nothing 
+        } else {
+            if (!entity.route.code) throw new Exception('Route for loan application is required.');
+        }
+        
+        if (!entity.businesses) entity.businesses = service.getBusinesses([objid: entity.objid]);
+
         def business = entity.businesses.find{ it.ci?.evaluation == null }
-        if(business) throw new Exception("CI Report for business $business.tradename is required.");
+        if (business) throw new Exception("CI Report for business $business.tradename is required.");
         def handler = {o->
             o.objid = loanappid;
             entity.state = service.submitForCrecom(o).state;

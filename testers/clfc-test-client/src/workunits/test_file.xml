@@ -1,0 +1,12 @@
+<workunit>   
+    <invokers>
+        <invoker folderid="/menu/test" caption="Test File Upload" target="window"/> 
+        <invoker type="formActions" caption="Dump" action="dumpInfo"/> 
+    </invokers>
+    
+    <code class="test.models.TestAttachmentModel"/>
+    
+    <pages>
+        <page template="test.views.TestAttachmentPage"/> 
+    </pages>
+</workunit>

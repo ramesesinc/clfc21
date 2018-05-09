@@ -1,37 +1,60 @@
 import com.rameses.annotations.*;
 import com.rameses.common.*;
-import com.rameses.services.extended.*;
 import java.rmi.server.UID;
 
-class LoanAppCollateralService 
-{	
+class LoanAppCollateralService {
+
 	@ActiveDB(value='loanapp')
 	def loanapp;
 
 	@ActiveDB(value='loanapp_collateral')
 	def collateral;
 
+	@DataContext('loanapplication_collateral_appliance')
+	def appliance_db;
+
+	@DataContext('loanapplication_collateral_vehicle')
+	def vehicle_db;
+
+	@DataContext('loanapplication_collateral_property')
+	def property_db;
+
+	@DataContext('loanapplication_collateral_other')
+	def other_db;
+
+	@DataContext('loanapp_cireport')
+	def cireport_db;
+
+	@Service('DateService') 
+	def dateSvc; 
+
+	@Env 
+	def env; 
+
 	@ProxyMethod 
 	public def open( params ) { 
 		if (!params.objid) throw new Exception('Please specify objid'); 
 
 		def data = loanapp.findByObjid(params);
-		if (!data) throw new Exception('\''+params.objid+'\' loan application record not found'); 
+		if (!data) throw new Exception("'"+ params.objid+ "' loan application record not found"); 
 
 		data.collateral = [:]; 
-		data.collateral.appliances = collateral.getAppliances([parentid: data.objid]);  
-		data.collateral.vehicles = collateral.getVehicles([parentid: data.objid]);  
-		data.collateral.properties = collateral.getProperties([parentid: data.objid]);  
-		data.collateral.other = collateral.findOtherCollateral([objid: data.objid]);  
+		data.collateral.appliances = appliance_db.find([ parentid: data.objid ]).list(); 
+		data.collateral.vehicles = vehicle_db.find([ parentid: data.objid ]).list(); 
+		data.collateral.properties = property_db.find([ parentid: data.objid ]).list(); 
+		data.collateral.other = other_db.find([ objid: data.objid ]).first(); 
+
+		loadCIReport( data ); 
 		return data; 
 	} 
+
 
 	@ProxyMethod 
 	public def update( params ) {
 		if (!params.objid) throw new Exception('Please specify objid');
 
 		def data = loanapp.findByObjid(params);
-		if (!data) throw new Exception('\''+params.objid+'\' loan application record not found'); 
+		if (!data) throw new Exception("'"+ params.objid +"' loan application record not found"); 
 
 		data.collateral = params.remove('collateral');
 		if (data.collateral == null) data.collateral = [:];
@@ -65,6 +88,51 @@ class LoanAppCollateralService
 			data.collateral.other.objid = data.objid;
 			collateral.create(data.collateral.other, 'other');
 		} 
+
+		if ( data.collateral.ci ) {
+			def cis = []; 
+			if ( data.collateral.ci.appliance ) {
+				data.collateral.ci.appliance.reftype = 'appliance'; 
+				cis << data.collateral.ci.appliance; 
+			}
+			if ( data.collateral.ci.vehicle )  {
+				data.collateral.ci.vehicle.reftype = 'vehicle'; 
+				cis << data.collateral.ci.vehicle; 
+			}
+			if ( data.collateral.ci.property )  {
+				data.collateral.ci.property.reftype = 'property'; 
+				cis << data.collateral.ci.property; 
+			}
+			if ( data.collateral.ci.other )  {
+				data.collateral.ci.other.reftype = 'other'; 
+				cis << data.collateral.ci.other; 
+			}
+
+			cireport_db.find([ parentid: data.objid ]).delete(); 
+			cis.each{ o-> 
+				o.parentid = data.objid; 
+				o.objid = o.parentid.toString() +'_'+ o.reftype;
+				if ( o.dtfiled == null ) o.dtfiled = dateSvc.getServerDate(); 
+				if ( o.filedby == null ) o.filedby = [:]; 
+				if ( !o.filedby.objid ) {
+					o.filedby.objid = env.USERID;
+					o.filedby.name = env.FULLNAME; 
+				}
+				cireport_db.create( o );  
+			}
+		}
+
+		loadCIReport( data ); 		
 		return data; 
+	} 
+
+	private void loadCIReport( data ) {
+		def ci = [:]; 
+		def cis = cireport_db.find([ parentid: data.objid ]).list(); 
+		ci.appliance = cis.find{ it.reftype == 'appliance' } 
+		ci.vehicle = cis.find{ it.reftype == 'vehicle' } 
+		ci.property = cis.find{ it.reftype == 'property' } 
+		ci.other = cis.find{ it.reftype == 'other' } 
+		data.collateral.ci = ci; 
 	}
 }

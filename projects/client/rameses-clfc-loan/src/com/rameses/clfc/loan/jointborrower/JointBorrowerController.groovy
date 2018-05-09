@@ -55,7 +55,14 @@ class JointBorrowerController
         borrower.relation = relation; 
         borrower.type = 'JOINT';  
     }
-        
+    
+    def getMode() {
+        try { 
+            return caller.mode; 
+        } catch(Throwable t) {
+            return null; 
+        }
+    }
     def createOpenerParams() {
         def ctx = new BorrowerContext(caller, this, service, loanapp);
         ctx.beforeSaveHandlers = beforeSaveHandlers;

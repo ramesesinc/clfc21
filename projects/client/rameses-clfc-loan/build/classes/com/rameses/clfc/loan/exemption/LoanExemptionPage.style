@@ -1,7 +1,0 @@
-"data.*|selectedForExemption" [mode != 'read'] {
-    readonly: false;
-}
-
-"data.*|selectedForExemption" [mode == 'read'] {
-    readonly: true;
-}

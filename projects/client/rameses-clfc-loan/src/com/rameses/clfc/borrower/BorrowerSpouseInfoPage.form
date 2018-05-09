@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<Form version="1.3" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
+<Form version="1.3" maxVersion="1.3" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
   <AuxValues>
+    <AuxValue name="FormSettings_autoResourcing" type="java.lang.Integer" value="0"/>
+    <AuxValue name="FormSettings_autoSetComponentName" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true"/>
     <AuxValue name="FormSettings_generateMnemonicsCode" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_i18nAutoMode" type="java.lang.Boolean" value="false"/>
     <AuxValue name="FormSettings_layoutCodeTarget" type="java.lang.Integer" value="1"/>
     <AuxValue name="FormSettings_listenerGenerationStyle" type="java.lang.Integer" value="0"/>
     <AuxValue name="FormSettings_variablesLocal" type="java.lang.Boolean" value="false"/>
@@ -67,10 +71,10 @@
               <Properties>
                 <Property name="caption" type="java.lang.String" value="Name"/>
                 <Property name="captionWidth" type="int" value="100"/>
-                <Property name="expression" type="java.lang.String" value="#{entity.name}"/>
+                <Property name="expression" type="java.lang.String" value="#{item.name}"/>
                 <Property name="handler" type="java.lang.String" value="lookupBorrower"/>
                 <Property name="index" type="int" value="-10"/>
-                <Property name="name" type="java.lang.String" value="borrower"/>
+                <Property name="name" type="java.lang.String" value="borrower" noResource="true"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                   <Dimension value="[0, 20]"/>
                 </Property>
@@ -79,10 +83,11 @@
             </Component>
             <Component class="com.rameses.rcp.control.XTextField" name="xTextField2">
               <Properties>
+                <Property name="caption" type="java.lang.String" value="Address"/>
+                <Property name="name" type="java.lang.String" value="borrower.address" noResource="true"/>
                 <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                   <Color blue="fa" green="fa" red="fa" type="rgb"/>
                 </Property>
-                <Property name="caption" type="java.lang.String" value="Address"/>
                 <Property name="captionWidth" type="int" value="100"/>
                 <Property name="depends" type="[Ljava.lang.String;" editor="org.netbeans.beaninfo.editors.StringArrayEditor">
                   <StringArray count="1">
@@ -93,7 +98,6 @@
                   <Color blue="50" green="50" red="50" type="rgb"/>
                 </Property>
                 <Property name="enabled" type="boolean" value="false"/>
-                <Property name="name" type="java.lang.String" value="entity.address"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                   <Dimension value="[0, 20]"/>
                 </Property>
@@ -115,10 +119,11 @@
           <SubComponents>
             <Component class="com.rameses.rcp.control.XTextField" name="xTextField9">
               <Properties>
+                <Property name="caption" type="java.lang.String" value="Marital Status"/>
+                <Property name="name" type="java.lang.String" value="borrower.civilstatus" noResource="true"/>
                 <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                   <Color blue="fa" green="fa" red="fa" type="rgb"/>
                 </Property>
-                <Property name="caption" type="java.lang.String" value="Marital Status"/>
                 <Property name="captionWidth" type="int" value="90"/>
                 <Property name="depends" type="[Ljava.lang.String;" editor="org.netbeans.beaninfo.editors.StringArrayEditor">
                   <StringArray count="1">
@@ -126,7 +131,6 @@
                   </StringArray>
                 </Property>
                 <Property name="enabled" type="boolean" value="false"/>
-                <Property name="name" type="java.lang.String" value="entity.civilstatus"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                   <Dimension value="[0, 20]"/>
                 </Property>
@@ -134,10 +138,11 @@
             </Component>
             <Component class="com.rameses.rcp.control.XTextField" name="xTextField10">
               <Properties>
+                <Property name="caption" type="java.lang.String" value="Citizenship"/>
+                <Property name="name" type="java.lang.String" value="borrower.citizenship" noResource="true"/>
                 <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                   <Color blue="fa" green="fa" red="fa" type="rgb"/>
                 </Property>
-                <Property name="caption" type="java.lang.String" value="Citizenship"/>
                 <Property name="captionWidth" type="int" value="90"/>
                 <Property name="depends" type="[Ljava.lang.String;" editor="org.netbeans.beaninfo.editors.StringArrayEditor">
                   <StringArray count="1">
@@ -145,7 +150,6 @@
                   </StringArray>
                 </Property>
                 <Property name="enabled" type="boolean" value="false"/>
-                <Property name="name" type="java.lang.String" value="entity.citizenship"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                   <Dimension value="[0, 20]"/>
                 </Property>
@@ -178,7 +182,7 @@
                   </StringArray>
                 </Property>
                 <Property name="enabled" type="boolean" value="false"/>
-                <Property name="name" type="java.lang.String" value="entity.birthdate"/>
+                <Property name="name" type="java.lang.String" value="borrower.birthdate" noResource="true"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                   <Dimension value="[0, 20]"/>
                 </Property>
@@ -186,10 +190,11 @@
             </Component>
             <Component class="com.rameses.rcp.control.XTextField" name="xTextField14">
               <Properties>
+                <Property name="caption" type="java.lang.String" value="Contact No."/>
+                <Property name="name" type="java.lang.String" value="borrower.contactno" noResource="true"/>
                 <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                   <Color blue="fa" green="fa" red="fa" type="rgb"/>
                 </Property>
-                <Property name="caption" type="java.lang.String" value="Contact No."/>
                 <Property name="captionWidth" type="int" value="100"/>
                 <Property name="depends" type="[Ljava.lang.String;" editor="org.netbeans.beaninfo.editors.StringArrayEditor">
                   <StringArray count="1">
@@ -197,7 +202,6 @@
                   </StringArray>
                 </Property>
                 <Property name="enabled" type="boolean" value="false"/>
-                <Property name="name" type="java.lang.String" value="entity.contactno"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                   <Dimension value="[0, 20]"/>
                 </Property>
@@ -253,7 +257,7 @@
                     <Property name="expression" type="java.lang.String" value="#{item.value}"/>
                     <Property name="itemKey" type="java.lang.String" value="value"/>
                     <Property name="items" type="java.lang.String" value="occupancyTypes"/>
-                    <Property name="name" type="java.lang.String" value="entity.residency.type"/>
+                    <Property name="name" type="java.lang.String" value="entity.residency.type" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[150, 20]"/>
                     </Property>
@@ -270,7 +274,7 @@
                     <Property name="cellPadding" type="java.awt.Insets" editor="org.netbeans.beaninfo.editors.InsetsEditor">
                       <Insets value="[0, 15, 0, 0]"/>
                     </Property>
-                    <Property name="name" type="java.lang.String" value="entity.residency.since"/>
+                    <Property name="name" type="java.lang.String" value="entity.residency.since" noResource="true"/>
                     <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
@@ -300,7 +304,7 @@
                     <Property name="expression" type="java.lang.String" value="#{item.value}"/>
                     <Property name="itemKey" type="java.lang.String" value="value"/>
                     <Property name="items" type="java.lang.String" value="rentTypes"/>
-                    <Property name="name" type="java.lang.String" value="entity.residency.renttype"/>
+                    <Property name="name" type="java.lang.String" value="entity.residency.renttype" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[150, 20]"/>
                     </Property>
@@ -319,7 +323,7 @@
                         <StringItem index="0" value="entity.residency.type"/>
                       </StringArray>
                     </Property>
-                    <Property name="name" type="java.lang.String" value="entity.residency.rentamount"/>
+                    <Property name="name" type="java.lang.String" value="entity.residency.rentamount" noResource="true"/>
                     <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
@@ -344,7 +348,7 @@
                     </Property>
                     <Property name="caption" type="java.lang.String" value="Remarks"/>
                     <Property name="captionWidth" type="int" value="100"/>
-                    <Property name="name" type="java.lang.String" value="entity.residency.remarks"/>
+                    <Property name="name" type="java.lang.String" value="entity.residency.remarks" noResource="true"/>
                   </Properties>
                 </Component>
               </SubComponents>
@@ -399,7 +403,7 @@
                     <Property name="expression" type="java.lang.String" value="#{item.value}"/>
                     <Property name="itemKey" type="java.lang.String" value="value"/>
                     <Property name="items" type="java.lang.String" value="occupancyTypes"/>
-                    <Property name="name" type="java.lang.String" value="entity.occupancy.type"/>
+                    <Property name="name" type="java.lang.String" value="entity.occupancy.type" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[150, 20]"/>
                     </Property>
@@ -416,7 +420,7 @@
                     <Property name="cellPadding" type="java.awt.Insets" editor="org.netbeans.beaninfo.editors.InsetsEditor">
                       <Insets value="[0, 15, 0, 0]"/>
                     </Property>
-                    <Property name="name" type="java.lang.String" value="entity.occupancy.since"/>
+                    <Property name="name" type="java.lang.String" value="entity.occupancy.since" noResource="true"/>
                     <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
@@ -446,7 +450,7 @@
                     <Property name="expression" type="java.lang.String" value="#{item.value}"/>
                     <Property name="itemKey" type="java.lang.String" value="value"/>
                     <Property name="items" type="java.lang.String" value="rentTypes"/>
-                    <Property name="name" type="java.lang.String" value="entity.occupancy.renttype"/>
+                    <Property name="name" type="java.lang.String" value="entity.occupancy.renttype" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[150, 20]"/>
                     </Property>
@@ -465,7 +469,7 @@
                         <StringItem index="0" value="entity.occupancy.type"/>
                       </StringArray>
                     </Property>
-                    <Property name="name" type="java.lang.String" value="entity.occupancy.rentamount"/>
+                    <Property name="name" type="java.lang.String" value="entity.occupancy.rentamount" noResource="true"/>
                     <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
@@ -490,7 +494,7 @@
                     </Property>
                     <Property name="caption" type="java.lang.String" value="Remarks"/>
                     <Property name="captionWidth" type="int" value="100"/>
-                    <Property name="name" type="java.lang.String" value="entity.occupancy.remarks"/>
+                    <Property name="name" type="java.lang.String" value="entity.occupancy.remarks" noResource="true"/>
                   </Properties>
                 </Component>
               </SubComponents>

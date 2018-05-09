@@ -1,6 +1,0 @@
-"collector" [isCollector==false] {
-    visible: true;
-}
-"collector" [isCollector==true] {
-    visible: false;
-}

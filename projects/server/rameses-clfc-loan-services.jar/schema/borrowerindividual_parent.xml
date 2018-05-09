@@ -1,0 +1,11 @@
+<schema>
+	<element tablename="borrowerindividual_parent"> 
+		<field name="objid" primary="true"/> 
+		<field name="fathername" required="true"/>
+		<field name="fatherage"  required="true"/>
+		<field name="mothername" required="true"/>
+		<field name="motherage"  required="true"/>
+		<field name="address"    required="true"/>
+		<field name="remarks"/>
+	</element>
+</schema>

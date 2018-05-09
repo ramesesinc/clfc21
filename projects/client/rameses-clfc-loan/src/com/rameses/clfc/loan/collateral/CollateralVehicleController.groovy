@@ -10,9 +10,18 @@ class CollateralVehicleController
 {
     @Binding
     def binding;
-    def loanappid, collateral, mode, beforeSaveHandlers;
+    def loanappid, collateral, caller, beforeSaveHandlers;
     
-    def htmlbuilder=new CollateralHtmlBuilder();
+    def htmlbuilder = new CollateralHtmlBuilder();
+    
+    def getMode() {
+        try { 
+            return caller.mode; 
+        } catch(Throwable t) {
+            return null; 
+        }
+    }
+    
     def selectedVehicle;
     def vehicleHandler = [
         fetchList: {o->
@@ -52,6 +61,20 @@ class CollateralVehicleController
     }
     
     def getHtmlview() {
-        return htmlbuilder.buildVehicle(selectedVehicle);
+        def m = [:]; 
+        if ( selectedVehicle ) m.putAll( selectedVehicle ); 
+        
+        m.ci = collateral.ci; 
+        return htmlbuilder.buildVehicle( m );
     }
+    
+    def addCiReport() {
+        if ( collateral.ci == null ) collateral.ci = [:]; 
+        
+        def params = [mode: mode, caller: this]; 
+        params.handler = { collateral.ci.vehicle = it } 
+        params.entity = collateral.ci.vehicle; 
+        if ( params.entity == null ) params.entity = [:]; 
+        return InvokerUtil.lookupOpener("cireport:edit", params);
+    }     
 }

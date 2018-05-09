@@ -1,7 +1,0 @@
-"entity.*|addEmployment|addOtherIncome|doOk" [mode != 'read'] {
-    enabled:true;
-}
-
-"entity.*|addEmployment|addOtherIncome|doOk" [mode == 'read'] {
-    enabled:false;
-}

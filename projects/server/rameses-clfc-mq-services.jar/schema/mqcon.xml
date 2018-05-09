@@ -1,0 +1,7 @@
+<schema>
+	<element tablename="mqcon">
+		<field name="objid" primary="true" prefix="MQC"/> 
+		<field name="dtfiled" required="true"/> 
+		<field name="state" required="true"/> 
+	</element>
+</schema>

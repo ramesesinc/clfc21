@@ -1,5 +1,0 @@
-<workunit extends="wtemplates/ServiceLookupController.xml" serviceName="CaptureLoanAppLookupService">
-    <invokers>
-        <invoker type="capture_loanapp:lookup" caption="Captured Application Lookup" target="popup"/>
-    </invokers>
-</workunit>
