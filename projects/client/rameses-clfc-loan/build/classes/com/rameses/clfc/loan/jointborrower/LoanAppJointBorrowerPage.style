@@ -1,0 +1,9 @@
+"(add|remove)JointBorrower" [ 1==1 ] {
+    enabled:false;
+}
+"addJointBorrower" [mode != 'read'] {
+    enabled:true;
+}
+"removeJointBorrower" [ mode != 'read' && selectedJointBorrower != null ] {
+    enabled:true;
+}

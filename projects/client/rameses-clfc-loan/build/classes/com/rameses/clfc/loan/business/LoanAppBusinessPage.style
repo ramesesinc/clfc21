@@ -1,0 +1,6 @@
+"addBusiness" [mode != 'read'] {
+    enabled:true;
+}
+"addBusiness" [mode == 'read'] {
+    enabled:false;
+}

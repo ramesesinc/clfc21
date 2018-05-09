@@ -1,0 +1,6 @@
+"addOtherLending" [mode != 'read'] {
+    enabled:true;
+}
+"addOtherLending" [mode == 'read'] {
+    enabled:false;
+}

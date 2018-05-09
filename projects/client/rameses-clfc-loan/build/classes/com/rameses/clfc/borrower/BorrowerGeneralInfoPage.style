@@ -1,0 +1,19 @@
+"entity.*|borrower.*" [ 1==1 ] { 
+    enabled: false; 
+}
+"entity.*|borrower" [ borrowerContext.mode == 'edit' ] {
+    enabled: true; 
+}
+"entity.residency.rent.*" [borrowerContext.mode == 'edit' && entity.residency?.type != 'RENTED' ] {
+    enabled: false;
+}
+"entity.occupancy.rent.*" [borrowerContext.mode == 'edit' && entity.occupancy?.type != 'RENTED' ] {
+    enabled: false;
+}
+
+"relation" [ 1==1 ] {
+    visible: true; 
+}
+"relation" [borrowerContext.menuItemName == 'principalborrower' ] {
+    visible: false;
+}
