@@ -43,12 +43,12 @@ public class FieldCollectionPage extends javax.swing.JPanel {
         xDecimalField3 = new com.rameses.rcp.control.XDecimalField();
         xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
         jTabbedPane1 = new javax.swing.JTabbedPane();
-        jPanel1 = new javax.swing.JPanel();
-        xSubFormPanel1 = new com.rameses.rcp.control.XSubFormPanel();
         jPanel2 = new javax.swing.JPanel();
         xSubFormPanel2 = new com.rameses.rcp.control.XSubFormPanel();
         jPanel3 = new javax.swing.JPanel();
         xSubFormPanel3 = new com.rameses.rcp.control.XSubFormPanel();
+        jPanel1 = new javax.swing.JPanel();
+        xSubFormPanel1 = new com.rameses.rcp.control.XSubFormPanel();
 
         xLabel1.setCaption("Status");
         xLabel1.setCaptionWidth(90);
@@ -133,40 +133,6 @@ public class FieldCollectionPage extends javax.swing.JPanel {
                 .addContainerGap())
         );
 
-        xSubFormPanel1.setDynamic(true);
-        xSubFormPanel1.setHandler("consolidatedCashbreakdown");
-        xSubFormPanel1.setName("consolidatedCashbreakdown"); // NOI18N
-
-        javax.swing.GroupLayout xSubFormPanel1Layout = new javax.swing.GroupLayout(xSubFormPanel1);
-        xSubFormPanel1.setLayout(xSubFormPanel1Layout);
-        xSubFormPanel1Layout.setHorizontalGroup(
-            xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 424, Short.MAX_VALUE)
-        );
-        xSubFormPanel1Layout.setVerticalGroup(
-            xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 370, Short.MAX_VALUE)
-        );
-
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(xSubFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(35, Short.MAX_VALUE))
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(xSubFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 370, Short.MAX_VALUE)
-                .addContainerGap())
-        );
-
-        jTabbedPane1.addTab("Consolidated Cash Breakdown", jPanel1);
-
         xSubFormPanel2.setDynamic(true);
         xSubFormPanel2.setHandler("collectionCashbreakdown");
         xSubFormPanel2.setName("collectionCashbreakdown"); // NOI18N
@@ -234,6 +200,40 @@ public class FieldCollectionPage extends javax.swing.JPanel {
         );
 
         jTabbedPane1.addTab("Shortage Cash Breakdown", jPanel3);
+
+        xSubFormPanel1.setDynamic(true);
+        xSubFormPanel1.setHandler("consolidatedCashbreakdown");
+        xSubFormPanel1.setName("consolidatedCashbreakdown"); // NOI18N
+
+        javax.swing.GroupLayout xSubFormPanel1Layout = new javax.swing.GroupLayout(xSubFormPanel1);
+        xSubFormPanel1.setLayout(xSubFormPanel1Layout);
+        xSubFormPanel1Layout.setHorizontalGroup(
+            xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 424, Short.MAX_VALUE)
+        );
+        xSubFormPanel1Layout.setVerticalGroup(
+            xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 370, Short.MAX_VALUE)
+        );
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(xSubFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(35, Short.MAX_VALUE))
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(xSubFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 370, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        jTabbedPane1.addTab("Consolidated Cash Breakdown", jPanel1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);

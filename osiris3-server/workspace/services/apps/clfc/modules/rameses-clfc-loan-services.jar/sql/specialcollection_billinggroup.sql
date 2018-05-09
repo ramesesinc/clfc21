@@ -80,11 +80,11 @@ from (
 	from loan_ledger l
 	inner join loanapp a on l.appid=a.objid
 	inner join borrower b on a.borrower_objid=b.objid
-	left join (
+	inner join (
 		select ac.*
 		from (
 			select *
-			from ledgeramnesty_active ac
+			from ledgeramnesty_active
 			where curdate() between dtstarted and ifnull(dtended, curdate())
 			order by dtfiled desc
 		) ac
@@ -97,11 +97,11 @@ from (
 	select l.objid
 	from loan_ledger l
 	inner join loanapp a on l.appid=a.objid
-	left join (
+	inner join (
 		select ac.*
 		from (
 			select *
-			from ledgeramnesty_active ac
+			from ledgeramnesty_active
 			where curdate() between dtstarted and ifnull(dtended, curdate())
 			order by dtfiled desc
 		) ac
@@ -110,6 +110,50 @@ from (
 	where l.state='open'
 		and a.appno like $P{searchtext}
 		and ac.type='SMC'
+) q inner join loan_ledger l on q.objid=l.objid
+inner join loanapp a on l.appid=a.objid
+inner join borrower b on a.borrower_objid=b.objid
+left join loanapp_capture ac on a.objid=ac.objid
+where a.loantype <> 'branch'
+order by b.name, a.appno desc, ac.dtreleased desc
+
+[getAccountsConferenced]
+select b.objid as borrower_objid, b.name as borrower_name, b.address as borrower_address, a.objid as loanapp_objid,
+	a.appno as loanapp_appno, a.loanamount as loanapp_amount, l.objid as ledger_objid, ac.dtreleased as ledger_dtreleased, l.dtmatured as ledger_dtmatured,
+	(select txndate from followup_result where loanapp_objid=a.objid and txnstate='confirmed' order by txndate desc limit 1) as dtlastfollowup
+from (
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join borrower b on a.borrower_objid=b.objid
+	inner join (
+		select am.*
+		from (
+			select *
+			from ledgeramnesty
+			where txnstate="RETURNED"
+			order by txndate desc, dtreturned desc
+		) am 
+		group by am.ledger_objid
+	) am on l.objid=am.ledger_objid
+	where l.state='open'
+		and b.name like $P{searchtext}
+	union
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join (
+		select am.*
+		from (
+			select *
+			from ledgeramnesty
+			where txnstate="RETURNED"
+			order by txndate desc, dtreturned desc
+		) am 
+		group by am.ledger_objid
+	) am on l.objid=am.ledger_objid
+	where l.state='open'
+		and a.appno like $P{searchtext}
 ) q inner join loan_ledger l on q.objid=l.objid
 inner join loanapp a on l.appid=a.objid
 inner join borrower b on a.borrower_objid=b.objid
@@ -126,11 +170,11 @@ from (
 	from loan_ledger l
 	inner join loanapp a on l.appid=a.objid
 	inner join borrower b on a.borrower_objid=b.objid
-	left join (
+	inner join (
 		select ac.*
 		from (
 			select *
-			from ledgeramnesty_active ac
+			from ledgeramnesty_active
 			where curdate() between dtstarted and ifnull(dtended, curdate())
 			order by dtfiled desc
 		) ac
@@ -143,11 +187,11 @@ from (
 	select l.objid
 	from loan_ledger l
 	inner join loanapp a on l.appid=a.objid
-	left join (
+	inner join (
 		select ac.*
 		from (
 			select *
-			from ledgeramnesty_active ac
+			from ledgeramnesty_active
 			where curdate() between dtstarted and ifnull(dtended, curdate())
 			order by dtfiled desc
 		) ac
@@ -172,11 +216,11 @@ from (
 	from loan_ledger l
 	inner join loanapp a on l.appid=a.objid
 	inner join borrower b on a.borrower_objid=b.objid
-	left join (
+	inner join (
 		select ac.*
 		from (
 			select *
-			from ledgeramnesty_active ac
+			from ledgeramnesty_active
 			where curdate() between dtstarted and ifnull(dtended, curdate())
 			order by dtfiled desc
 		) ac
@@ -189,11 +233,11 @@ from (
 	select l.objid
 	from loan_ledger l
 	inner join loanapp a on l.appid=a.objid
-	left join (
+	inner join (
 		select ac.*
 		from (
 			select *
-			from ledgeramnesty_active ac
+			from ledgeramnesty_active
 			where curdate() between dtstarted and ifnull(dtended, curdate())
 			order by dtfiled desc
 		) ac

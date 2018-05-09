@@ -1,8 +1,6 @@
 <workunit extends='wtemplates/BillingGroupListController.xml'>
     <invokers>
-        <!--
         <invoker type='billinggroup-option' action='init' caption='Delinquent Accounts' index='3' />
-        -->
     </invokers>
     
     <code>

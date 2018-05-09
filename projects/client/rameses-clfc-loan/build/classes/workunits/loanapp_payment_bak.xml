@@ -1,9 +1,10 @@
 <workunit>
-    <invokers>
+    <invokers>  
+        <!--      
         <invoker folderid="/menu/txn/collection" action="init" caption="Collect Direct Payment" role="CASHIER" index="3"/>
         <invoker type="quick_launcher" code="PMT" action="init" caption="Collect Direct Payment" role="CASHIER"/> 
         <invoker folderid="/home/online/collection" action="init" caption="Collect Direct Payment" role="CASHIER"/>
-        
+        -->
         <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl W"
             visibleWhen="#{mode == 'init'}" immediate="true"/>
         <invoker type="formActions" action="next" caption="Next" mnemonic="n" shortcut="ctrl N"
@@ -15,10 +16,10 @@
             visibleWhen="#{mode == 'collect'}"/>
     </invokers>
     
-    <code class="com.rameses.clfc.loan.payment.PaymentController" />
+    <code class="com.rameses.clfc.loan.payment.bak.PaymentController" />
     
     <pages>
-        <page template="com.rameses.clfc.loan.payment.PaymentInitPage"/>
-        <page template="com.rameses.clfc.loan.payment.PaymentPage" name="main"/>
+        <page template="com.rameses.clfc.loan.payment.bak.PaymentInitPage"/>
+        <page template="com.rameses.clfc.loan.payment.bak.PaymentPage" name="main"/>
     </pages>
 </workunit>

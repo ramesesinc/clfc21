@@ -9,32 +9,33 @@ import com.rameses.common.*;
 import java.rmi.server.UID;
 import java.text.SimpleDateFormat
 
-class LegalFollowUpReportController extends CRUDController{
-    
-    String serviceName = "LegalFollowUpReportService";
-    String entityName = "followup_report";
+class LegalFollowUpReportController extends CRUDController {
     
     @Service("DateService")
-    def dateService;
+    def dateSvc;
+    
+    String serviceName = "LegalFollowUpReportService";
+    String entityName = "legal:followup:report";
   
-    String title = "Follow Up Note Details";
+    String title = "Follow Up Report";
     
-    boolean isAllowApprove(){
-        return false;
+    boolean allowApprove = false;
+    boolean allowDelete = false;
+    
+    Map createEntity() {
+        return [txndate: dateSvc.getServerDateAsString().split(" ")[0]];
     }
     
-    void beforeCreate(entity){
-        entity.txndate = new Date();
-    }
-    
+    /*
     void beforeSave(entity){
         def today = dateService.getBasicServerDate();
         def notedate = java.sql.Date.valueOf(entity.txndate);
         if (notedate.after(today))throw new Exception("Cannot create note beyond current date!");
     }
+    */
     
     def preview(){
-        def op = Inv.lookupOpener("followup_report:preview", [objid : entity.objid, txndate: entity.txndate]);
+        def op = Inv.lookupOpener("legal:followup:report:preview", [objid : entity.objid, txndate: entity.txndate]);
         return op;
     }
 }

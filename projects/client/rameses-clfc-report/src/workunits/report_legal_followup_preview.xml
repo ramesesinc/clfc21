@@ -1,0 +1,9 @@
+<workunit>
+    <invokers>
+        <invoker type="legal:followup:report:preview" action="preview" caption="Preview" target="popup" />
+    </invokers>
+    <code class="com.rameses.clfc.report.legal.followup.LegalFollowUpReportPreviewController" />
+    <pages>
+        <page template="com.rameses.osiris2.common.ui.ReportPreviewPage" />
+    </pages> 
+</workunit>

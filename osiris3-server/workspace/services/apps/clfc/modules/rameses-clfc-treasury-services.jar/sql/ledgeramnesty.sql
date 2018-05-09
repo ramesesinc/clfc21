@@ -111,6 +111,13 @@ FROM (
 INNER JOIN loanapp a ON l.appid = a.objid
 ORDER BY q.dtended, a.borrower_name
 
+[findLatestAmnestyByLedgeridAndState]
+select *
+from ledgeramnesty
+where ledger_objid=$P{ledgerid}
+	and txnstate=$P{state}
+order by txndate desc, dtcreated desc
+
 [findDetail]
 SELECT d.*
 FROM ledgeramnesty_detail d

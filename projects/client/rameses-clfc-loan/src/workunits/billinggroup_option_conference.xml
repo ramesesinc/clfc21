@@ -24,11 +24,7 @@
                 }, 
                 onselect: { o->
                     query.state = o.state;
-                    try {
-                        reloadAll();
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
+                    reload();
                 }
             ] as ListPaneModel;
         
