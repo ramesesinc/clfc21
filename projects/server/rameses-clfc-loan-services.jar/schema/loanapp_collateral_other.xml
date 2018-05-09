@@ -1,0 +1,6 @@
+<schema>
+	<element tablename="loanapp_collateral_other">
+		<field name="objid" primary="true"/>
+		<field name="remarks" required="true"/> 
+	</element>	
+</schema>	

@@ -1,0 +1,7 @@
+<schema>
+	<element tablename="mqpub_error">
+		<field name="objid" primary="true" prefix="MQPE"/> 
+		<field name="parentid" required="true"/> 
+		<field name="message" required="true"/> 
+	</element>
+</schema>

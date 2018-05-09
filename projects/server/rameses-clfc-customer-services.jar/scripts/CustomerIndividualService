@@ -38,8 +38,9 @@ class CustomerIndividualService
 			data.custno = data.branchid + sequenceSvc.getNextFormattedSeriesA(seqname,7);
 		}
 		if (!data.entityno) data.entityno = data.custno;
+
 		em.create(data);
-		return entitySvc.create(data); 
+		return entitySvc.open([ objid: data.objid ]); 
 	} 
 
 	private def parseDate( date ) {

@@ -1,0 +1,6 @@
+<schema>
+	<element tablename="mqpub_pending">
+		<field name="objid" primary="true"/> 
+		<field name="indexno" required="true"/> 
+	</element>
+</schema>

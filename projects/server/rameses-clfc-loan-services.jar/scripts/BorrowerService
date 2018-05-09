@@ -5,6 +5,9 @@ import java.rmi.server.UID;
 
 class BorrowerService {
 
+	@DataContext('entityindividual') 
+	def entityindividual; 
+
 	@DataContext('borrower') 
 	def em; 
 
@@ -79,11 +82,6 @@ class BorrowerService {
 			}
 		}
 
-		println '** data' 
-		data.each{
-			println '>> '+ it;
-		}
-
 		em.find([ objid: data.objid ]).update( data );
 		borrowerindividual.find([ objid: data.objid ]).update( data );
 
@@ -102,6 +100,11 @@ class BorrowerService {
 
 	@ProxyMethod 
 	public def save( data ) {
+		if ( data.address instanceof Map ) {
+			def addr = data.remove('address');  
+			data.address = addr.text; 
+		}
+
 		def o = em.find([ objid: data.objid ]).select('objid').first(); 
 		if ( o ) {
 			em.find([ objid: data.objid ]).update( data ); 
@@ -113,6 +116,12 @@ class BorrowerService {
 		if ( o ) {
 			borrowerindividual.find([ objid: data.objid ]).update( data ); 
 		} else {
+			def ei = entityindividual.find([ objid: data.objid ]).first(); 
+			if ( ei ) {
+				ei.putAll( data ); 
+				data.putAll( ei );  
+			} 
+
 			borrowerindividual.find([ objid: data.objid ]).create( data ); 
 		}
 

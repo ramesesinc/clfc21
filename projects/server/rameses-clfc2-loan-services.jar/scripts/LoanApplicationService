@@ -51,6 +51,9 @@ class LoanApplicationService {
 	@Service('Var')
 	def varSvc;
 
+	@Service 
+	def self; 
+
 	@Env 
 	def env; 
 
@@ -102,7 +105,7 @@ class LoanApplicationService {
 		}
 
 
-		data.state = 'INCOMPLETE'; 
+		data.state = 'PENDING'; 
 		data.loanno = data.appno; 
 		data.author = [objid: env.USERID, name: env.FULLNAME]; 
 		data.createdby = env.USER; 
@@ -172,6 +175,15 @@ class LoanApplicationService {
 		return adb.list(0, 20); 
 	} 
 
+	@ProxyMethod
+	public def getLoanApps( params ) {
+		if ( !params.borrowerid ) throw new Exception('borrowerid parameter is required'); 
+
+		def adb = loanapp_borrower.find([ borrowerid: params.borrowerid, type: 'PRINCIPAL']); 
+		adb.orderBy(" app.dtcreated desc "); 
+		return adb.list(0, 30); 
+	} 
+
 	@ProxyMethod 
 	public def getCurrentLoan( params ) {
 		if ( !params.borrowerid ) return null; 
@@ -207,12 +219,65 @@ class LoanApplicationService {
 	} 	
 
 	@ProxyMethod 
-	public def submitForApproval( params ) {
-		return loanAppSvc.submitForApproval( params ); 
+	public def submitForApproval( params ) { 
+		try {
+			return loanAppSvc.submitForApproval( params );  
+		} finally {
+			self.uploadToMQ([ appid: params.objid ]); 
+		}
+	}
+
+	@Async 
+	@ProxyMethod 
+	public void uploadToMQ( param ) {		
+	}
+
+	@ProxyMethod
+	public def sendBack( params ) {
+		return loanAppSvc.sendBack( params ); 
+	}
+
+	@ProxyMethod
+	public def approve( params ) {
+		return loanAppSvc.approve( params ); 
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		return loanAppSvc.disapprove( params ); 
+	}
+
+	@ProxyMethod
+	public def submitForRequirement( params ) {
+		return loanAppSvc.submitForRequirement( params ); 
+	}
+
+	@ProxyMethod
+	public def submitForProcessing( params ) {
+		return loanAppSvc.submitForProcessing( params ); 
+	}
+
+	@ProxyMethod
+	public def submitForRelease( params ) {
+		return loanAppSvc.submitForRelease( params ); 
+	}
+
+	@ProxyMethod
+	public def release( params ) {
+		return loanAppSvc.release( params ); 
 	}
 
 	@ProxyMethod
 	public def getBusinesses( params ) {
 		return loanAppSvc.getBusinesses( params ); 
 	}	
+
+	@ProxyMethod
+	public def getCollaterals( params ) {
+		return []; 		
+	}		
+
+	@ProxyMethod 
+	public void verifyCIReport( params ) {
+	}
 } 

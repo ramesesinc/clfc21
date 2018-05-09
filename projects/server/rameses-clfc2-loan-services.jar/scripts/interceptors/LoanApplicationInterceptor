@@ -12,15 +12,18 @@ class LoanApplicationInterceptor {
 	@ActiveDB("datatxnlog")
 	def txnlog_db;
 
+	@Service 
+	def self;
 
 	@After( pattern="QueryService.getNodeList", eval="#{args[0]._schemaname == 'loanapplication'}" ) 
 	public void afterGetNodeList( evt) {
-		evt.result << [ objid: 'INCOMPLETE', title:'Incomplete' ]; 
 		evt.result << [ objid: 'PENDING', title:'Pending' ]; 
 		evt.result << [ objid: 'FOR_INSPECTION', title:'For Inspection' ]; 
 		evt.result << [ objid: 'FOR_CRECOM', title:'For CRECOM' ]; 
 		evt.result << [ objid: 'FOR_APPROVAL', title:'For Approval' ]; 
 		evt.result << [ objid: 'APPROVED', title:'Approved' ]; 
+		evt.result << [ objid: 'FOR_REQUIREMENT', title:'For Requirement' ]; 
+		evt.result << [ objid: 'FOR_PROCESSING', title:'For Processing' ]; 
 		evt.result << [ objid: 'FOR_RELEASE', title:'For Release' ]; 
 		evt.result << [ objid: 'RELEASED', title:'Released' ]; 
 		evt.result << [ objid: 'DISAPPROVED', title:'Disapproved' ]; 

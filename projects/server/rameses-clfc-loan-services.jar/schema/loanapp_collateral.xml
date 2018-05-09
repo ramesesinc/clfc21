@@ -6,9 +6,9 @@
 		<field name="type" required="true"/> 
 		<field name="brand" required="true"/> 
 		<field name="dtacquired" required="true"/> 
-		<field name="modelno" required="true"/> 
-		<field name="serialno" required="true"/> 
-		<field name="marketvalue" required="true"/> 
+		<field name="modelno" /> 
+		<field name="serialno" /> 
+		<field name="marketvalue" /> 
 		<field name="remarks" required="true"/> 
 		<complex name="attachments" serializer="default" type="list" required="false"/> 
 	</element>
@@ -24,10 +24,10 @@
 		<field name="dtacquired" required="true"/>
 		<field name="acquiredfrom" required="true"/>
 		<field name="registeredname" required="true"/>
-		<field name="chassisno" required="true"/>
 		<field name="plateno" required="true"/>
-		<field name="engineno" required="true"/>
-		<field name="marketvalue" required="true"/>
+		<field name="chassisno" />
+		<field name="engineno" />
+		<field name="marketvalue"/>
 		<field name="remarks" required="true"/>
 		<field name="orcr_crno"/>
 		<field name="orcr_fuel"/>
@@ -48,12 +48,12 @@
 		<field name="location" required="true"/> 
 		<field name="areauom" required="true"/> 
 		<field name="areavalue" required="true"/> 
-		<field name="zonalvalue" required="true"/> 
+		<field name="zonalvalue"/> 
 		<field name="dtacquired"/> 
 		<field name="acquiredfrom"/> 
 		<field name="modeofacquisition" required="true"/> 
 		<field name="registeredname" required="true"/> 
-		<field name="marketvalue" required="true"/> 
+		<field name="marketvalue"/> 
 		<field name="remarks" required="true"/> 
 	</element>
 
