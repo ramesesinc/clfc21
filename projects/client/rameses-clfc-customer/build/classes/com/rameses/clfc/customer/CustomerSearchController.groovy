@@ -34,7 +34,7 @@ class CustomerSearchController extends BasicLookupModel
     
     def selectedCustomer; 
     def customerlistHandler = [ 
-        getRows: { return 15; },             
+        getRows: { return 20; },             
         fetchList: {o-> 
             return service.getList(o);  
         }, 
@@ -70,24 +70,26 @@ class CustomerSearchController extends BasicLookupModel
         return ctx;
     }
     
-    def create() {
-        def params = [callerContext: createContextHandler()];
-        def opener = InvokerUtil.lookupOpener('customer:create', params);
-        opener.target = 'self';
-        return opener;
+    def create() {   
+        def ctype = null;
+        def params = [:];
+        params.handler = { o-> ctype = o; }
+        Modal.show('customer:selecttype', params); 
+        if (!ctype) return null; 
+        
+        params.clear();
+        def op = Inv.lookupOpener('entity'+ ctype +':create', params);
+        op.target = 'popup';
+        return op;
     }
     
-    void view() {
-        def params = [
-            callerContext: createContextHandler(), 
-            entity: selectedCustomer 
-        ];
-        params.callerContext.closeHandler = {
-            customerlistHandler.reload(); 
-        }         
+    def view() { 
+        if ( !selectedCustomer ) return null;
         
-        def opener = InvokerUtil.lookupOpener('customer:open', params);
-        opener.target = 'self';
-        customerlistHandler.bindingObject.fireNavigation(opener);
+        def ctype = selectedCustomer.type.toString().toLowerCase();
+        def params = [ entity: selectedCustomer ];
+        def op = Inv.lookupOpener('entity'+ ctype +':open', params ); 
+        op.target = 'popup'; 
+        return op;
     }    
 } 

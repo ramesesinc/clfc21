@@ -55,6 +55,13 @@ class CoMakerController
         borrower.type = 'COMAKER';  
     }    
     
+    def getMode() {
+        try { 
+            return caller.mode; 
+        } catch(Throwable t) {
+            return null; 
+        }
+    }    
     def createOpenerParams() {
         def ctx = new BorrowerContext(caller, this, service, loanapp);
         ctx.beforeSaveHandlers = beforeSaveHandlers;

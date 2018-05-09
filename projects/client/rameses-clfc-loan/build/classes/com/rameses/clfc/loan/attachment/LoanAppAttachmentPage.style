@@ -1,6 +1,9 @@
-"addAttachment" [caller.mode != 'read'] {
-    enabled:true;
+"(add|remove)Attachment" [ 1==1 ] {
+    enabled: false;
 }
-"addAttachment" [caller.mode == 'read'] {
-    enabled:false;
+"addAttachment" [mode != 'read'] {
+    enabled: true;
+}
+"removeAttachment" [ mode != 'read' && selectedAttachment != null ] {
+    enabled: true;
 }

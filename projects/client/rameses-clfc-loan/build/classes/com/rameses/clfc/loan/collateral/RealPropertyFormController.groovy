@@ -11,4 +11,9 @@ class RealPropertyFormController extends PopupMasterController
     def classifications = LoanUtil.propertyClassificationTypes;
     def uomList = LoanUtil.propertyUomTypes;
     def modesOfAcquisition = LoanUtil.propertyModeOfAcquisitionTypes;
+    
+    public void afterCreate(data) {
+        if (data.attachments == null) data.attachments = [];
+    }
+    
 }

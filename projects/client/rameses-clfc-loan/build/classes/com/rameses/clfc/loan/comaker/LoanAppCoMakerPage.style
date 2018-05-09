@@ -1,6 +1,9 @@
-"addCoMaker" [caller.mode != 'read'] {
+"(add|remove)CoMaker" [ 1==1 ] {
+    enabled:false;
+}
+"addCoMaker" [mode != 'read'] {
     enabled:true;
 }
-"addCoMaker" [caller.mode == 'read'] {
-    enabled:false;
+"removeCoMaker" [ mode != 'read' && selectedCoMaker != null ] {
+    enabled:true;
 }
