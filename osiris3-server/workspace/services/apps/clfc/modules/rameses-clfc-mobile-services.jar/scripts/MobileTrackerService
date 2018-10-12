@@ -169,17 +169,18 @@ class MobileTrackerService
 
 		def item = em.findDetailByRefid( [refid: params.itemid] );
 		if (!item) {
+			def date = dateSvc.serverDate;
 			item = [		
 				objid 		: "TRKRI" + new UID(), 
 				parentid 	: entity.objid, 
-				dtfiled 	: dateSvc.serverDate,
+				dtfiled 	: date,
 				branch 		: branch,
-				txndate 	: entity.dtstart, 
+				txndate 	: date, 
 				txntype 	: 'NORMAL', 
 				refid 		: params.itemid, 
 				reftype		: 'DOWNLOAD', 
-				lng 		: entity.startlng,  
-				lat 		: entity.startlat,
+				lng 		: params.lng? params.lng : branch.lng, //entity.startlng,  
+				lat 		: params.lat? params.lat : branch.lat, //entity.startlat,
 				remarks 	: 'DOWNLOADED BILLING',   
 				state 		: 1
 			];
@@ -196,7 +197,7 @@ class MobileTrackerService
 		if (!entity) throw new Exception("'"+params.trackerid+"' trackerid not found"); 
 		if (entity.state == 'CLOSED') throw new Exception('This session has already been closed'); 
 
-		def brancgh = branchSvc.open( [:] );
+		def branch = branchSvc.open( [:] );
 		entity.user = getUser(entity.userid);
 
 		entity.dtclosed 	= dateSvc.serverDate;
@@ -238,10 +239,12 @@ class MobileTrackerService
 		if (!detail) {
 			def serverdate = dateSvc.serverDate;
 
+			def branch = branchSvc.open([:]);
 			if (!entity.branch) {
-				def branch = branchSvc.open([:]);
 				entity.branch = branch;
 			}
+			if (!entity.lng) entity.lng = branch.lng;
+			if (!entity.lat) entity.lat = branch.lat;
 
 			entity.parentid = info.objid; 
 			if (!entity.txndate) entity.txndate = serverdate;

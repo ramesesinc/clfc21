@@ -1,0 +1,6 @@
+<workunit extends="wtemplates/posting_constraint_date.xml">
+    <invokers>
+        <invoker type='producttype:postinginfo:option:condition:date' action="init" />
+    </invokers>
+    
+</workunit>

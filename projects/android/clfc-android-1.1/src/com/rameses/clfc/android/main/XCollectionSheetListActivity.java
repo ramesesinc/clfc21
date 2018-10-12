@@ -26,11 +26,11 @@ import android.widget.TextView;
 
 import com.rameses.clfc.android.ApplicationUtil;
 import com.rameses.clfc.android.ControlActivity;
-import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBPaymentService;
-import com.rameses.clfc.android.db.DBVoidService;
+import com.rameses.clfc.android.XMainDB;
+import com.rameses.clfc.android.db.XDBCollectionSheet;
+import com.rameses.clfc.android.db.XDBPaymentService;
+import com.rameses.clfc.android.db.XDBVoidService;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.Task;
@@ -52,8 +52,8 @@ public class XCollectionSheetListActivity extends ControlActivity
 	private String collectiondate = "";
 	private String type = "";
 	private int isfirstbill;
-	private DBPaymentService paymentSvc = new DBPaymentService();
-	private DBVoidService voidSvc = new DBVoidService();
+	private XDBPaymentService paymentSvc = new XDBPaymentService();
+	private XDBVoidService voidSvc = new XDBVoidService();
 	private LayoutInflater inflater;
 	private MapProxy proxy;
 	private EditText et_search;
@@ -257,7 +257,7 @@ public class XCollectionSheetListActivity extends ControlActivity
 					public void onSelectItem(int index) {
 						String type = "schedule";
 						if (index == 1) type = "over";
-						synchronized (MainDB.LOCK) {
+						synchronized (XMainDB.LOCK) {
 							SQLTransaction txn = new SQLTransaction("clfc.db");
 							Map params = new HashMap();
 							params.put("objid", MapProxy.getString(cs, "objid"));
@@ -359,7 +359,7 @@ public class XCollectionSheetListActivity extends ControlActivity
 		
 		private void runImpl() throws Exception {
 
-			DBCollectionSheet collectionSheet = new DBCollectionSheet();
+			XDBCollectionSheet collectionSheet = new XDBCollectionSheet();
 			int totalcs = 0;
 			DBContext ctx = new DBContext("clfc.db");
 			collectionSheet.setDBContext(ctx);

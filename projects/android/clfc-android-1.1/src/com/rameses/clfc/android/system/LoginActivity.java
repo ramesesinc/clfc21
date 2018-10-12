@@ -1,5 +1,6 @@
 package com.rameses.clfc.android.system;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,21 +8,22 @@ import java.util.Map;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.widget.RelativeLayout;
 
 import com.rameses.clfc.android.AppSettingsImpl;
+import com.rameses.clfc.android.ApplicationDatabase;
 import com.rameses.clfc.android.ApplicationUtil;
-import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
 import com.rameses.clfc.android.SettingsMenuActivity;
-import com.rameses.clfc.android.db.DBCollectionGroup;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.services.LoanPostingService;
+import com.rameses.clfc.android.db.ApplicationDBUtil;
+import com.rameses.clfc.android.db.BankDB;
+import com.rameses.clfc.android.db.CollectionGroupDB;
+import com.rameses.clfc.android.db.SegregationDB;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIAction;
@@ -30,17 +32,17 @@ import com.rameses.client.android.UIDialog;
 import com.rameses.client.interfaces.UserProfile;
 import com.rameses.client.interfaces.UserSetting;
 import com.rameses.client.services.LoginService;
-import com.rameses.db.android.DBContext;
-import com.rameses.db.android.SQLTransaction;
 import com.rameses.util.Base64Cipher;
 import com.rameses.util.Encoder;
-import com.rameses.util.MapProxy;
 
 public class LoginActivity extends SettingsMenuActivity 
 {
 	private ProgressDialog progressDialog;
 //	private LoanTrackerService service = new LoanTrackerService();
 //	private Handler myhandler;
+	private BankDB bankdb = new BankDB();
+	private SegregationDB segregation = new SegregationDB();
+	private CollectionGroupDB collectionGroup = new CollectionGroupDB();
 	
 	public boolean isCloseable() { return false; }
 
@@ -184,7 +186,7 @@ public class LoginActivity extends SettingsMenuActivity
 			//map.put("provider", provider);
 					
 			UIApplication app = Platform.getApplication();
-			app.getAppSettings().putAll(map);
+			app.getAppSettings().putAll( map );
 			app.restartSuspendTimer();
 			app.resumeAppLoader();
 			
@@ -301,89 +303,196 @@ public class LoginActivity extends SettingsMenuActivity
 				UserProfile profile = SessionContext.getProfile();
 				//List list = (List) SessionContext.getProfile().get("BANKS");
 				//List list = (List) profile.get
-				List list = (List) profile.get("BANKS");
+
+//				StringBuilder sb = new StringBuilder();
+				List<Map> sqlParams = new ArrayList<Map>();
+				Map xdata = new HashMap();
+				
+				List<Map> list = (List<Map>) profile.get("BANKS");
 				if (list != null && !list.isEmpty()) {
-					synchronized (MainDB.LOCK) {
-						DBContext ctx = new DBContext("clfc.db");
-						try {
-							ctx.delete("bank", new HashMap(), null);
-						} catch (Throwable t) {
-							t.printStackTrace();
-						} finally {
-							ctx.close();
-						}
-					}
 					
-					int size = list.size();
-					Map params = new HashMap();
-					MapProxy proxy;
-					String objid;
-					for (int i=0; i<size; i++) {
-						proxy = new MapProxy((Map) list.get(i));
-						objid = proxy.getString("objid");
-						
-						params = new HashMap();
-						params.put("name", proxy.getString("name"));
-						synchronized (MainDB.LOCK) {
-							DBContext ctx = new DBContext("clfc.db");
-							try {
-								Map item = ctx.find("SELECT * FROM bank WHERE objid=?", new Object[]{ objid });
-								if (item == null) {
-									params.put("objid", objid);
-									ctx.insert("bank", params);	
-								} else {
-									ctx.update("bank", params, "objid='" + objid + "'");
-								}
-							} catch (Throwable t) {
-								t.printStackTrace();
-							} finally {
-								ctx.close();
+					String sql = "delete from bank;";
+
+					xdata = new HashMap();
+					xdata.put("type", "delete");
+					xdata.put("sql", sql);
+					
+					sqlParams.add( xdata );
+					
+//					synchronized (MainDB.LOCK) {
+//						DBContext ctx = new DBContext("clfc.db");
+//						try {
+//							ctx.delete("bank", new HashMap(), null);
+//						} catch (Throwable t) {
+//							t.printStackTrace();
+//						} finally {
+//							ctx.close();
+//						}
+//					}
+					
+					String objid = null, name = null;
+					for (Map item : list) {
+						if (item.containsKey("objid")) {
+							objid = item.get("objid").toString();
+							
+							name = ""; 
+							if (item.containsKey("name")) {
+								name = item.get("name").toString();
 							}
-						}
+							
+//							sql = "insert or ignore into bank(`objid`,`name`) values ('" + objid + "','" + name + "');";
+							sql = "insert into bank(`objid`,`name`) values ('" + objid + "','" + name + "');";
+							
+							xdata = new HashMap();
+							xdata.put("type", "insert");
+							xdata.put("sql", sql);
+							
+							sqlParams.add( xdata );
+							
+							/*
+							Map m = bankdb.findById( objid );
+							if (m == null || m.isEmpty()) {
+								sql = "insert or ignore into bank(`objid`,`name`) values ('" + objid + "','" + name + "');";
+							} else {
+								sql = "update bank set name='" + name + "' where objid='" + objid + "';";
+							}
+							*/
+							
+//							if (sql != null && !sql.trim().equals("")) {
+//								sb.append( sql );
+//							}
+						} 
 					}
+						
+				
+//					int size = list.size();
+//					Map params = new HashMap();
+//					MapProxy proxy;
+//					String objid;
+//					for (int i=0; i<size; i++) {
+//						proxy = new MapProxy((Map) list.get(i));
+//						objid = proxy.getString("objid");
+//						
+//						params = new HashMap();
+//						params.put("name", proxy.getString("name"));
+//						synchronized (MainDB.LOCK) {
+//							DBContext ctx = new DBContext("clfc.db");
+//							try {
+//								Map item = ctx.find("SELECT * FROM bank WHERE objid=?", new Object[]{ objid });
+//								if (item == null) {
+//									params.put("objid", objid);
+//									ctx.insert("bank", params);	
+//								} else {
+//									ctx.update("bank", params, "objid='" + objid + "'");
+//								}
+//							} catch (Throwable t) {
+//								t.printStackTrace();
+//							} finally {
+//								ctx.close();
+//							}
+//						}
+//					}
 				} 
 				
-				list = (List) profile.get("SEGREGATION");
+				list = (List<Map>) profile.get("SEGREGATION");
 				if (list != null && !list.isEmpty()) {
-					synchronized (MainDB.LOCK) {
-						DBContext ctx = new DBContext("clfc.db");
-						try {
-//							ctx.delete("segregation", new HashMap(), null);
-							ctx.execute("delete from segregation");
-						} catch (Throwable t) {
-							t.printStackTrace();
-						} finally {
-							ctx.close();
+					
+					String sql = "delete from segregation;";
+					
+					xdata = new HashMap();
+					xdata.put("type", "delete");
+					xdata.put("sql", sql);
+					
+					sqlParams.add( xdata );
+					
+//					sb.append(  );
+//					synchronized (MainDB.LOCK) {
+//						DBContext ctx = new DBContext("clfc.db");
+//						try {
+////							ctx.delete("segregation", new HashMap(), null);
+//							ctx.execute("delete from segregation");
+//						} catch (Throwable t) {
+//							t.printStackTrace();
+//						} finally {
+//							ctx.close();
+//						}
+//					}
+					 
+					String objid = null, name = null;
+					for (Map item : list) {
+						if (item.containsKey("objid")) {
+							objid = item.get("objid").toString();
+							
+							name = "";
+							if (item.containsKey("name")) {
+								name = item.get("name").toString();
+							}
+							
+//							sql = "insert or ignore into segregation(`objid`,`name`) values ('" + objid + "','" + name + "');";
+							sql = "insert into segregation(`objid`,`name`) values ('" + objid + "','" + name + "');";
+							
+							xdata = new HashMap();
+							xdata.put("type", "insert");
+							xdata.put("sql", sql);
+							
+							sqlParams.add( xdata );
+							
+							/*
+							Map m = segregation.findById( objid );
+							if (m == null || m.isEmpty()) {
+								sql = "insert or ignore into segregation(`objid`,`name`) values ('" + objid + "','" + name + "');";
+							} else {
+								sql = "update segregation set name='" + name + "' where objid='" + objid + "';";
+							}
+							*/
+							
+//							if (sql != null && !sql.trim().equals("")) {
+//								sb.append( sql );
+//							}
 						}
 					}
 
-					int size = list.size();
-					Map params = new HashMap();
-					MapProxy proxy;
-					String objid = "";
-					for (int i=0; i<size; i++) {
-						proxy = new MapProxy((Map) list.get(i));
-						objid = proxy.getString("objid");
-						
-						params = new HashMap();
-						params.put("name", proxy.getString("name"));
-						synchronized (MainDB.LOCK) {
-							DBContext ctx = new DBContext("clfc.db");
-							try {
-								Map item = ctx.find("SELECT * FROM segregation WHERE objid=?", new Object[]{ objid });
-								if (item == null) {
-									params.put("objid", objid);
-									ctx.insert("segregation", params);	
-								} else {
-									ctx.update("segregation", params, "objid='" + objid + "'");
-								}
-							} catch (Throwable t) {
-								t.printStackTrace();
-							} finally {
-								ctx.close();
-							}
-						}
-					}
+//					int size = list.size();
+//					Map params = new HashMap();
+//					MapProxy proxy;
+//					String objid = "";
+//					for (int i=0; i<size; i++) {
+//						proxy = new MapProxy((Map) list.get(i));
+//						objid = proxy.getString("objid");
+//						
+//						params = new HashMap();
+//						params.put("name", proxy.getString("name"));
+//						synchronized (MainDB.LOCK) {
+//							DBContext ctx = new DBContext("clfc.db");
+//							try {
+//								Map item = ctx.find("SELECT * FROM segregation WHERE objid=?", new Object[]{ objid });
+//								if (item == null) {
+//									params.put("objid", objid);
+//									ctx.insert("segregation", params);	
+//								} else {
+//									ctx.update("segregation", params, "objid='" + objid + "'");
+//								}
+//							} catch (Throwable t) {
+//								t.printStackTrace();
+//							} finally {
+//								ctx.close();
+//							}
+//						}
+//					}
+				}
+				
+				if (sqlParams.size() > 0) {
+					SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+					try {
+						appdb.beginTransaction();
+						ApplicationDBUtil.executeSQL( appdb, sqlParams );
+//						appdb.execSQL( sb.toString() );
+						appdb.setTransactionSuccessful();
+					} catch (Throwable t) {
+						t.printStackTrace();
+					} finally {
+						appdb.endTransaction();
+					} 
 				}
 				
 				AppSettingsImpl settings = (AppSettingsImpl) Platform.getApplication().getAppSettings();
@@ -411,22 +520,24 @@ public class LoginActivity extends SettingsMenuActivity
 				String userid = (prof == null)? "" : prof.getUserId();
 				System.out.println("userid " + userid);
 				
-				DBContext ctx = new DBContext("clfc.db");
-				DBCollectionGroup dbcg = new DBCollectionGroup();
-				dbcg.setDBContext(ctx);
-				dbcg.setCloseable(false);
+//				DBContext ctx = new DBContext("clfc.db");
+//				DBCollectionGroup dbcg = new DBCollectionGroup();
+//				dbcg.setDBContext(ctx);
+//				dbcg.setCloseable(false);
 				
 				String date = ApplicationUtil.formatDate(Platform.getApplication().getServerDate(), "yyyy-MM-dd");
 				
-				String collectorid = SessionContext.getProfile().getUserId();
-				boolean hasBilling = false;
-				try {
-					hasBilling = dbcg.hasCollectionGroupByCollectorAndDate(collectorid, date);
-				} catch (Throwable t) {
-					throw t;
-				} finally {
-					ctx.close();
-				}
+				boolean hasBilling = collectionGroup.hasCollectionGroupByCollectoridAndDate( userid, date );
+				
+//				String collectorid = SessionContext.getProfile().getUserId();
+//				boolean hasBilling = false;
+//				try {
+//					hasBilling = dbcg.hasCollectionGroupByCollectorAndDate(collectorid, date);
+//				} catch (Throwable t) {
+//					throw t;
+//				} finally {
+//					ctx.close();
+//				}
 				
 //				System.out.println("has billing " + hasBilling);
 //				String prefix = ApplicationUtil.getPrefix();
@@ -466,9 +577,9 @@ public class LoginActivity extends SettingsMenuActivity
 				
 				/* Resolve cancelled billing*/
 				
-				if (networkStatus < 3) {
-					resolveCancelledBilling();
-				}
+//				if (networkStatus < 3) {
+//					resolveCancelledBilling();
+//				}
 				
 				
 //					
@@ -528,7 +639,21 @@ public class LoginActivity extends SettingsMenuActivity
 			}
 		}
 		
+		/** removed because there is already a thread resolving cancelled billings
 		private void resolveCancelledBilling() throws Exception {
+			
+			StringBuilder sb = new StringBuilder();
+			List<Map> list = collectionGroup.getAllCollectionBilling();
+			
+			for (Map item : list) {
+				
+				Map result 
+				LoanPostingService service = new LoanPostingService();
+			}
+			
+		}
+		
+		private void xresolveCancelledBilling() throws Exception {
 			SQLTransaction clfcdb = new SQLTransaction("clfc.db");
 			 
 			synchronized (MainDB.LOCK) {
@@ -548,7 +673,7 @@ public class LoginActivity extends SettingsMenuActivity
 			
 		}
 		
-		private void resolveCancelledBillingImpl(SQLTransaction clfcdb) throws Exception {
+		private void xresolveCancelledBillingImpl(SQLTransaction clfcdb) throws Exception {
 			UserProfile prof = SessionContext.getProfile();
 			String collectorid = (prof != null? prof.getUserId() : null);
 			
@@ -575,7 +700,7 @@ public class LoginActivity extends SettingsMenuActivity
 			}
 		}
 		
-		private void removeCancelledBilling(SQLTransaction clfcdb, Map billing) throws Exception {
+		private void xremoveCancelledBilling(SQLTransaction clfcdb, Map billing) throws Exception {
 			String itemid = MapProxy.getString(billing, "objid");
 			removeCancelledBillingImpl(clfcdb, itemid);
 			
@@ -584,7 +709,7 @@ public class LoginActivity extends SettingsMenuActivity
 //			}
 		}
 		
-		private void removeCancelledBillingImpl(SQLTransaction clfcdb, String itemid) throws Exception {
+		private void xremoveCancelledBillingImpl(SQLTransaction clfcdb, String itemid) throws Exception {
 			DBCollectionSheet dbcs = new DBCollectionSheet();
 			dbcs.setDBContext(clfcdb.getContext());
 			dbcs.setCloseable(false);
@@ -614,5 +739,6 @@ public class LoginActivity extends SettingsMenuActivity
 			clfcdb.delete("specialcollection", "objid=?", new Object[]{itemid});
 			clfcdb.delete("collection_group", "objid=?", new Object[]{itemid});
 		}
+		*/
 	}
 }

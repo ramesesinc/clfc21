@@ -20,12 +20,10 @@ import android.widget.TextView;
 
 import com.rameses.clfc.android.ApplicationUtil;
 import com.rameses.clfc.android.ControlActivity;
-import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBSegregation;
+import com.rameses.clfc.android.db.SegregationDB;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.UIDialog;
-import com.rameses.db.android.DBContext;
 import com.rameses.util.MapProxy;
 
 public class CollectionSheetListActivity extends ControlActivity {
@@ -33,6 +31,8 @@ public class CollectionSheetListActivity extends ControlActivity {
 	private ViewPager tab;
 	private ActionBar actionBar;
 	private CollectionSheetListTabPagerAdapter tabAdapter;
+	
+	private SegregationDB segregationdb = new SegregationDB();
 	
 	protected void onCreateProcess(Bundle savedInstanceState) {
 		super.onCreateProcess(savedInstanceState);
@@ -48,21 +48,28 @@ public class CollectionSheetListActivity extends ControlActivity {
 			((TextView) findViewById(R.id.tv_date)).setText("Collection Date: " + ApplicationUtil.formatDate(date, "MMM dd, yyyy"));
 		}
 		
-		List list = new ArrayList();
-		synchronized (MainDB.LOCK) {
-			DBContext ctx = new DBContext("clfc.db");
-			DBSegregation svc = new DBSegregation();
-			svc.setDBContext(ctx);
-
-			try {
-				//collectionsheet = new MapProxy(collectionsheetdb.findCollectionSheet(objid));
-				list = svc.getList();
-			} catch (Throwable t) {
-				t.printStackTrace();
-				UIDialog.showMessage(t, CollectionSheetListActivity.this);
-			}
-			
+		List<Map> list = new ArrayList<Map>();
+		try {
+			list = segregationdb.getList();
+		} catch (Throwable t) {
+			t.printStackTrace();
+			UIDialog.showMessage(t, CollectionSheetListActivity.this);
 		}
+		println("list->" + list);
+//		synchronized (MainDB.LOCK) {
+////			DBContext ctx = new DBContext("clfc.db");
+////			DBSegregation svc = new DBSegregation();
+////			svc.setDBContext(ctx);
+//
+//			try {
+//				//collectionsheet = new MapProxy(collectionsheetdb.findCollectionSheet(objid));
+//				list = svc.getList();
+//			} catch (Throwable t) {
+//				t.printStackTrace();
+//				UIDialog.showMessage(t, CollectionSheetListActivity.this);
+//			}
+//			
+//		}
 		int size = list.size();
 		
 		tabAdapter = new CollectionSheetListTabPagerAdapter(getSupportFragmentManager());

@@ -25,6 +25,7 @@ public final class InvokerProxy
             ClientContext cctx = ClientContext.getCurrentContext(); 
 //            System.out.println("app env " + cctx.getAppEnv());
             ScriptServiceContext ssc = new ScriptServiceContext(cctx.getAppEnv()); 
+//            Log.i("InvokerProxy", "appenv-> " +  cctx.getAppEnv() + " env-> " + cctx.getEnv());
             return ssc.create(name, cctx.getEnv()); 
         } 
     }

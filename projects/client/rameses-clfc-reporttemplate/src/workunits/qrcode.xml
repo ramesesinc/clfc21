@@ -1,0 +1,22 @@
+<workunit>
+    <invokers>
+        <invoker folderid="/home/online" caption="QR Code Report" />
+        
+        <invoker type="formActions" action="close" caption="Close" immediate="true" 
+            visibleWhen="#{mode=='init'}" />
+        <invoker type="formActions" action="previewQRSaved" caption="Preview QR Saved" immediate="true"
+            visibleWhen="#{mode=='init'}" />
+        <invoker type="formActions" action="previewQRGenerated" caption="Preview QR Generated" immediate="true"
+            visibleWhen="#{mode=='init'}" />
+        
+        <invoker type="formActions" action="back" caption="Back" immediate="true"
+            visibleWhen="#{mode=='preview'}" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.reporttemplate.qrcode.GenerateQRController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.reporttemplate.qrcode.GenerateQRPage" />
+        <page template="com.rameses.osiris2.common.ui.ReportPreviewPage" name="preview" />
+    </pages>
+</workunit>

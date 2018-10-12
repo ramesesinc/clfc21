@@ -255,6 +255,7 @@ class MobilePostingService {
 		fieldcollection.update(loan, "fc-loan");
 
 		def detail = ledger_billing.read([objid: params.collectionsheet.detailid], "billing-detail");
+		println 'detail ' + detail;
 		if (detail) {
 			def item = collector_remarks.read(detail);
 			if (!item) {
@@ -277,6 +278,7 @@ class MobilePostingService {
 		}
 
 		def log = trackerSvc.openLogByRefid([refid: detail.objid]);
+		println 'log ' + log;
 		if (log) {
 			log = trackerSvc.openLog( log );
 			log.remarks = params.remarks;
@@ -358,6 +360,8 @@ class MobilePostingService {
 				}
 			}
 		}
+
+		//throw new RuntimeException("stopping update remarks");
 
 		return [response: "success"];
 	}
@@ -827,7 +831,6 @@ class MobilePostingService {
 
 	@ProxyMethod
 	public def remitCollection( params ) {
-		println 'params ' + params;
 		if (!params.sessionid) throw new Exception("Please specify sessionid.");
 
 		def c = capture_payment.findPendingByFieldcollection([objid: params.sessionid]);
@@ -1007,6 +1010,21 @@ class MobilePostingService {
 					remittance.update(detail, "rem-detail-check");
 				}
 			}
+		}
+
+		def xitem = mobile_tracker.read([objid: fc_item.trackerid]);
+		if (xitem) {
+			def map = [
+				trackerid	: fc_item.trackerid,
+				txndate 	: params.txndate,
+				txntype		: 'NORMAL',
+				refid		: params.itemid,
+				reftype		: 'REMIT',
+				lng 		: params.lng,
+				lat 		: params.lat,
+				state 		: 1
+			];
+			trackerSvc.log(map);
 		}
 
 		return [response: "success", state: "REMITTED"];

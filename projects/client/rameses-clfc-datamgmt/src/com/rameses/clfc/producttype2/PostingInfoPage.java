@@ -42,42 +42,47 @@ public class PostingInfoPage extends javax.swing.JPanel {
         jScrollPane2 = new javax.swing.JScrollPane();
         xHtmlView1 = new com.rameses.rcp.control.XHtmlView();
         xButton9 = new com.rameses.rcp.control.XButton();
+        xLabel5 = new com.rameses.rcp.control.XLabel();
+        xFormPanel1 = new com.rameses.rcp.control.XFormPanel();
+        xFormPanel2 = new com.rameses.rcp.control.XFormPanel();
+        xCheckBox1 = new com.rameses.rcp.control.XCheckBox();
+        xButton10 = new com.rameses.rcp.control.XButton();
 
         xLabel4.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
         xLabel4.setText("Header Display Sequence");
 
-        xButton6.setContentAreaFilled(false);
         xButton6.setDisableWhen("#{mode=='read'}");
+        xButton6.setName("generateDefaultPosting"); // NOI18N
+        xButton6.setContentAreaFilled(false);
         xButton6.setImmediate(true);
         xButton6.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        xButton6.setName("generateDefaultPosting"); // NOI18N
         xButton6.setPreferredSize(new java.awt.Dimension(109, 25));
         xButton6.setText("<html><a href=\"x\">[ Generate Default Sequence ]</a></html>");
 
         xButton2.setDisableWhen("#{mode=='read'}");
-        xButton2.setImmediate(true);
         xButton2.setName("addHeader"); // NOI18N
+        xButton2.setImmediate(true);
         xButton2.setPreferredSize(new java.awt.Dimension(40, 23));
         xButton2.setText("+");
 
         xButton3.setDepends(new String[] {"selectedHeader"});
         xButton3.setDisableWhen("#{mode=='read'||selectedHeader==null}");
-        xButton3.setImmediate(true);
         xButton3.setName("removeHeader"); // NOI18N
+        xButton3.setImmediate(true);
         xButton3.setPreferredSize(new java.awt.Dimension(40, 23));
         xButton3.setText("-");
 
         xButton7.setDepends(new String[] {"selectedHeader"});
         xButton7.setDisableWhen("#{mode=='read'||selectedHeader?.isfirst==true}");
-        xButton7.setImmediate(true);
         xButton7.setName("moveUpHeader"); // NOI18N
+        xButton7.setImmediate(true);
         xButton7.setPreferredSize(new java.awt.Dimension(70, 23));
         xButton7.setText("Up");
 
         xButton8.setDepends(new String[] {"selectedHeader"});
         xButton8.setDisableWhen("#{mode=='read'||selectedHeader?.islast==true}");
-        xButton8.setImmediate(true);
         xButton8.setName("moveDownHeader"); // NOI18N
+        xButton8.setImmediate(true);
         xButton8.setPreferredSize(new java.awt.Dimension(70, 23));
         xButton8.setText("Down");
         xButton8.addActionListener(new java.awt.event.ActionListener() {
@@ -87,9 +92,9 @@ public class PostingInfoPage extends javax.swing.JPanel {
         });
 
         xList1.setExpression("${item.seqno} ${item.title}");
-        xList1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xList1.setHandler("headersHandler");
         xList1.setName("selectedHeader"); // NOI18N
+        xList1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         jScrollPane1.setViewportView(xList1);
 
         xLabel3.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
@@ -98,60 +103,94 @@ public class PostingInfoPage extends javax.swing.JPanel {
         xHtmlView1.setName("postingHtml"); // NOI18N
         jScrollPane2.setViewportView(xHtmlView1);
 
-        xButton9.setContentAreaFilled(false);
         xButton9.setDisableWhen("#{mode=='read'}");
+        xButton9.setName("addCondition"); // NOI18N
+        xButton9.setContentAreaFilled(false);
         xButton9.setImmediate(true);
         xButton9.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        xButton9.setName("addCondition"); // NOI18N
         xButton9.setPreferredSize(new java.awt.Dimension(109, 25));
         xButton9.setText("<html><a href=\"x\">[ Add ]</a></html>");
+
+        xLabel5.setExpression("Option(s)");
+        xLabel5.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+
+        xFormPanel1.setCellspacing(0);
+        xFormPanel1.setShowCaption(false);
+
+        xFormPanel2.setOrientation(com.rameses.rcp.constant.UIConstants.HORIZONTAL);
+        xFormPanel2.setPadding(new java.awt.Insets(0, 0, 0, 0));
+        xFormPanel2.setShowCaption(false);
+
+        xCheckBox1.setName("entity.postinginfo.advanceposting.allow"); // NOI18N
+        xCheckBox1.setShowCaption(false);
+        xCheckBox1.setText("Allow advance posting?");
+        xFormPanel2.add(xCheckBox1);
+
+        xButton10.setDepends(new String[] {"entity.postinginfo.advanceposting.allow"});
+        xButton10.setDisableWhen("#{mode=='read'||entity.postinginfo.advanceposting.allow==false||entity.postinginfo.advanceposting.allow==null}");
+        xButton10.setName("editAllowAdvanceCondition"); // NOI18N
+        xButton10.setContentAreaFilled(false);
+        xButton10.setImmediate(true);
+        xButton10.setMargin(new java.awt.Insets(2, 2, 2, 2));
+        xButton10.setPreferredSize(new java.awt.Dimension(90, 25));
+        xButton10.setShowCaption(false);
+        xButton10.setText("<html><a href=\"x\">[ Condition ]</a></html>");
+        xFormPanel2.add(xButton10);
+
+        xFormPanel1.add(xFormPanel2);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jScrollPane2)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(xLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(xButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 164, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(xLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(xButton9, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(0, 77, Short.MAX_VALUE))
             .addComponent(jScrollPane1)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 170, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(xButton7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(xButton8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(xLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(xButton9, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(xLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(xLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(xButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 164, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(135, Short.MAX_VALUE))
+            .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
+                .addComponent(xLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(xFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(1, 1, 1)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(xButton6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(xLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(xLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(xButton6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(xButton7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(xButton8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(xLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(xButton9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(2, 2, 2)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 137, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 201, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -162,15 +201,20 @@ public class PostingInfoPage extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private com.rameses.rcp.control.XButton xButton10;
     private com.rameses.rcp.control.XButton xButton2;
     private com.rameses.rcp.control.XButton xButton3;
     private com.rameses.rcp.control.XButton xButton6;
     private com.rameses.rcp.control.XButton xButton7;
     private com.rameses.rcp.control.XButton xButton8;
     private com.rameses.rcp.control.XButton xButton9;
+    private com.rameses.rcp.control.XCheckBox xCheckBox1;
+    private com.rameses.rcp.control.XFormPanel xFormPanel1;
+    private com.rameses.rcp.control.XFormPanel xFormPanel2;
     private com.rameses.rcp.control.XHtmlView xHtmlView1;
     private com.rameses.rcp.control.XLabel xLabel3;
     private com.rameses.rcp.control.XLabel xLabel4;
+    private com.rameses.rcp.control.XLabel xLabel5;
     private com.rameses.rcp.control.XList xList1;
     // End of variables declaration//GEN-END:variables
 }

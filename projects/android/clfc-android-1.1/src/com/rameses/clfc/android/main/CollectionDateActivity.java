@@ -1,6 +1,5 @@
 package com.rameses.clfc.android.main;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -17,14 +16,15 @@ import android.widget.TextView;
 
 import com.rameses.clfc.android.ControlActivity;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCollectionGroup;
-import com.rameses.db.android.DBContext;
+import com.rameses.clfc.android.db.CollectionGroupDB;
 import com.rameses.util.MapProxy;
 
 public class CollectionDateActivity extends ControlActivity 
 {
 	private LayoutInflater inflater;
 	private ListView lv_dates;
+	
+	private CollectionGroupDB collectiongroupdb = new CollectionGroupDB();
 
 	protected void onCreateProcess(Bundle savedInstanceState) {
 		setTitle("CLFC Collection - ILS");
@@ -51,24 +51,34 @@ public class CollectionDateActivity extends ControlActivity
 		super.onStartProcess();
 		
 		getHandler().post(new Runnable() {
+			
 			public void run() {
-				DBContext clfcdb = new DBContext("clfc.db");
-				DBCollectionGroup dbcg = new DBCollectionGroup();
-				dbcg.setDBContext(clfcdb);
-				dbcg.setCloseable(false);
-				
-				List list = new ArrayList();
 				try {
-					list = dbcg.getCollectionDates();
-					println("list " +  list);
-					populateListView(list);
+					List<Map> list = collectiongroupdb.getCollectionDates();
+					populateListView( list );
 				} catch (Throwable t) {
 					t.printStackTrace();
-				} finally {
-					clfcdb.close();
 				}
-				
 			}
+						
+//			public void xrun() {
+//				DBContext clfcdb = new DBContext("clfc.db");
+//				DBCollectionGroup dbcg = new DBCollectionGroup();
+//				dbcg.setDBContext(clfcdb);
+//				dbcg.setCloseable(false);
+//				
+//				List list = new ArrayList();
+//				try {
+//					list = dbcg.getCollectionDates();
+//					println("list " +  list);
+//					populateListView(list);
+//				} catch (Throwable t) {
+//					t.printStackTrace();
+//				} finally {
+//					clfcdb.close();
+//				}
+//				
+//			}
 		});
 		lv_dates.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			@Override

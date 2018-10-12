@@ -219,6 +219,7 @@ class LoanInfoController {
     def addField() {
         
         def handler = { o->
+            
             def i = entity.loaninfo.fields?.find{ it.fact.objid==o.fact.objid && it.field.objid==o.field.objid }
             if (i) throw new RuntimeException("Field has already been selected.");
             

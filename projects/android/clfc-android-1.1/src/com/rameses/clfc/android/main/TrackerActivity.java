@@ -9,18 +9,21 @@ import android.widget.TextView;
 
 import com.rameses.clfc.android.ControlActivity;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBLocationTracker;
+import com.rameses.clfc.android.db.LocationTrackerDB;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIAction;
 import com.rameses.client.android.UIDialog;
+import com.rameses.client.interfaces.UserProfile;
 import com.rameses.db.android.DBContext;
 
 public class TrackerActivity extends ControlActivity {
 	private LayoutInflater inflater;
 	private RelativeLayout rl_container;
 	private ProgressDialog progressDialog;
-	private DBLocationTracker trackerSvc = new DBLocationTracker();
+//	private DBLocationTracker trackerSvc = new DBLocationTracker();
 	private TextView tv_tracker;
+	
+	private LocationTrackerDB locationtrackerdb = new LocationTrackerDB();
 	
 	protected void onCreateProcess(Bundle savedInstanceState) {
 		setTitle("CLFC Collection - ILS");
@@ -53,6 +56,25 @@ public class TrackerActivity extends ControlActivity {
 	private void getUnpostedTracker() {
 		progressDialog.setMessage("Processing..");
 		if (!progressDialog.isShowing()) progressDialog.show();
+		
+		UserProfile profile = SessionContext.getProfile();
+		String collectorid = (profile != null? profile.getUserId() : "");
+		
+		int noOfTracker = 0;
+		try {
+			noOfTracker = locationtrackerdb.getNoOfTrackersByCollectorid( collectorid );
+		} catch (Throwable t) {
+			t.printStackTrace();
+			UIDialog.showMessage(t, TrackerActivity.this);
+		} finally {
+			if (progressDialog.isShowing()) progressDialog.dismiss();
+		}
+		tv_tracker.setText("No. of unposted tracker: " + noOfTracker);
+	}
+	/*
+	private void xgetUnpostedTracker() {
+		progressDialog.setMessage("Processing..");
+		if (!progressDialog.isShowing()) progressDialog.show();
 //		synchronized (TrackerDB.LOCK) {
 			DBContext ctx = new DBContext("clfctracker.db");
 			trackerSvc.setDBContext(ctx);
@@ -68,4 +90,5 @@ public class TrackerActivity extends ControlActivity {
 			tv_tracker.setText("No. of unposted tracker: " + noOfTracker);
 //		}
 	}
+	*/
 }

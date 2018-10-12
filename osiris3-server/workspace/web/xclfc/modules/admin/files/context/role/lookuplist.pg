@@ -1,7 +1,0 @@
-{
-	title:		'Search Role',
-	context:	'userrolelookup',
-	fragment: 	true,
-	hidden: 	true,
-	options:    {width:500, height:400}
-}

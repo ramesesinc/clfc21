@@ -517,12 +517,18 @@ class LoanFieldCollectionService
 		cb = collection_cb.read([objid: params.objid]);
 		cb.items = collection_cb.getDetails(cb);
 
+		if (sb) {
+			cb.sendbackremarks = sb.remarks;
+			cb.allowcbssubmitforverification = true;
+		}
 
+		/*
 		if (cb.state == 'SEND_BACK') {
 			def s = collection_cb.findCurrentSendback(cb);
 			if (s) cb.sendbackremarks = s.remarks;
 			cb.allowcbssubmitforverification = true;
 		}
+		*/
 
 
 		return cb;

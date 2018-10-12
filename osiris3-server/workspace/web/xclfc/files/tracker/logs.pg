@@ -1,7 +1,0 @@
-{
-	title    : "Mobile Tracker Logs",
-	context  : 'trackerlog', 
-	fragment : true, 
-	hidden   : true, 
- 	options	 : {width:800}
-}

@@ -1,16 +1,34 @@
 "entity.*" [mode!='read'] {
     enabled: true;
 }
-"entity.(isdeductabletoamount|allowoffset|isexempted|recalculateifnotenough)" [mode != 'read' && entity.datatype == 'decimal'] {
+"entity.(isdeductabletoamount|allowoffset|isexempted|recalculateifnotenough|postwithlacking)" [mode != 'read' && entity.datatype == 'decimal' && entity.header != null] {
     enabled: true;
 }
-"entity.(isdeductabletoamount|allowoffset|isexempted|recalculateifnotenough)" [mode == 'read' || entity.datatype != 'decimal'] {
+"entity.(isdeductabletoamount|allowoffset|isexempted|recalculateifnotenough|postwithlacking|applylacking)" [mode == 'read' || entity.datatype != 'decimal' || entity.header == null] {
     enabled: false;
 }
-"entity.isincrementafterposting" [mode != 'read' && entity.datatype == 'date'] {
+"entity.isincrementafterposting" [mode != 'read' && entity.datatype == 'date' && entity.header != null] {
     enabled: true;
 }
-"entity.isincrementafterposting" [mode == 'read' || entity.datatype != 'date'] {
+"entity.isincrementafterposting" [mode == 'read' || entity.datatype != 'date' || entity.header == null] {
+    enabled: false;
+}
+"entity.(overridevalue|allowrepeat)" [entity.header != null] {
+    enabled: true;
+}
+"entity.(overridevalue|allowrepeat)" [entity.header == null] {
+    enabled: false;
+}
+"entity.applylacking" [mode!='read' && entity.postwithlacking==true] {
+    enabled: true;
+}
+"entity.applylacking" [mode=='read' || entity.postwithlacking == null || entity.postwithlacking==false] {
+    enabled: false;
+}
+"entity.deductabletoamountusevar" [mode!='read' && entity.isdeductabletoamount==true] {
+    enabled: true;
+}
+"entity.deductabletoamountusevar" [mode=='read' || entity.isdeductabletoamount==null || entity.isdeductabletoamount==false] {
     enabled: false;
 }
 "entity.*" [mode=='read'] {
@@ -20,3 +38,4 @@
     enabled: true;
     readonly: true;
 }
+

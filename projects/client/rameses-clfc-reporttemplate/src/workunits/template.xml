@@ -1,9 +1,11 @@
 <workunits>
     <invokers>
+        <!--
         <invoker type="template:create" caption="Template" action="init"/>
         <invoker type="template:open" caption="Template" action="open"/>
         <invoker type="formActions" caption="Close" action="_close" immediate="true"/>
         <invoker type="formActions" caption="Save" action="save" visibleWhen="#{mode == 'create'}"/>
+        -->
     </invokers>
     
     <code>

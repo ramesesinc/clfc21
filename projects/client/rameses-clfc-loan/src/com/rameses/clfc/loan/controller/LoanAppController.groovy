@@ -107,11 +107,13 @@ public class LoanAppController {
                 if (type) {      
                     //println 'subtform handler type ' + type;
                     //println 'subform handler name ' + selectedMenu?.name;
-                    def invtype = 'loanapp-' + selectedMenu.name + type + ':open';
+                    //def invtype = 'loanapp-' + selectedMenu.name + type + ':open';
+                    def invtype = 'loanapp-' + selectedMenu.name + ':open';
                     op = InvokerUtil.lookupOpener(invtype, [ 
                         caller      : this, 
                         loanapp     : entity, 
-                        selectedMenu: selectedMenu
+                        selectedMenu: selectedMenu,
+                        menuitem    : selectedMenu
                     ]); 
                     selectedMenu.opener = op;
                 }

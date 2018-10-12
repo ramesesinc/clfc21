@@ -3,22 +3,31 @@ package com.rameses.clfc.android;
 import java.io.File;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
 import android.content.Intent;
 import android.os.Environment;
-import android.os.Handler;
-import android.util.Log;
 
-import com.rameses.clfc.android.db.DBCapturePayment;
-import com.rameses.clfc.android.db.DBLocationTracker;
-import com.rameses.clfc.android.db.DBMobileStatusTracker;
-import com.rameses.clfc.android.db.DBPaymentService;
-import com.rameses.clfc.android.db.DBRemarksService;
-import com.rameses.clfc.android.db.DBSpecialCollectionPendingService;
-import com.rameses.clfc.android.db.DBVoidService;
+import com.rameses.clfc.android.db.CapturePaymentDB;
+import com.rameses.clfc.android.db.LocationTrackerDB;
+import com.rameses.clfc.android.db.MobileStatusTrackerDB;
+import com.rameses.clfc.android.db.PaymentServiceDB;
+import com.rameses.clfc.android.db.RemarksServiceDB;
+import com.rameses.clfc.android.db.SpecialCollectionPendingServiceDB;
+import com.rameses.clfc.android.db.VoidServiceDB;
+import com.rameses.clfc.android.receiver.services.CancelledBillingCheckerService;
+import com.rameses.clfc.android.receiver.services.CaptureBroadcastService;
+import com.rameses.clfc.android.receiver.services.ConnectivityCheckerService;
+import com.rameses.clfc.android.receiver.services.LocationTrackerService;
+import com.rameses.clfc.android.receiver.services.MobileStatusTrackerService;
+import com.rameses.clfc.android.receiver.services.PaymentBroadcastService;
+import com.rameses.clfc.android.receiver.services.RemarksBroadcastService;
+import com.rameses.clfc.android.receiver.services.RemarksRemovedBroadcastService;
+import com.rameses.clfc.android.receiver.services.RunningTimeService;
+import com.rameses.clfc.android.receiver.services.VoidRequestBroadcastService;
 import com.rameses.client.android.AbstractActionBarActivity;
 import com.rameses.client.android.AppContext;
 import com.rameses.client.android.AppSettings;
@@ -28,49 +37,73 @@ import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIApplication;
 import com.rameses.client.services.SessionProviderImpl;
-import com.rameses.db.android.DBContext;
 import com.rameses.util.Base64Cipher;
 
 public class ApplicationImpl extends UIApplication 
 {
 	public final static Object LOCK = new Object();
-	private MainDB maindb;
-	private TrackerDB trackerdb;
-	private PaymentDB paymentdb;
-	private VoidRequestDB requestdb;
-	private RemarksDB remarksdb;
-	private RemarksRemovedDB remarksremoveddb;
-	private CaptureDB capturedb;
-	private SpecialCollectionDB specialcollectiondb;
+//	private MainDB maindb;
+//	private TrackerDB trackerdb;
+//	private StatusDB statusdb;
+//	private PaymentDB paymentdb;
+//	private VoidRequestDB requestdb;
+//	private RemarksDB remarksdb;
+//	private RemarksRemovedDB remarksremoveddb;
+//	private CaptureDB capturedb;
+//	private SpecialCollectionDB specialcollectiondb;
+	
 	private int networkStatus = 3;
 	private AppSettingsImpl appSettings; 
 	
-	private CancelledBillingCheckerService cancelledBillingCheckerSvc;
-
-	public VoidRequestService voidRequestSvc;
-	public PaymentService paymentSvc;
-	public PaymentDateResolverService paymentDateResolverSvc;
-	public RemarksService remarksSvc;
-	public RemarksDateResolverService remarksDateResolverSvc;
-	public RemarksRemovedService remarksRemovedSvc;
-	public BroadcastLocationService broadcastLocationSvc;
-	public LocationTrackerService locationTrackerSvc;
-	public LocationTrackerDateResolverService locationTrackerDateResolverSvc;
-	public BroadcastMobileStatusService broadcastMobileStatusSvc;
-	public MobileStatusTrackerService mobileStatusTrackerSvc;
-	public MobileStatusTrackerDateResolverService mobileStatusTrackerDateResolverSvc;
-	public CaptureService captureSvc;
-	public CaptureDateResolverService captureDateResolverSvc;
-	public SpecialCollectionService specialColSvc;
-	private NetworkCheckerService networkCheckerSvc;
+	private LocationTrackerService locationTrackerInstance;	
+	private MobileStatusTrackerService mobileStatusTrackerInstance;	
+	private ConnectivityCheckerService connectivityCheckerInstance;
+	private CancelledBillingCheckerService billingCheckerInstance;
+	private PaymentBroadcastService paymentBroadcastInstance;
+	private RemarksBroadcastService remarksBroadcastInstance;
+	private CaptureBroadcastService captureBroadcastInstance;
+	private RemarksRemovedBroadcastService remarksRemovedBroadcastInstance;
+	private VoidRequestBroadcastService voidRequestBroadcastInstance;
 	
+	private RunningTimeService runningTimeInstance;
+	
+//	private CancelledBillingCheckerService cancelledBillingCheckerSvc;
+
+//	public VoidRequestService voidRequestSvc;
+//	public PaymentService paymentSvc;
+//	public PaymentDateResolverService paymentDateResolverSvc;
+//	public RemarksService remarksSvc;
+//	public RemarksDateResolverService remarksDateResolverSvc;
+//	public RemarksRemovedService remarksRemovedSvc;
+//	public BroadcastLocationService broadcastLocationSvc;
+//	public LocationTrackerService ;
+//	public LocationTrackerDateResolverService locationTrackerDateResolverSvc;
+//	public BroadcastMobileStatusService broadcastMobileStatusSvc;
+//	public MobileStatusTrackerService mobileStatusTrackerSvc;
+//	public MobileStatusTrackerDateResolverService mobileStatusTrackerDateResolverSvc;
+//	public CaptureService captureSvc;
+//	public CaptureDateResolverService captureDateResolverSvc;
+//	public SpecialCollectionService specialColSvc;
+//	private NetworkCheckerService networkCheckerSvc;
+	
+	/*
 	private DBLocationTracker tracker = new DBLocationTracker();
-	private DBPaymentService payment = new DBPaymentService();
+	private DBPaymentService payment = new DBPaymentService();e
 	private DBRemarksService remarks = new DBRemarksService();
 	private DBCapturePayment capture = new DBCapturePayment(); 
 	private DBMobileStatusTracker status = new DBMobileStatusTracker();
 	private DBVoidService voidsvc = new DBVoidService();
 	private DBSpecialCollectionPendingService scPendingSvc = new DBSpecialCollectionPendingService();
+	*/
+	
+	private LocationTrackerDB locationtrackerdb = new LocationTrackerDB();
+	private PaymentServiceDB paymentservicedb = new PaymentServiceDB();
+	private RemarksServiceDB remarksservicedb = new RemarksServiceDB();
+	private CapturePaymentDB capturepaymentdb = new CapturePaymentDB();
+	private MobileStatusTrackerDB mobilestatustrackerdb = new MobileStatusTrackerDB();
+	private VoidServiceDB voidservicedb = new VoidServiceDB();
+	private SpecialCollectionPendingServiceDB specialcollectionpendingservicedb = new SpecialCollectionPendingServiceDB();
+	
 
 	public File getLogFile() {
 		// TODO Auto-generated method stub
@@ -97,98 +130,104 @@ public class ApplicationImpl extends UIApplication
 //		Platform.setDebug(true);
 				
 		
-		NetworkLocationProvider.setEnabled(true);
+		NetworkLocationProvider.setEnabled( true );
 		System.out.println("NetworkLocationProvider enabled");
 //		NetworkLocationProvider.setDebug(true);
-		try {
-//			System.out.println("passing 1");
-			maindb = new MainDB(this, "clfc.db", 1);
-			maindb.load();
-//			System.out.println("passing 2");
-			trackerdb = new TrackerDB(this, "clfctracker.db", 1);
-			trackerdb.load();
-//			System.out.println("passing 3");
-			paymentdb = new PaymentDB(this, "clfcpayment.db", 1);
-			paymentdb.load();
-//			System.out.println("passing 4");
-			requestdb = new VoidRequestDB(this, "clfcrequest.db", 1);
-			requestdb.load();
-//			System.out.println("passing 5");
-			remarksdb = new RemarksDB(this, "clfcremarks.db", 1);
-			remarksdb.load();
-//			System.out.println("passing 6");
-			remarksremoveddb = new RemarksRemovedDB(this, "clfcremarksremoved.db", 1);
-			remarksremoveddb.load();
-			
-			capturedb = new CaptureDB(this, "clfccapture.db", 1);
-			capturedb.load();
-			
-			specialcollectiondb = new SpecialCollectionDB(this, "clfcspecialcollection.db", 1);
-			specialcollectiondb.load();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 		
-		networkCheckerSvc = new NetworkCheckerService(this);
-		locationTrackerSvc = new LocationTrackerService(this);
-		locationTrackerDateResolverSvc = new LocationTrackerDateResolverService(this);
-		mobileStatusTrackerSvc = new MobileStatusTrackerService(this);
-		mobileStatusTrackerDateResolverSvc = new MobileStatusTrackerDateResolverService(this); 
-		voidRequestSvc = new VoidRequestService(this);
-		paymentSvc = new PaymentService(this);
-		paymentDateResolverSvc = new PaymentDateResolverService(this);
-		remarksSvc = new RemarksService(this);
-		remarksDateResolverSvc = new RemarksDateResolverService(this);
-		remarksRemovedSvc = new RemarksRemovedService(this);
-		broadcastLocationSvc = new BroadcastLocationService(this);
-		broadcastMobileStatusSvc = new BroadcastMobileStatusService(this);
-		cancelledBillingCheckerSvc= new CancelledBillingCheckerService(this);
-		captureSvc = new CaptureService(this);
-		captureDateResolverSvc = new CaptureDateResolverService(this);
-		specialColSvc = new SpecialCollectionService (this);
+//		try {
+////			System.out.println("passing 1");
+////			maindb = new MainDB(this, "clfc.db", 1);
+////			maindb.load();
+////			System.out.println("passing 2");
+////			trackerdb = new TrackerDB(this, "clfctracker.db", 1);
+////			trackerdb.load();
+//			
+////			statusdb = new StatusDB( this, "clfcstatus.db", 1);
+////			statusdb.load();
+//			
+////			System.out.println("passing 3");
+////			paymentdb = new PaymentDB(this, "clfcpayment.db", 1);
+////			paymentdb.load();
+////			System.out.println("passing 4");
+////			requestdb = new VoidRequestDB(this, "clfcrequest.db", 1);
+////			requestdb.load();
+////			System.out.println("passing 5");
+////			remarksdb = new RemarksDB(this, "clfcremarks.db", 1);
+////			remarksdb.load();
+////			System.out.println("passing 6");
+////			remarksremoveddb = new RemarksRemovedDB(this, "clfcremarksremoved.db", 1);
+////			remarksremoveddb.load();
+//			
+////			capturedb = new CaptureDB(this, "clfccapture.db", 1);
+////			capturedb.load();
+//			
+////			specialcollectiondb = new SpecialCollectionDB(this, "clfcspecialcollection.db", 1);
+////			specialcollectiondb.load();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+		
+//		networkCheckerSvc = new NetworkCheckerService(this);
+//		 = new LocationTrackerService(this);
+//		locationTrackerDateResolverSvc = new LocationTrackerDateResolverService(this);
+//		mobileStatusTrackerSvc = new MobileStatusTrackerService(this);
+//		mobileStatusTrackerDateResolverSvc = new MobileStatusTrackerDateResolverService(this); 
+//		voidRequestSvc = new VoidRequestService(this);
+//		paymentSvc = new PaymentBroadcastService(this);
+//		paymentDateResolverSvc = new PaymentDateResolverService(this);
+//		remarksSvc = new RemarksService(this);
+//		remarksDateResolverSvc = new RemarksDateResolverService(this);
+//		remarksRemovedSvc = new RemarksRemovedService(this);
+//		broadcastLocationSvc = new BroadcastLocationService(this);
+//		broadcastMobileStatusSvc = new BroadcastMobileStatusService(this);
+//		cancelledBillingCheckerSvc= new CancelledBillingCheckerService(this);
+//		captureSvc = new CaptureService(this);
+//		captureDateResolverSvc = new CaptureDateResolverService(this);
+//		specialColSvc = new SpecialCollectionService (this);
 
-		new Handler().postDelayed(new Runnable() {
-			public void run() {
-				networkCheckerSvc.start();
-				locationTrackerSvc.start();
-				mobileStatusTrackerSvc.start();
-				cancelledBillingCheckerSvc.start();
-			}
-		}, 1);
+//		new Handler().postDelayed(new Runnable() {
+//			public void run() {
+////				networkCheckerSvc.start();
+////				.start();
+////				mobileStatusTrackerSvc.start();
+////				cancelledBillingCheckerSvc.start();
+//			}
+//		}, 1);
 		
-		DBContext ctx = new DBContext("clfctracker.db");
-		tracker.setDBContext(ctx);
-		tracker.setCloseable(false);
-		try {
-			boolean flag = false;
-			synchronized (TrackerDB.LOCK) {
-				flag = tracker.hasTrackerForDateResolving();
-			}
-			if (flag) {
-				new Handler().postDelayed(new Runnable() {
-					public void run() {
-						locationTrackerDateResolverSvc.start();
-					}
-				}, 1);
-			}
-
-			synchronized (TrackerDB.LOCK) {
-				flag = tracker.hasLocationTrackers();
-			}
-			if (flag) {
-				new Handler().postDelayed(new Runnable() {
-					public void run() {
-						broadcastLocationSvc.start();
-					}
-				}, 1);
-			}
-			
-		} catch (Throwable t) {
-			t.printStackTrace();
-		} finally {
-			ctx.close();
-		}
+//		DBContext ctx = new DBContext("clfctracker.db");
+//		tracker.setDBContext(ctx);
+//		tracker.setCloseable(false);
+//		try {
+//			boolean flag = false;
+//			synchronized (TrackerDB.LOCK) {
+//				flag = tracker.hasTrackerForDateResolving();
+//			}
+//			if (flag) {
+//				new Handler().postDelayed(new Runnable() {
+//					public void run() {
+//						locationTrackerDateResolverSvc.start();
+//					}
+//				}, 1);
+//			}
+//
+//			synchronized (TrackerDB.LOCK) {
+//				flag = tracker.hasLocationTrackers();
+//			}
+//			if (flag) {
+//				new Handler().postDelayed(new Runnable() {
+//					public void run() {
+//						broadcastLocationSvc.start();
+//					}
+//				}, 1);
+//			}
+//			
+//		} catch (Throwable t) {
+//			t.printStackTrace();
+//		} finally {
+//			ctx.close();
+//		}
 		
+		/*
 		ctx = new DBContext("clfctracker.db");
 		status.setDBContext(ctx);
 		status.setCloseable(false);
@@ -212,7 +251,7 @@ public class ApplicationImpl extends UIApplication
 			if (flag) {
 				new Handler().postDelayed(new Runnable() {
 					public void run() {
-						broadcastLocationSvc.start();
+						broadcastMobileStatusSvc.start();
 					}
 				}, 1);
 			}
@@ -222,7 +261,33 @@ public class ApplicationImpl extends UIApplication
 		} finally {
 			ctx.close();
 		}
-		
+		*/
+
+		/*
+		try {
+			boolean flag = paymentservicedb.hasPaymentForDateResolving();
+			if (flag == true) {
+				new Handler().postDelayed(new Runnable() {
+					public void run() {
+						paymentDateResolverSvc.start();
+					}
+				}, 1);
+			}
+
+			flag = paymentservicedb.hasUnpostedPayments();
+			if (flag == true) {
+				new Handler().postDelayed(new Runnable() {
+					public void run() {
+						paymentSvc.start();
+					} 
+				}, 1);
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		*/
+			
+		/*
 		ctx = new DBContext("clfcpayment.db");
 		payment.setDBContext(ctx);
 		payment.setCloseable(false);
@@ -256,7 +321,33 @@ public class ApplicationImpl extends UIApplication
 		} finally {
 			ctx.close();
 		}
+		*/
+		/*
+		try {
+			boolean flag = remarksservicedb.hasRemarksForDateResolving();
+			if (flag == true) {
+				new Handler().postDelayed(new Runnable() {
+					public void run() {
+						remarksDateResolverSvc.start();
+					}
+				}, 1);  
+			}
+			
+			flag = remarksservicedb.hasUnpostedRemarks();
+			if (flag == true) {
+				new Handler().postDelayed(new Runnable() {
+					public void run() {
+						remarksSvc.start();
+					}
+				}, 1);
+			}
+
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		*/
 		
+		/*
 		ctx = new DBContext("clfcremarks.db");
 		remarks.setDBContext(ctx);
 		remarks.setCloseable(false);
@@ -289,7 +380,23 @@ public class ApplicationImpl extends UIApplication
 		} finally {
 			ctx.close();
 		}
+		*/
+		/*
+		try {
+			boolean flag = voidservicedb.hasPendingVoidRequest();
+			if (flag == true) {
+				new Handler().postDelayed(new Runnable() {
+					public void run() {
+						voidRequestSvc.start();
+					}
+				}, 1);
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		*/
 		
+		/*
 		ctx = new DBContext("clfcrequest.db");
 		voidsvc.setDBContext(ctx);
 		voidsvc.setCloseable(false);
@@ -311,6 +418,7 @@ public class ApplicationImpl extends UIApplication
 		} finally {
 			ctx.close();
 		}
+		*/
 		
 		/***************************
 		 * 
@@ -318,6 +426,31 @@ public class ApplicationImpl extends UIApplication
 		 * 
 		 */
 		
+		/*
+		try {
+			boolean flag = capturepaymentdb.hasPaymentForDateResolving();			
+			if (flag == true) {
+				new Handler().postDelayed(new Runnable() {
+					public void run() {
+						captureDateResolverSvc.start();
+					}
+				}, 1);
+			}
+			
+			flag = capturepaymentdb.hasUnpostedPayments();			
+			if (flag == true) {
+				new Handler().postDelayed(new Runnable() {
+					public void run() {
+						captureSvc.start();
+					}
+				}, 1);
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		*/
+		
+		/*
 		ctx = new DBContext("clfccapture.db");
 		capture.setDBContext(ctx);
 		capture.setCloseable(false);
@@ -355,7 +488,23 @@ public class ApplicationImpl extends UIApplication
 		} finally {
 			ctx.close();
 		}
-		 
+		*/
+		/* 
+		try {
+			boolean flag = specialcollectionpendingservicedb.hasUnpostedRequest();
+			if (flag == true) {
+				new Handler().postDelayed(new Runnable() {
+					public void run() {
+						specialColSvc.start();
+					}
+				}, 1);
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		*/
+		
+		/*
 		ctx = new DBContext("clfcspecialcollection.db");
 		scPendingSvc.setDBContext(ctx);
 		scPendingSvc.setCloseable(false);
@@ -376,6 +525,7 @@ public class ApplicationImpl extends UIApplication
 		} finally { 
 			ctx.close();
 		}
+		*/
 		
 		
 //		AppSettingsImpl sets = (AppSettingsImpl) Platform.getApplication().getAppSettings();
@@ -390,83 +540,207 @@ public class ApplicationImpl extends UIApplication
 		return new AppSettingsImpl(); 
 	}
 	
-	protected boolean getIsConnected() {
-		return isConnected();
+	public LocationTrackerService getLocationTrackerInstance() {
+		if (locationTrackerInstance == null) {
+			locationTrackerInstance = new LocationTrackerService();
+		}
+		return locationTrackerInstance;
 	}
 	
-	protected boolean isConnected() {
-		boolean isConnected = true;
-//		int networkStatus = ApplicationUtil.getNetworkStatus();
-		if (networkStatus == 3) isConnected = false;
-		return isConnected;
+	public MobileStatusTrackerService getMobileStatusTrackerInstance() {
+		if (mobileStatusTrackerInstance == null) {
+			mobileStatusTrackerInstance = new MobileStatusTrackerService();
+		}
+		return mobileStatusTrackerInstance;
 	}
-	 
-	protected void afterSetIsDateSync(boolean isDateSync) {
-		if (isDateSync == true) { 
-			AppSettings settings = getAppSettings();
-			Map map = settings.getAll();
-			
-			long timedifference = 0L;
-			if (map.containsKey("timedifference")) {
-				timedifference = settings.getLong("timedifference");
-			}
-			ApplicationUtil.resolvePaymentTimedifference(timedifference);
-			synchronized (LOCK) {
-
-				AbstractActionBarActivity aa = Platform.getCurrentActionBarActivity();
-				if (aa == null) aa = Platform.getActionBarMainActivity();
-				
-				aa.getHandler().postDelayed(new Runnable() {
-					public void run() {
-						boolean flag = paymentDateResolverSvc.getServiceStarted();
-						if (flag == true) {
-							paymentDateResolverSvc.restart();
-						} else {
-							paymentDateResolverSvc.start();
-						}
-
-						flag = captureDateResolverSvc.getServiceStarted();
-						if (flag == true) {
-							captureDateResolverSvc.restart();
-						} else {
-							captureDateResolverSvc.start();
-						}
-						
-						flag = locationTrackerDateResolverSvc.getServiceStarted();
-						if (flag == true) {
-							locationTrackerDateResolverSvc.restart();
-						} else {
-							locationTrackerDateResolverSvc.start();
-						}
-						
-						flag = mobileStatusTrackerDateResolverSvc.getServiceStarted();
-						if (flag == true) {
-							mobileStatusTrackerDateResolverSvc.restart();
-						} else {
-							mobileStatusTrackerDateResolverSvc.start();
-						}
-						
-						flag = remarksDateResolverSvc.getServiceStarted();
-						if (flag == true) {
-							remarksDateResolverSvc.restart();
-						} else {
-							remarksDateResolverSvc.start();
-						}
-					}
-				},1);
-				
-				AppRunningTimeUtil instance = AppRunningTimeUtil.getInstance();
-				if (instance.getIsStarted() == true) {
-					instance.stop();
-				}
-				if (map.containsKey("phonedate")) {
-					Date date = java.sql.Timestamp.valueOf(settings.getString("phonedate"));
-					instance.setTime(date);
-				}
-				instance.start();
-			}
+	
+	public ConnectivityCheckerService getConnectivityCheckerInstance() {
+		if (connectivityCheckerInstance == null) {
+			connectivityCheckerInstance = new ConnectivityCheckerService();
+		}
+		return connectivityCheckerInstance;
+	}
+	
+	public CancelledBillingCheckerService getBillingCheckerInstance() {
+		if (billingCheckerInstance == null) {
+			billingCheckerInstance = new CancelledBillingCheckerService();
+		}
+		return billingCheckerInstance;
+	}
+	
+	public PaymentBroadcastService getPaymentBroadcastInstance() {
+		if (paymentBroadcastInstance == null) {
+			paymentBroadcastInstance = new PaymentBroadcastService();
+		}
+		return paymentBroadcastInstance;
+	}
+	
+	public RemarksBroadcastService getRemarksBroadcastInstance() {
+		if (remarksBroadcastInstance == null) {
+			remarksBroadcastInstance = new RemarksBroadcastService();
+		}
+		return remarksBroadcastInstance;
+	}
+	
+	public CaptureBroadcastService getCaptureBroadcastInstance() {
+		if (captureBroadcastInstance == null) {
+			captureBroadcastInstance = new CaptureBroadcastService();
+		}
+		return captureBroadcastInstance;
+	}
+	
+	public RemarksRemovedBroadcastService getRemarksRemovedBroadcastInstance() {
+		if (remarksRemovedBroadcastInstance == null) {
+			remarksRemovedBroadcastInstance = new RemarksRemovedBroadcastService();
+		}
+		return remarksRemovedBroadcastInstance;
+	}
+	
+	public VoidRequestBroadcastService getVoidRequestBroadcastInstance() {
+		if (voidRequestBroadcastInstance == null) {
+			voidRequestBroadcastInstance = new VoidRequestBroadcastService();
+		}
+		return voidRequestBroadcastInstance;
+	}
+	
+	public RunningTimeService getRunningTimeInstance() {
+		if (runningTimeInstance == null) {
+			runningTimeInstance = new RunningTimeService();
+		}
+		return runningTimeInstance;
+	}
+	
+//	protected boolean getIsConnected() {
+//		return isConnected();
+//	}
+	
+//	protected boolean isConnected() {
+//		boolean isConnected = true;
+////		int networkStatus = ApplicationUtil.getNetworkStatus();
+//		if (networkStatus == 3) isConnected = false;
+//		return isConnected;
+//	}
+	
+	public boolean getIsDateSync() {
+		synchronized (LOCK) {
+			return super.getIsDateSync();
 		}
 	}
+	
+	public void setIsDateSync( boolean isDateSync ) {
+		synchronized (LOCK) {
+			if (isDateSync == true) {
+				AppSettings settings = getAppSettings();
+				Map map = settings.getAll();
+				
+				long timedifference = 0L;
+				if (map.containsKey("timedifference")) {
+					timedifference = settings.getLong("timedifference");
+				}
+				println("timedifference->" + timedifference);
+				ApplicationUtil.resolvePaymentTimeDifference( timedifference );
+			}
+			
+			super.setIsDateSync( isDateSync );
+		}
+	}
+	
+	protected void afterSetIsDateSync( boolean isDateSync ) {
+		if (isDateSync == true) {
+			sendBroadcast(new Intent("rameses.clfc.START_SERVICES"));
+		}
+	}
+	 
+	/*
+	protected void afterSetIsDateSync( boolean isDateSync ) {
+		
+//		if (isDateSync == true) { 
+////			AppSettings settings = getAppSettings();
+////			Map map = settings.getAll();
+////			
+////			long timedifference = 0L;
+////			if (map.containsKey("timedifference")) {
+////				timedifference = settings.getLong("timedifference");
+////			}
+////			ApplicationUtil.resolvePaymentTimeDifference( timedifference );
+//			
+////			RunningTimeService runningTimeService = getRunningTimeInstance();
+////			if (runningTimeService.getIsServiceStarted() == true) {
+////				runningTimeService.stop();
+////			}
+////			if (map.containsKey("phonedate")) {
+////				Date date = java.sql.Timestamp.valueOf(settings.getString("phonedate"));
+////				runningTimeService.setTime( date );
+////			}
+////			runningTimeService.start();
+//			
+////			synchronized (LOCK) {
+////
+//////				AbstractActionBarActivity aa = Platform.getCurrentActionBarActivity();
+//////				if (aa == null) aa = Platform.getActionBarMainActivity();
+////				
+////				//start/restart services
+////				aa.getHandler().postDelayed(new Runnable() {
+////					public void run() {
+////						boolean flag = paymentDateResolverSvc.getServiceStarted();
+////						println("payment date resolver service is started: " + flag);
+////						if (flag == true) {
+////							paymentDateResolverSvc.restart();
+////						} else {
+////							paymentDateResolverSvc.start();
+////						}
+////
+////						flag = captureDateResolverSvc.getServiceStarted();
+////						println("capture date resolver service is started: " + flag);
+////						if (flag == true) {
+////							captureDateResolverSvc.restart();
+////						} else {
+////							captureDateResolverSvc.start();
+////						}
+////						
+//////						flag = locationTrackerSvc.getServiceStarted();
+//////						if (flag == true) {
+//////							locationTrackerSvc.restart();
+//////						} else {
+//////							locationTrackerSvc.start();
+//////						}
+////						
+//////						flag vc.getServiceStarted();
+//////						println("location tracker service is started: " + flag);
+////						
+//////						flag = locationTrackerDateResolverSvc.getServiceStarted();
+//////						println("location tracker date resolver service is started: " + flag);
+//////						if (flag == true) {
+//////							locationTrackerDateResolverSvc.restart();
+//////						} else {
+//////							locationTrackerDateResolverSvc.start();
+//////						}
+////						
+//////						flag = mobileStatusTrackerDateResolverSvc.getServiceStarted();
+//////						println("mobile status date resolver service is started: " + flag);
+//////						if (flag == true) {
+//////							mobileStatusTrackerDateResolverSvc.restart();
+//////						} else {
+//////							mobileStatusTrackerDateResolverSvc.start();
+//////						}
+////						
+////						flag = remarksDateResolverSvc.getServiceStarted();
+////						println("remarks date resolver service is started: " + flag);
+////						if (flag == true) {
+////							remarksDateResolverSvc.restart();
+////						} else {
+////							remarksDateResolverSvc.start();
+////						}
+////					}
+////				},1);
+////				
+////			}
+//			
+//			sendBroadcast(new Intent("rameses.clfc.START_SERVICES"));
+//			//sendBroadcast(new Intent("rameses.clfc.START_SERVICES"));
+//		}
+	}
+*/
 	
 	protected void dateChanged(Date date) {
 //		println("date changed: " + date);
@@ -573,7 +847,7 @@ public class ApplicationImpl extends UIApplication
 		
 		String result = settings.getString("result", null);
 		String encpwd = settings.getString("encpwd", null);
-		println("result " + result);
+//		println("result " + result);
 		if (result != null && encpwd != null) {
 			Map xresult = (Map) new Base64Cipher().decode(result);//gson.fromJson(result, Map.class);
 //				println("xresult: " + xresult);
@@ -596,6 +870,7 @@ public class ApplicationImpl extends UIApplication
 		}
 		
 		sendBroadcast(new Intent("rameses.clfc.APPLICATION_START"));
+		sendBroadcast(new Intent("rameses.clfc.START_SERVICES"));
 	}   
 	
 	private void println(Object msg) {
@@ -611,16 +886,21 @@ public class ApplicationImpl extends UIApplication
 		if (date != null) {
 			settings.put("serverdate", date);
 		}
-	}
+	} 
 	 
 	public int getNetworkStatus() { return networkStatus; }
-	void setNetworkStatus(int networkStatus) { 
+	public void setNetworkStatus( int networkStatus ) { 
 		this.networkStatus = networkStatus; 
-		 
+		String apphost = ApplicationUtil.getAppHost( networkStatus );
+		
+		Map params = new HashMap();
+		params.put("app.host", apphost);
+		
+		getAppSettings().putAll( params );
+		getAppEnv().put("app.host", apphost);
+		
 //		println("network status " + networkStatus);
-		String apphost = ApplicationUtil.getAppHost(networkStatus);
 //		println("apphost -> " + apphost);
-		getAppEnv().put("app.host", apphost); 
 	}   
 
 	public void suspend() {

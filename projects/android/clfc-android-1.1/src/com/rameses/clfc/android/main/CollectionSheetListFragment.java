@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -22,19 +23,17 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.rameses.clfc.android.ApplicationDatabase;
 import com.rameses.clfc.android.ApplicationUtil;
-import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBPaymentService;
-import com.rameses.clfc.android.db.DBVoidService;
+import com.rameses.clfc.android.db.CollectionSheetDB;
+import com.rameses.clfc.android.db.PaymentServiceDB;
+import com.rameses.clfc.android.db.VoidServiceDB;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.Task;
 import com.rameses.client.android.UIDialog;
 import com.rameses.client.interfaces.UserProfile;
-import com.rameses.db.android.DBContext;
-import com.rameses.db.android.SQLTransaction;
 import com.rameses.util.MapProxy;
 
 public class CollectionSheetListFragment extends Fragment {
@@ -42,7 +41,7 @@ public class CollectionSheetListFragment extends Fragment {
 	private final int SIZE = 11;
 	private final int POSITION_KEY = "position".hashCode();
 	
-	private int addToSize = 0, isfirstbill;
+	private int addToSize = 0;//, isfirstbill;
 	private LinearLayout ll_cs;
 	private EditText et_search;
 	private Handler handler;
@@ -50,9 +49,11 @@ public class CollectionSheetListFragment extends Fragment {
 	private List<Map> csList = new ArrayList<Map>();
 	private LayoutInflater inflater;
 	private MapProxy proxy;
+	
+	private CollectionSheetDB collectionsheetdb = new CollectionSheetDB();
 
-	private DBPaymentService paymentSvc = new DBPaymentService();
-	private DBVoidService voidSvc = new DBVoidService();
+//	private DBPaymentService paymentSvc = new DBPaymentService();
+//	private DBVoidService voidSvc = new DBVoidService();
 	
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		this.inflater = inflater;
@@ -249,7 +250,7 @@ public class CollectionSheetListFragment extends Fragment {
 			int idx = Integer.parseInt(v.getTag(POSITION_KEY).toString());
 			
 			final Map cs = (Map) csList.get(idx);
-			isfirstbill = MapProxy.getInteger(cs, "isfirstbill");
+			int isfirstbill = MapProxy.getInteger(cs, "isfirstbill");
 //			System.out.println("cs " + cs);
 			if (isfirstbill != 1) {
 //				Intent intent = new Intent(CollectionSheetListActivity.this, XCollectionSheetInfoActivity.class);
@@ -262,22 +263,38 @@ public class CollectionSheetListFragment extends Fragment {
 					public void onSelectItem(int index) {
 						String type = "schedule";
 						if (index == 1) type = "over";
-						synchronized (MainDB.LOCK) {
-							SQLTransaction txn = new SQLTransaction("clfc.db");
-							Map params = new HashMap();
-							params.put("objid", MapProxy.getString(cs, "objid"));
-							params.put("type", type);
-							try {
-								txn.beginTransaction();
-								String sql = "UPDATE collectionsheet SET paymentmethod = $P{type} WHERE objid = $P{objid}";
-								txn.execute(sql, params);
-								txn.commit();
-							} catch (Throwable t) {
-								t.printStackTrace();
-							} finally {
-								txn.endTransaction();
-							}
+						
+						String objid = MapProxy.getString(cs, "objid");
+						String sql = "update collectionsheet set paymentmethod='" + type + "' where objid='" + objid + "'";
+						
+						SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+						try {
+							appdb.beginTransaction();
+							appdb.execSQL( sql );
+							appdb.setTransactionSuccessful();
+						} catch (Throwable t) {
+							t.printStackTrace();
+						} finally {
+							appdb.endTransaction();
 						}
+						
+						
+//						synchronized (MainDB.LOCK) {
+//							SQLTransaction txn = new SQLTransaction("clfc.db");
+//							Map params = new HashMap();
+//							params.put("objid", MapProxy.getString(cs, "objid"));
+//							params.put("type", type);
+//							try {
+//								txn.beginTransaction();
+//								String sql = "UPDATE collectionsheet SET paymentmethod = $P{type} WHERE objid = $P{objid}";
+//								txn.execute(sql, params);
+//								txn.commit();
+//							} catch (Throwable t) {
+//								t.printStackTrace();
+//							} finally {
+//								txn.endTransaction();
+//							}
+//						}
 						
 //						Intent intent = new Intent(CollectionSheetListActivity.this, XCollectionSheetInfoActivity.class);
 						Intent intent = new Intent((CollectionSheetListActivity) getActivity(), CollectionSheetInfoMainActivity.class);
@@ -332,9 +349,9 @@ public class CollectionSheetListFragment extends Fragment {
 		
 		private void runImpl() throws Exception {
 			int totalcs = 0;
-			DBCollectionSheet cs = new DBCollectionSheet();
-			DBContext ctx = new DBContext("clfc.db");
-			cs.setDBContext(ctx);
+//			DBCollectionSheet cs = new DBCollectionSheet();
+//			DBContext ctx = new DBContext("clfc.db");
+//			cs.setDBContext(ctx);
 			
 			UserProfile prof = SessionContext.getProfile();
 			String collectorid = (prof != null? prof.getUserId() : "");
@@ -345,7 +362,8 @@ public class CollectionSheetListFragment extends Fragment {
 			if (segregationid == null) segregationid = "";
 			
 			try {
-				totalcs = cs.countByDateAndCollectorWithSegregationid(date, collectorid, segregationid);
+//				totalcs = cs.countByDateAndCollectorWithSegregationid(date, collectorid, segregationid);
+				totalcs = collectionsheetdb.countByDateAndCollectorWithSegregationid(date, collectorid, segregationid);
 			} catch (Throwable t) {
 				t.printStackTrace();
 				UIDialog.showMessage(t, (CollectionSheetListActivity) getActivity());
@@ -359,11 +377,11 @@ public class CollectionSheetListFragment extends Fragment {
 			params.put("date", date);
 			params.put("segregationid", segregationid);
 			
-			ctx = new DBContext("clfc.db");
-			cs.setDBContext(ctx);
+//			ctx = new DBContext("clfc.db");
+//			cs.setDBContext(ctx);
 			
 			try {
-				csList = cs.getCollectionSheetsByItemWithSearchtextAndSegregationid(params, size);
+				csList = collectionsheetdb.getCollectionSheetsByItemWithSearchtextAndSegregationid(params, size);
 			} catch (Throwable t) {
 				t.printStackTrace();
 				UIDialog.showMessage(t, (CollectionSheetListActivity) getActivity());

@@ -1,8 +1,0 @@
-{
-	title		: 'Terminals',
-	context		: 'terminal',
-	listModel	: 'listModel',
-	fragment	: true,
-	sortorder	: 8,
-	secured		: true 
-}

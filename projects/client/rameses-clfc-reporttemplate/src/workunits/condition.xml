@@ -1,7 +1,9 @@
 <workunit>
     <invokers>
+        <!--
         <invoker type="templatecondition:create" caption="Condition" action="init" target="popup"/>
         <invoker type="templatecondition:open" caption="Condition" action="open" target="popup"/>
+        -->
     </invokers>
     
     <code>

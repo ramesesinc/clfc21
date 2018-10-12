@@ -53,11 +53,14 @@ import com.rameses.util.*;
                         if (o.computeduringapplication==1) {
                             out.print("<br/>&nbsp;&nbsp;&nbsp;Compute during application is <b>true</b>");
                         }
-                        if (o.computeduringposting==1) {
-                            out.print("<br/>&nbsp;&nbsp;&nbsp;Compute during posting is <b>true</b>");
-                        }
                         if (o.computeuponmaturity==1) {
                             out.print("<br/>&nbsp;&nbsp;&nbsp;Compute upon maturity is <b>true</b>");
+                        }
+                        if (o.computebeforeposting==1) {
+                            out.print("<br/>&nbsp;&nbsp;&nbsp;Compute before posting is <b>true</b>");
+                        }
+                        if (o.computeduringposting==1) {
+                            out.print("<br/>&nbsp;&nbsp;&nbsp;Compute during posting is <b>true</b>");
                         }
                         out.print( "<br>&nbsp;&nbsp;&nbsp;");
                         def handler = o?.handler;

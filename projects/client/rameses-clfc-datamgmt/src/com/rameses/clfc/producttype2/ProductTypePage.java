@@ -39,22 +39,22 @@ public class ProductTypePage extends javax.swing.JPanel {
         xList1 = new com.rameses.rcp.control.XList();
         xLabel1 = new com.rameses.rcp.control.XLabel();
 
-        setPreferredSize(new java.awt.Dimension(640, 530));
+        setPreferredSize(new java.awt.Dimension(940, 650));
         setLayout(new java.awt.BorderLayout());
 
-        xSubFormPanel1.setDynamic(true);
         xSubFormPanel1.setHandler("opener");
+        xSubFormPanel1.setDynamic(true);
         xSubFormPanel1.setPreferredSize(new java.awt.Dimension(490, 370));
 
         javax.swing.GroupLayout xSubFormPanel1Layout = new javax.swing.GroupLayout(xSubFormPanel1);
         xSubFormPanel1.setLayout(xSubFormPanel1Layout);
         xSubFormPanel1Layout.setHorizontalGroup(
             xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 326, Short.MAX_VALUE)
+            .addGap(0, 727, Short.MAX_VALUE)
         );
         xSubFormPanel1Layout.setVerticalGroup(
             xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 379, Short.MAX_VALUE)
+            .addGap(0, 518, Short.MAX_VALUE)
         );
 
         add(xSubFormPanel1, java.awt.BorderLayout.CENTER);
@@ -73,8 +73,8 @@ public class ProductTypePage extends javax.swing.JPanel {
 
         add(xPanel1, java.awt.BorderLayout.WEST);
 
-        xLabel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
         xLabel1.setExpression("#{entity.txnstate}");
+        xLabel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
         xLabel1.setFont(new java.awt.Font("Tahoma", 1, 16)); // NOI18N
         xLabel1.setForeground(new java.awt.Color(255, 0, 0));
         xLabel1.setPreferredSize(new java.awt.Dimension(200, 30));

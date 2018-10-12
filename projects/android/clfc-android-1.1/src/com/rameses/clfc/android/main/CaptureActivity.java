@@ -12,7 +12,7 @@ import android.widget.RelativeLayout;
 
 import com.rameses.clfc.android.ControlActivity;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCapturePayment;
+import com.rameses.clfc.android.db.CapturePaymentDB;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIDialog;
 import com.rameses.client.interfaces.UserProfile;
@@ -23,8 +23,10 @@ public class CaptureActivity extends ControlActivity
 	private ProgressDialog progressDialog;
 	private LayoutInflater inflater;
 	private ListView lv_capture;
-	private DBCapturePayment capturePayment = new DBCapturePayment();
-	private List<Map> list;
+//	private DBCapturePayment capturePayment = new DBCapturePayment();
+//	private List<Map> list;
+	
+	private CapturePaymentDB capturepaymentdb = new CapturePaymentDB();
 	
 	@Override
 	protected void onCreateProcess(Bundle savedInstanceState) {
@@ -38,6 +40,7 @@ public class CaptureActivity extends ControlActivity
 		progressDialog = new ProgressDialog(this);
 		progressDialog.setCancelable(false);
 		lv_capture = (ListView) findViewById(R.id.lv_capture);
+		
 	}
 	
 	@Override
@@ -63,67 +66,85 @@ public class CaptureActivity extends ControlActivity
 	
 	public void loadPayments() {
 		getHandler().post(new Runnable() {
+			
 			public void run() {
-//				synchronized (MainDB.LOCK) {
-					DBContext ctx = new DBContext("clfccapture.db");
-//					txn = new SQLTransaction("clfc.db");
-					try {
-						runImpl(ctx);
-					} catch (Throwable t) {
-						UIDialog.showMessage(t, CaptureActivity.this);
-					} finally {
-						ctx.close();
-					}
-//				}
+				try {
+					runImpl();
+				} catch (Throwable t) {
+					t.printStackTrace();
+					UIDialog.showMessage(t, CaptureActivity.this);
+				}
 			}
 			
-			private void runImpl(DBContext ctx) throws Exception {
-				capturePayment.setDBContext(ctx);
-				capturePayment.setCloseable(false);
-				
-				UserProfile prof = SessionContext.getProfile();
-				String collectorid = (prof != null? prof.getUserId() : "");
-				
-				list = capturePayment.getPaymentsByCollector(collectorid); 
-				
-				lv_capture.setAdapter(new CapturePaymentAdapter(CaptureActivity.this, list));
-//				
-//				list = specialCollection.getSpecialCollectionRequestsByCollector(SessionContext.getProfile().getUserId());
-//				
-//				System.out.println("list " + list);
-//				lv_specialcollection.setAdapter(new SpecialCollectionAdapter(CapturePaymentActivity.this, list));
-//				
-//				SQLiteDatabase db = getDbHelper().getReadableDatabase();
-//				Cursor result = getDbHelper().getSpecialCollections(db);
-//				db.close();
-//				ListView lv_specialcollection = (ListView) findViewById(R.id.lv_specialcollection);
-		//
-//				ArrayList<SpecialCollectionParcelable> list = new ArrayList<SpecialCollectionParcelable>();
-//				if (result != null && result.getCount() > 0) {
-//					result.moveToFirst();
-//					SpecialCollectionParcelable scp = null;
-//					do {
-//						scp = new SpecialCollectionParcelable();
-//						scp.setObjid(result.getString(result.getColumnIndex("objid")));
-//						scp.setState(result.getString(result.getColumnIndex("state")));
-//						scp.setRemarks(result.getString(result.getColumnIndex("remarks")));
-//						list.add(scp);
-//					} while(result.moveToNext());
-//					result.close();
-//				}
-//				
-//				lv_specialcollection.setAdapter(new SpecialCollectionAdapter(context, list));
-//				lv_specialcollection.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//					@Override
-//					public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//						// TODO Auto-generated method stub
-//						SpecialCollectionParcelable scp = (SpecialCollectionParcelable) parent.getItemAtPosition(position);
-//						progressDialog.setMessage("Downloading collection sheet(s) requested.");
-//						if (!progressDialog.isShowing()) progressDialog.show();
-//						Executors.newSingleThreadExecutor().submit(new SpecialCollectionRunnable(scp));
+//			public void xrun() {
+////				synchronized (MainDB.LOCK) {
+//					DBContext ctx = new DBContext("clfccapture.db");
+////					txn = new SQLTransaction("clfc.db");
+//					try {
+//						runImpl(ctx);
+//					} catch (Throwable t) {
+//						UIDialog.showMessage(t, CaptureActivity.this);
+//					} finally {
+//						ctx.close();
 //					}
-//				});
+////				}
+//			}
+			
+			private void runImpl() throws Exception {
+				UserProfile profile = SessionContext.getProfile();
+				String collectorid = (profile != null? profile.getUserId() : "");
+				
+				List<Map> list = capturepaymentdb.getPaymentsByCollector( collectorid );
+				lv_capture.setAdapter(new CapturePaymentAdapter(CaptureActivity.this, list));
 			}
+			
+//			private void xrunImpl(DBContext ctx) throws Exception {
+//				capturePayment.setDBContext(ctx);
+//				capturePayment.setCloseable(false);
+//				
+//				UserProfile prof = SessionContext.getProfile();
+//				String collectorid = (prof != null? prof.getUserId() : "");
+//				
+//				list = capturePayment.getPaymentsByCollector(collectorid); 
+//				
+//				lv_capture.setAdapter(new CapturePaymentAdapter(CaptureActivity.this, list));
+////				
+////				list = specialCollection.getSpecialCollectionRequestsByCollector(SessionContext.getProfile().getUserId());
+////				
+////				System.out.println("list " + list);
+////				lv_specialcollection.setAdapter(new SpecialCollectionAdapter(CapturePaymentActivity.this, list));
+////				
+////				SQLiteDatabase db = getDbHelper().getReadableDatabase();
+////				Cursor result = getDbHelper().getSpecialCollections(db);
+////				db.close();
+////				ListView lv_specialcollection = (ListView) findViewById(R.id.lv_specialcollection);
+//		//
+////				ArrayList<SpecialCollectionParcelable> list = new ArrayList<SpecialCollectionParcelable>();
+////				if (result != null && result.getCount() > 0) {
+////					result.moveToFirst();
+////					SpecialCollectionParcelable scp = null;
+////					do {
+////						scp = new SpecialCollectionParcelable();
+////						scp.setObjid(result.getString(result.getColumnIndex("objid")));
+////						scp.setState(result.getString(result.getColumnIndex("state")));
+////						scp.setRemarks(result.getString(result.getColumnIndex("remarks")));
+////						list.add(scp);
+////					} while(result.moveToNext());
+////					result.close();
+////				}
+////				
+////				lv_specialcollection.setAdapter(new SpecialCollectionAdapter(context, list));
+////				lv_specialcollection.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+////					@Override
+////					public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+////						// TODO Auto-generated method stub
+////						SpecialCollectionParcelable scp = (SpecialCollectionParcelable) parent.getItemAtPosition(position);
+////						progressDialog.setMessage("Downloading collection sheet(s) requested.");
+////						if (!progressDialog.isShowing()) progressDialog.show();
+////						Executors.newSingleThreadExecutor().submit(new SpecialCollectionRunnable(scp));
+////					}
+////				});
+//			}
 		});
 	}
 	

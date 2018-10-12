@@ -1,6 +1,7 @@
 package com.rameses.clfc.android;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.UUID;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
@@ -18,19 +20,19 @@ import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.rameses.clfc.android.db.DBCapturePayment;
-import com.rameses.clfc.android.db.DBCollectionGroup;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBPaymentService;
-import com.rameses.clfc.android.db.DBRemarksService;
-import com.rameses.clfc.android.db.DBSystemService;
-import com.rameses.clfc.android.db.DBVoidService;
+import com.rameses.clfc.android.db.ApplicationDBUtil;
+import com.rameses.clfc.android.db.CapturePaymentDB;
+import com.rameses.clfc.android.db.CollectionGroupDB;
+import com.rameses.clfc.android.db.CollectionSheetDB;
+import com.rameses.clfc.android.db.PaymentServiceDB;
+import com.rameses.clfc.android.db.RemarksServiceDB;
+import com.rameses.clfc.android.db.SystemDB;
+import com.rameses.clfc.android.db.VoidServiceDB;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIApplication;
 import com.rameses.client.interfaces.UserProfile;
-import com.rameses.db.android.DBContext;
-import com.rameses.db.android.SQLTransaction;
+import com.rameses.util.MapProxy;
 
 
 public final class ApplicationUtil 
@@ -39,6 +41,14 @@ public final class ApplicationUtil
 	private static WifiManager wifimngr;
 	private static LocationManager locationmngr;
 	private static ConnectivityManager connectivitymngr;
+	
+	private static CapturePaymentDB capturepaymentdb = new CapturePaymentDB(); 
+	private static CollectionGroupDB collectiongroupdb = new CollectionGroupDB();
+	private static SystemDB systemdb = new SystemDB();
+	private static VoidServiceDB voidservicedb = new VoidServiceDB();
+	private static PaymentServiceDB paymentservicedb = new PaymentServiceDB();
+	private static RemarksServiceDB remarksservicedb = new RemarksServiceDB();
+	private static CollectionSheetDB collectionsheetdb = new CollectionSheetDB();
 
 	public static boolean getIsDeviceRegistered() { 
 		return isDeviceRegistered; 
@@ -48,8 +58,13 @@ public final class ApplicationUtil
 		isDeviceRegistered = true;
 	}
 
-	public static int getNetworkStatus() {
+	public static int getNetworkStatus() { 
 		return ((ApplicationImpl) Platform.getApplication()).getNetworkStatus();
+	}
+	
+	public static String[] getInvalidStrings() {
+		String[] list = {"'","\""};
+		return list;
 	}
 
 	public static boolean hasCapturedPayments() throws Exception {
@@ -70,23 +85,30 @@ public final class ApplicationUtil
 	}
 	
 	private static boolean hasCapturedPaymentsImpl(String collectorid, String date) throws Exception {
-		DBContext ctx = new DBContext("clfccapture.db");
-		DBCapturePayment dbcp = new DBCapturePayment();
-		dbcp.setDBContext(ctx);
-		dbcp.setCloseable(false);
+//		DBContext ctx = new DBContext("clfccapture.db");
+//		DBCapturePayment dbcp = new DBCapturePayment();
+//		dbcp.setDBContext(ctx);
+//		dbcp.setCloseable(false);
+//		
+//		boolean hasPayments = false;
+//		try {
+//			if (date == null) {
+//				hasPayments = dbcp.hasPayments(collectorid);
+//			} else {
+//				hasPayments = dbcp.hasPayments(collectorid, date);
+//			}
+//			
+//		} catch (Exception e) {
+//			throw e;
+//		} finally {
+//			ctx.close();
+//		}
 		
 		boolean hasPayments = false;
-		try {
-			if (date == null) {
-				hasPayments = dbcp.hasPayments(collectorid);
-			} else {
-				hasPayments = dbcp.hasPayments(collectorid, date);
-			}
-			
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			ctx.close();
+		if (date == null) {
+			hasPayments = capturepaymentdb.hasPayments( collectorid );
+		} else {
+			hasPayments = capturepaymentdb.hasPayments( collectorid, date );
 		}
 		
 		return hasPayments;
@@ -173,27 +195,37 @@ public final class ApplicationUtil
 	}
 	
 	public static boolean isCollectionCreated(String collectionid) throws Exception {
-		boolean flag = false;
 		
-		DBContext ctx = new DBContext("clfc.db");
-		try {
-			flag = isCollectionCreatedImpl(ctx, collectionid);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			ctx.close();
-		}
+		boolean flag = collectiongroupdb.isCollectionCreatedByCollectionid( collectionid );
 		
 		return flag;
+//		boolean flag = false;
+//		
+//		DBContext ctx = new DBContext("clfc.db");
+//		try {
+//			flag = isCollectionCreatedImpl(ctx, collectionid);
+//			
+//			DBCollectionGroup dbcg = new DBCollectionGroup();
+//			dbcg.setDBContext(clfcdb);
+//			dbcg.setCloseable(false);
+//			
+//			return dbcg.isCollectionCreatedByCollectionid(collectionid);
+//		} catch (Exception e) {
+//			throw e;
+//		} finally {
+//			ctx.close();
+//		}
+//		
+//		return flag;
 	}
 	
-	private static boolean isCollectionCreatedImpl(DBContext clfcdb, String collectionid) throws Exception {
-		DBCollectionGroup dbcg = new DBCollectionGroup();
-		dbcg.setDBContext(clfcdb);
-		dbcg.setCloseable(false);
-		
-		return dbcg.isCollectionCreatedByCollectionid(collectionid);
-	}
+//	private static boolean isCollectionCreatedImpl(DBContext clfcdb, String collectionid) throws Exception {
+//		DBCollectionGroup dbcg = new DBCollectionGroup();
+//		dbcg.setDBContext(clfcdb);
+//		dbcg.setCloseable(false);
+//		
+//		return dbcg.isCollectionCreatedByCollectionid(collectionid);
+//	}
 	
 	public static String getBillingid() throws Exception {
 		Date dt = Platform.getApplication().getServerDate();
@@ -208,21 +240,24 @@ public final class ApplicationUtil
 	}
 	
 	public static String getBillingid(String collectorid, String date) throws Exception {
-		String billingid = "";
-		DBContext ctx = new DBContext("clfc.db");
-		DBSystemService sysSvc = new DBSystemService();
-		sysSvc.setDBContext(ctx);
-		sysSvc.setCloseable(false);
-		
-		try {
-			billingid = sysSvc.getBillingid(collectorid, date);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			ctx.close();
-		}
-		
+		String billingid = systemdb.getBillingid( collectorid, date );
 		return billingid;
+		
+//		String billingid = "";
+//		DBContext ctx = new DBContext("clfc.db");
+//		DBSystemService sysSvc = new DBSystemService();
+//		sysSvc.setDBContext(ctx);
+//		sysSvc.setCloseable(false);
+//		
+//		try {
+//			billingid = sysSvc.getBillingid(collectorid, date);
+//		} catch (Exception e) {
+//			throw e;
+//		} finally {
+//			ctx.close();
+//		}
+//		
+//		return billingid;
 	}
 	
 	public static Map renewTracker() {
@@ -380,23 +415,29 @@ public final class ApplicationUtil
 	}
 	
 	public static boolean hasBilling(String collectorid, Date date) throws Exception {
-		DBContext ctx = new DBContext("clfc.db");
-		DBCollectionGroup dbcg = new DBCollectionGroup();
-		dbcg.setDBContext(ctx);
-
-		String dt = formatDate(date, "yyyy-MM-dd");
-		
 		boolean flag = false;
-		try {
-//			flag = dbcg.hasCollectionGroupByCollector(collectorid);
-			flag = dbcg.hasCollectionGroupByCollectorAndDate(collectorid, dt);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			ctx.close();
-		}
+		
+		String dt = formatDate( date, "yyyy-MM-dd" );
+		flag = collectiongroupdb.hasCollectionGroupByCollectorAndDate(collectorid, dt);
 		
 		return flag;
+//		DBContext ctx = new DBContext("clfc.db");
+//		DBCollectionGroup dbcg = new DBCollectionGroup();
+//		dbcg.setDBContext(ctx);
+//
+//		String dt = formatDate(date, "yyyy-MM-dd");
+//		
+//		boolean flag = false;
+//		try {
+////			flag = dbcg.hasCollectionGroupByCollector(collectorid);
+//			flag = dbcg.hasCollectionGroupByCollectorAndDate(collectorid, dt);
+//		} catch (Exception e) {
+//			throw e;
+//		} finally {
+//			ctx.close();
+//		}
+//		
+//		return flag;
 	}
 	
 	public static boolean checkUnpostedCapture() throws Exception {
@@ -407,61 +448,83 @@ public final class ApplicationUtil
 	}
 	
 	public static boolean checkUnpostedCapture(String collectorid) throws Exception {
-		DBContext ctx = new DBContext("clfccapture.db");
-		DBCapturePayment dbcp = new DBCapturePayment();
-		dbcp.setDBContext(ctx);
-		dbcp.setCloseable(false);
-		
-		boolean flag = true;
-		
-		try {
-//			flag = dbcp.hasPendingPayments(collectorid);
-			flag = dbcp.hasForUploadPayment(collectorid);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			ctx.close();
-		}
+		boolean flag = capturepaymentdb.hasForUploadPayment(collectorid);
 		
 		return flag;
+		
+		
+//		DBContext ctx = new DBContext("clfccapture.db");
+//		DBCapturePayment dbcp = new DBCapturePayment();
+//		dbcp.setDBContext(ctx);
+//		dbcp.setCloseable(false);
+//		
+//		boolean flag = true;
+//		
+//		try {
+////			flag = dbcp.hasPendingPayments(collectorid);
+//			flag = dbcp.hasForUploadPayment(collectorid);
+//		} catch (Exception e) {
+//			throw e;
+//		} finally {
+//			ctx.close();
+//		}
+//		
+//		return flag;
 	}
 	
 	public static boolean checkUnposted() throws Exception {
-		return checkUnposted(null);
+		return checkUnposted( null );
 	}
 	
 	public static boolean checkPendingVoidRequests(String itemid) throws Exception {
 		boolean flag = false;
 		
-		DBContext clfcdb = new DBContext("clfc.db");
-		
-		try {
-			flag = checkPendingVoidRequestsImpl(clfcdb, itemid);
-			return flag;
-		} catch (RuntimeException re) {
-			throw re; 
-		} catch (Exception e) {
-			throw e; 
-		} catch (Throwable t) {
-			throw new Exception(t.getMessage(), t); 
-		} finally {
-			clfcdb.close();
-		}
-	}
-	
-	private static boolean checkPendingVoidRequestsImpl(DBContext clfcdb, String itemid) throws Exception {
-		DBVoidService voidSvc = new DBVoidService();
-		voidSvc.setDBContext(clfcdb);
-		voidSvc.setCloseable(false);
-		
-		boolean flag = false;
-		Map map = voidSvc.findVoidRequestByItemidAndState(itemid, "PENDING");
-		if (map != null && !map.isEmpty()) {
+		Map data = voidservicedb.findVoidRequestByItemidAndState( itemid, "PENDING" );
+		if (data != null && !data.isEmpty()) {
 			flag = true;
 		}
 		
 		return flag;
+		
+		
+//		boolean flag = false;
+//		
+//		DBContext clfcdb = new DBContext("clfc.db");
+//		
+//		try {
+//			DBVoidService voidSvc = new DBVoidService();
+//			voidSvc.setDBContext(clfcdb);
+//			voidSvc.setCloseable(false);
+//			
+//			Map map = voidSvc.findVoidRequestByItemidAndState(itemid, "PENDING");
+//			if (map != null && !map.isEmpty()) {
+//				flag = true;
+//			}
+//			return flag;
+//		} catch (RuntimeException re) {
+//			throw re; 
+//		} catch (Exception e) {
+//			throw e; 
+//		} catch (Throwable t) {
+//			throw new Exception(t.getMessage(), t); 
+//		} finally {
+//			clfcdb.close();
+//		}
 	}
+	
+//	private static boolean checkPendingVoidRequestsImpl(DBContext clfcdb, String itemid) throws Exception {
+//		DBVoidService voidSvc = new DBVoidService();
+//		voidSvc.setDBContext(clfcdb);
+//		voidSvc.setCloseable(false);
+//		
+//		boolean flag = false;
+//		Map map = voidSvc.findVoidRequestByItemidAndState(itemid, "PENDING");
+//		if (map != null && !map.isEmpty()) {
+//			flag = true;
+//		}
+//		
+//		return flag;
+//	}
 	
 //	public static boolean xcheckUnpostedTracker() throws Exception  {
 //		UserProfile prof = SessionContext.getProfile();
@@ -494,162 +557,290 @@ public final class ApplicationUtil
 //		}
 //	}
 	
-	public static boolean checkUnposted(String itemid) throws Exception {
+	public static boolean checkUnposted( String itemid ) throws Exception {
 		boolean flag = false;
 		
-		DBContext paymentdb = new DBContext("clfcpayment.db");
-		DBContext remarksdb = new DBContext("clfcremarks.db");
-		DBContext clfcdb = new DBContext("clfc.db");
-		try {
-			flag = checkUnpostedImpl(paymentdb, remarksdb, clfcdb, itemid);
-			return flag;
-		} catch (RuntimeException re) {
-			throw re; 
-		} catch (Exception e) {
-			throw e; 
-		} catch (Throwable t) {
-			throw new Exception(t.getMessage(), t); 
-		} finally {
-			paymentdb.close();
-			remarksdb.close();
-			clfcdb.close();
-		}
-	}
-	
-	private static boolean checkUnpostedImpl(DBContext paymentdb, DBContext remarksdb, DBContext clfcdb, String itemid) 
-			throws Exception {
-		boolean flag = false;
-
-		DBPaymentService paymentSvc = new DBPaymentService();
-		paymentSvc.setDBContext(paymentdb);
-		paymentSvc.setCloseable(false);
+		UserProfile profile = SessionContext.getProfile();
+		String collectorid = (profile != null? profile.getUserId() : "");
 		
-		String collectorid = SessionContext.getProfile().getUserId();
-		if (itemid.equals("") || itemid == null) {
-			flag = paymentSvc.hasUnpostedPaymentsByCollectorAndItemid(collectorid, itemid);
+		if (itemid == null || "".equals( itemid )) {
+			flag = paymentservicedb.hasUnpostedPaymentsByCollectorAndItemid( collectorid, itemid );
 		} else {
-			flag = paymentSvc.hasUnpostedPaymentsByCollector(collectorid);
+			flag = paymentservicedb.hasUnpostedPaymentsByCollector( collectorid );
 		}
 		
 		if (flag == true) return flag;
 		
-		DBRemarksService remarksSvc = new DBRemarksService();
-		remarksSvc.setDBContext(remarksdb);
-		remarksSvc.setCloseable(false);
-		
-		if (itemid.equals("") || itemid == null) {
-			flag = remarksSvc.hasUnpostedRemarksByCollector(collectorid);
+		if (itemid != null || "".equals( itemid )) {
+			flag = remarksservicedb.hasUnpostedRemarksByCollector( collectorid );
 		} else {
-			flag = remarksSvc.hasUnpostedRemarksByCollectorAndItemid(collectorid, itemid);
+			flag = remarksservicedb.hasUnpostedRemarksByCollectorAndItemid( collectorid, itemid );
 		}
 		
 		if (flag == true) return flag;
 		
 
-		DBCollectionSheet collectionSheet = new DBCollectionSheet();
-		collectionSheet.setDBContext(clfcdb);
-		collectionSheet.setCloseable(false);
-		
-		if (itemid.equals("") || itemid == null) {
-			List<Map> list = collectionSheet.getUnremittedCollectionSheetsByCollector(collectorid);
-			if (!list.isEmpty()) {
-				String sql = "";
-				String objid = "";
-				Map map;
-				for (int i=0; i<list.size(); i++) {
-					map = (Map) list.get(i);
+		if (itemid == null || "".equals( itemid )) {
+			List<Map> list = collectionsheetdb.getUnremittedCollectionSheetsByCollector( collectorid );
+			
+			for (Map map : list) {
+				if (map.containsKey("objid")) {
+					String objid = map.get("objid").toString();
 					
-					objid = map.get("objid").toString();
-					sql = "SELECT objid FROM payment WHERE parentid=? LIMIT 1";
-					if (!paymentdb.getList(sql, new Object[]{objid}).isEmpty()) {
+					if (paymentservicedb.hasPayments( objid )) {
 						flag = true;
 						break;
 					}
 					
-					sql = "SELECT objid FROM remarks WHERE objid=? LIMIT 1";
-					if (!remarksdb.getList(sql, new Object[]{objid}).isEmpty()) {
+//					sql = "SELECT objid FROM payment WHERE parentid=? LIMIT 1";
+//					if (!paymentdb.getList(sql, new Object[]{objid}).isEmpty()) {
+//						flag = true;
+//						break;
+//					}
+					
+					if (remarksservicedb.hasRemarksById( objid )) {
 						flag = true;
 						break;
 					}
+					
+//					sql = "SELECT objid FROM remarks WHERE objid=? LIMIT 1";
+//					if (!remarksdb.getList(sql, new Object[]{objid}).isEmpty()) {
+//						flag = true;
+//						break;
+//					}
 				}
 			}
 		}
 		
 		return flag;
+		
+		
+//		boolean flag = false;
+//		
+//		DBContext paymentdb = new DBContext("clfcpayment.db");
+//		DBContext remarksdb = new DBContext("clfcremarks.db");
+//		DBContext clfcdb = new DBContext("clfc.db");
+//		try {
+//			flag = checkUnpostedImpl(paymentdb, remarksdb, clfcdb, itemid);
+//			return flag;
+//		} catch (RuntimeException re) {
+//			throw re; 
+//		} catch (Exception e) {
+//			throw e; 
+//		} catch (Throwable t) {
+//			throw new Exception(t.getMessage(), t); 
+//		} finally {
+//			paymentdb.close();
+//			remarksdb.close();
+//			clfcdb.close();
+//		}
 	}
 	
-	public static void resolvePaymentTimedifference(long timedifference) {
-
-//		Calendar cal = Calendar.getInstance();
-//		Calendar xcal = Calendar.getInstance();
+//	private static boolean checkUnpostedImpl(DBContext paymentdb, DBContext remarksdb, DBContext clfcdb, String itemid) 
+//			throws Exception {
+//		boolean flag = false;
+//
+//		DBPaymentService paymentSvc = new DBPaymentService();
+//		paymentSvc.setDBContext(paymentdb);
+//		paymentSvc.setCloseable(false);
 //		
-//		AppSettings settings = Platform.getApplication().getAppSettings();
-//		Map map = settings.getAll();
-//		if (map.containsKey("phonedate")) {
-////			println("server date " + settings.getString("serverdate"));
-//			cal.setTime(java.sql.Timestamp.valueOf(settings.getString("phonedate")));
+//		String collectorid = SessionContext.getProfile().getUserId();
+//		if (itemid.equals("") || itemid == null) {
+//			flag = paymentSvc.hasUnpostedPaymentsByCollectorAndItemid(collectorid, itemid);
+//		} else {
+//			flag = paymentSvc.hasUnpostedPaymentsByCollector(collectorid);
 //		}
-//		 
-//		long timemillis = cal.getTimeInMillis();
-//        long xtimemillis = xcal.getTimeInMillis();
-//        
-//        long diff = timemillis - xtimemillis;
-//        long timediff = diff;
-//        
-//        if (map.containsKey("timedifference")) {
-//        	timediff = settings.getLong("timedifference");
+//		
+//		if (flag == true) return flag;
+//		
+//		DBRemarksService remarksSvc = new DBRemarksService();
+//		remarksSvc.setDBContext(remarksdb);
+//		remarksSvc.setCloseable(false);
+//		
+//		if (itemid.equals("") || itemid == null) {
+//			flag = remarksSvc.hasUnpostedRemarksByCollector(collectorid);
+//		} else {
+//			flag = remarksSvc.hasUnpostedRemarksByCollectorAndItemid(collectorid, itemid);
+//		}
+//		
+//		if (flag == true) return flag;
+//		
+//
+//		DBCollectionSheet collectionSheet = new DBCollectionSheet();
+//		collectionSheet.setDBContext(clfcdb);
+//		collectionSheet.setCloseable(false);
+//		
+//		if (itemid.equals("") || itemid == null) {
+//			List<Map> list = collectionSheet.getUnremittedCollectionSheetsByCollector(collectorid);
+//			if (!list.isEmpty()) {
+//				String sql = "";
+//				String objid = "";
+//				Map map;
+//				for (int i=0; i<list.size(); i++) {
+//					map = (Map) list.get(i);
+//					
+//					objid = map.get("objid").toString();
+//					sql = "SELECT objid FROM payment WHERE parentid=? LIMIT 1";
+//					if (!paymentdb.getList(sql, new Object[]{objid}).isEmpty()) {
+//						flag = true;
+//						break;
+//					}
+//					
+//					sql = "SELECT objid FROM remarks WHERE objid=? LIMIT 1";
+//					if (!remarksdb.getList(sql, new Object[]{objid}).isEmpty()) {
+//						flag = true;
+//						break;
+//					}
+//				}
+//			}
+//		}
+//		
+//		return flag;
+//	}
+	
+	public static void resolvePaymentTimeDifference( long timedifference ) {
+
+		try {
+			resolveOnlinePaymentTimeDifference( timedifference );
+			resolveCapturePaymentTimeDifference( timedifference );
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		
+//		println("resolve timedifference");
+//		
+//        synchronized (PaymentDB.LOCK) {
+//        	SQLTransaction paymentdb = new SQLTransaction("clfcpayment.db");
+//        	try {
+//        		paymentdb.beginTransaction();
+//        		resolvePaymentTimedifference(paymentdb, timedifference);
+//        		paymentdb.commit();
+//        	} catch (Exception e) {
+//        		e.printStackTrace();
+//        	} finally {
+//        		paymentdb.endTransaction();
+//        	}
 //        }
 //        
-//        long newtimediff = timediff - diff;
-//
-//    	SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-//        settings.put("phonedate", DATE_FORMAT.format(cal.getTime()));
-//        settings.put("timedifference", newtimediff);
-//        settings.put("timedifference", diff);
-//        settings.put("phonedate", xcal.getTime().toString());
+//        synchronized (CaptureDB.LOCK) {
+//        	SQLTransaction capturedb = new SQLTransaction("clfccapture.db");
+//        	try {
+//        		capturedb.beginTransaction();
+//        		resolveCapturePaymentTimedifference(capturedb, timedifference);
+//        		capturedb.commit();
+//        	} catch (Exception e) {
+//        		e.printStackTrace();
+//        	} finally {
+//        		capturedb.endTransaction();
+//        	}
+//        	
+//        }
+	}
+	
+	private static void resolveOnlinePaymentTimeDifference( long timedifference ) throws Exception {
+		List<Map> sqlParams = new ArrayList<Map>();
+		
+		Calendar cal = Calendar.getInstance();
+		
+		Map params = new HashMap();
+		params.put("forupload", 0);
+		List<Map> list = paymentservicedb.getPaymentsByForupload( params );
+		for (Map m : list) {
+			String objid = MapProxy.getString( m, "objid" );
+			
+			long xtimedifference = 0L;
+			if (m.containsKey("timedifference")) {
+				xtimedifference = Long.parseLong(m.get("timedifference").toString());
+			}
+			
+			long timemillis = cal.getTimeInMillis();
+			if (m.containsKey("dtsaved")) {
+				cal.setTime(java.sql.Timestamp.valueOf(m.get("dtsaved").toString()));
+				timemillis = cal.getTimeInMillis();
+			}
+			
+			long newtimemillis = timemillis + xtimedifference;
+			newtimemillis -= timedifference;
+			
+			Timestamp timestamp = new Timestamp(newtimemillis);
+			
+			String sql = "update payment ";
+			sql += "set dtsaved='" + timestamp.toString() + "',";
+			sql += "timedifference=" + timedifference + " ";
+			sql += "where objid='" + objid + "';";
+
+			Map data = new HashMap();
+			data.put("type", "update");
+			data.put("sql", sql);
+			
+			sqlParams.add( data );
+			
+//			sb.append( sql );
+		}
+		
+		if (sqlParams.size() > 0) {
+			SQLiteDatabase paymentdb = ApplicationDatabase.getPaymentWritableDB();
+			try {
+				paymentdb.beginTransaction();
+				ApplicationDBUtil.executeSQL( paymentdb, sqlParams );
+				paymentdb.setTransactionSuccessful();
+			} catch (Exception e) {
+				throw e;
+			} finally {
+				paymentdb.endTransaction();
+			}
+		}
+		
+	}
+	
+
+//	private static void resolvePaymentTimedifference(SQLTransaction paymentdb, long timedifference) throws Exception {
+//		DBPaymentService paymentSvc = new DBPaymentService();
+//		paymentSvc.setDBContext(paymentdb.getContext());
+//		paymentSvc.setCloseable(false);
 //		
-		println("resolve timedifference");
-		
-        synchronized (PaymentDB.LOCK) {
-        	SQLTransaction paymentdb = new SQLTransaction("clfcpayment.db");
-        	try {
-        		paymentdb.beginTransaction();
-        		resolvePaymentTimedifference(paymentdb, timedifference);
-        		paymentdb.commit();
-        	} catch (Exception e) {
-        		e.printStackTrace();
-        	} finally {
-        		paymentdb.endTransaction();
-        	}
-        }
-        
-        synchronized (CaptureDB.LOCK) {
-        	SQLTransaction capturedb = new SQLTransaction("clfccapture.db");
-        	try {
-        		capturedb.beginTransaction();
-        		resolveCapturePaymentTimedifference(capturedb, timedifference);
-        		capturedb.commit();
-        	} catch (Exception e) {
-        		e.printStackTrace();
-        	} finally {
-        		capturedb.endTransaction();
-        	}
-        	
-        }
-	}
+//		Calendar cal = Calendar.getInstance();
+//		
+//		Map params = new HashMap();
+//		params.put("forupload", 0);
+//		List<Map> list = paymentSvc.getPaymentsByForupload(params);
+//		for (Map m : list) {
+//			long xtimedifference = 0L;
+//			if (m.containsKey("timedifference")) {
+//				xtimedifference = Long.parseLong(m.get("timedifference").toString());
+//			}
+//			
+//			long timemillis = cal.getTimeInMillis();
+//			if (m.containsKey("dtsaved")) {
+//				cal.setTime(java.sql.Timestamp.valueOf(m.get("dtsaved").toString()));
+//				timemillis = cal.getTimeInMillis();
+//			}
+//			
+//			long newtimemillis = timemillis + xtimedifference;
+//			newtimemillis -= timedifference;
+//			
+//			Timestamp timestamp = new Timestamp(newtimemillis);
+//			String sql = "UPDATE payment SET dtsaved='" + timestamp.toString() + "', timedifference=" + timedifference + " WHERE objid='" + m.get("objid").toString() + "'";
+//			paymentdb.execute(sql);
+////			m.put("timedifference", timedifference);
+//			
+////			m = paymentdb.find("SELECT * FROM payment WHERE objid='" + m.get("objid").toString() + "'");
+////			println("pyt data2 " + m);
+//		}
+//	}
 	
-
-	private static void resolvePaymentTimedifference(SQLTransaction paymentdb, long timedifference) throws Exception {
-		DBPaymentService paymentSvc = new DBPaymentService();
-		paymentSvc.setDBContext(paymentdb.getContext());
-		paymentSvc.setCloseable(false);
+	private static void resolveCapturePaymentTimeDifference( long timedifference ) throws Exception {
+		List<Map> sqlParams = new ArrayList<Map>();
 		
 		Calendar cal = Calendar.getInstance();
 		
 		Map params = new HashMap();
 		params.put("forupload", 0);
-		List<Map> list = paymentSvc.getPaymentsByForupload(params);
+
+		List<Map> list = capturepaymentdb.getPaymentsByForupload( params );
 		for (Map m : list) {
+			String objid = MapProxy.getString( m, "objid" );
+			
 			long xtimedifference = 0L;
 			if (m.containsKey("timedifference")) {
 				xtimedifference = Long.parseLong(m.get("timedifference").toString());
@@ -665,51 +856,71 @@ public final class ApplicationUtil
 			newtimemillis -= timedifference;
 			
 			Timestamp timestamp = new Timestamp(newtimemillis);
-			String sql = "UPDATE payment SET dtsaved='" + timestamp.toString() + "', timedifference=" + timedifference + " WHERE objid='" + m.get("objid").toString() + "'";
-			paymentdb.execute(sql);
-//			m.put("timedifference", timedifference);
 			
-//			m = paymentdb.find("SELECT * FROM payment WHERE objid='" + m.get("objid").toString() + "'");
-//			println("pyt data2 " + m);
+			String sql = "update capture_payment ";
+			sql += "set dtsaved='" + timestamp.toString() + "',";
+			sql += "timedifference=" + timedifference + " ";
+			sql += "where objid='" + objid + "';";
+			
+			Map data = new HashMap();
+			data.put("type", "update");
+			data.put("sql", sql);
+			
+			sqlParams.add( data );
+			
+//			sb.append( sql );
+		}
+		
+		if (sqlParams.size() > 0) {
+			SQLiteDatabase capturedb = ApplicationDatabase.getCaptureWritableDB();
+			try {
+				capturedb.beginTransaction();
+				ApplicationDBUtil.executeSQL( capturedb, sqlParams );
+				capturedb.setTransactionSuccessful();
+			} catch (Exception e) {
+				throw e;
+			} finally {
+				capturedb.endTransaction();
+			}
 		}
 	}
 	
-	private static void resolveCapturePaymentTimedifference(SQLTransaction capturedb, long timedifference) throws Exception {
-		DBCapturePayment captureSvc = new DBCapturePayment();
-		captureSvc.setDBContext(capturedb.getContext());
-		captureSvc.setCloseable(false);
-
-		Calendar cal = Calendar.getInstance();
-		
-		Map params = new HashMap();
-		params.put("forupload", 0);
-		List<Map> list = captureSvc.getPaymentsByForupload(params);
-		for (Map m : list) {
-			long xtimedifference = 0L;
-			if (m.containsKey("timedifference")) {
-				xtimedifference = Long.parseLong(m.get("timedifference").toString());
-			}
-			
-			long timemillis = cal.getTimeInMillis();
-			if (m.containsKey("dtsaved")) {
-				cal.setTime(java.sql.Timestamp.valueOf(m.get("dtsaved").toString()));
-				timemillis = cal.getTimeInMillis();
-			}
-			
-			long newtimemillis = timemillis + xtimedifference;
-			newtimemillis -= timedifference;
-			
-			Timestamp timestamp = new Timestamp(newtimemillis);
-			String sql = "UPDATE capture_payment SET dtsaved='" + timestamp.toString() + "', timedifference=" + timedifference + " WHERE objid='" + m.get("objid").toString() + "'";
-			capturedb.execute(sql);
-			
-			
-//			println("cp data " + m);
-//			m = capturedb.find("SELECT * FROM capture_payment WHERE objid='" + m.get("objid").toString() + "'");
-//			println("cp data2 " + m);
-			//m.put("timedifference", timedifference);
-		}
-	}
+//	private static void resolveCapturePaymentTimedifference(SQLTransaction capturedb, long timedifference) throws Exception {
+//		DBCapturePayment captureSvc = new DBCapturePayment();
+//		captureSvc.setDBContext(capturedb.getContext());
+//		captureSvc.setCloseable(false);
+//
+//		Calendar cal = Calendar.getInstance();
+//		
+//		Map params = new HashMap();
+//		params.put("forupload", 0);
+//		List<Map> list = captureSvc.getPaymentsByForupload(params);
+//		for (Map m : list) {
+//			long xtimedifference = 0L;
+//			if (m.containsKey("timedifference")) {
+//				xtimedifference = Long.parseLong(m.get("timedifference").toString());
+//			}
+//			
+//			long timemillis = cal.getTimeInMillis();
+//			if (m.containsKey("dtsaved")) {
+//				cal.setTime(java.sql.Timestamp.valueOf(m.get("dtsaved").toString()));
+//				timemillis = cal.getTimeInMillis();
+//			}
+//			
+//			long newtimemillis = timemillis + xtimedifference;
+//			newtimemillis -= timedifference;
+//			
+//			Timestamp timestamp = new Timestamp(newtimemillis);
+//			String sql = "UPDATE capture_payment SET dtsaved='" + timestamp.toString() + "', timedifference=" + timedifference + " WHERE objid='" + m.get("objid").toString() + "'";
+//			capturedb.execute(sql);
+//			
+//			
+////			println("cp data " + m);
+////			m = capturedb.find("SELECT * FROM capture_payment WHERE objid='" + m.get("objid").toString() + "'");
+////			println("cp data2 " + m);
+//			//m.put("timedifference", timedifference);
+//		}
+//	}
 	
 
 	void showUserInfoDialog(Context context) {

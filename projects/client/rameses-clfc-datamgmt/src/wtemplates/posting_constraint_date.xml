@@ -1,0 +1,7 @@
+<workunit>
+    <code class='com.rameses.clfc.ui.DateHandlerController' />
+    
+    <pages>
+        <page template='com.rameses.clfc.ui.DateHandlerPage' />
+    </pages>
+</workunit>

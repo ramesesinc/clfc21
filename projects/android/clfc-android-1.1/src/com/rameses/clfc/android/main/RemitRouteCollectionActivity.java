@@ -1,12 +1,12 @@
 package com.rameses.clfc.android.main;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -16,14 +16,15 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.rameses.clfc.android.ApplicationDatabase;
 import com.rameses.clfc.android.ApplicationUtil;
 import com.rameses.clfc.android.ControlActivity;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCSPayment;
-import com.rameses.clfc.android.db.DBCollectionGroup;
+import com.rameses.clfc.android.db.CSPaymentDB;
+import com.rameses.clfc.android.db.CollectionGroupDB;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIDialog;
-import com.rameses.db.android.DBContext;
+import com.rameses.client.interfaces.UserProfile;
 import com.rameses.db.android.SQLTransaction;
 import com.rameses.util.MapProxy;
 
@@ -37,8 +38,8 @@ public class RemitRouteCollectionActivity extends ControlActivity
 //	private List<Map> routes;
 //	private List<Map> followups;
 //	private List<Map> specials;
-	private SQLTransaction txn;
-	private DBCollectionGroup colGroup = new DBCollectionGroup();
+//	private SQLTransaction txn;
+//	private DBCollectionGroup colGroup = new DBCollectionGroup();
 //	private DBRouteService routeSvc = new DBRouteService();
 //	private ListView lv_routes;
 //	private LinearLayout ll_routes;
@@ -53,6 +54,9 @@ public class RemitRouteCollectionActivity extends ControlActivity
 //	private int listSize;
 //	private Map item;
 //	private Map route;
+	
+	private CollectionGroupDB collectiongroupdb = new CollectionGroupDB();
+	private CSPaymentDB cspaymentdb = new CSPaymentDB();
 	
 	@Override
 	protected void onCreateProcess(Bundle savedInstanceState) {
@@ -91,7 +95,33 @@ public class RemitRouteCollectionActivity extends ControlActivity
 	
 	public void loadRoutes() {
 		getHandler().post(new Runnable() {
+			
 			public void run() {
+				try {
+					runImpl();
+				} catch (Throwable t) {
+					t.printStackTrace();
+					UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+				}
+			}
+			
+			private void runImpl() throws Exception {
+				UserProfile profile = SessionContext.getProfile();
+				String collectorid = (profile != null? profile.getUserId() : "");
+				
+				List<Map> list = collectiongroupdb.getCollectionGroupsByCollector( collectorid, "route" );
+				if (list != null) {
+					if (list.size() > 0) {
+						rl_routes.setVisibility(View.VISIBLE);	
+					}
+					LinearLayout layout = (LinearLayout) findViewById(R.id.ll_routes);
+					populate( list, layout );
+				}	
+				
+			}
+			
+			/*
+			public void xrun() {
 				List<Map> list = new ArrayList<Map>();
 //				synchronized (MainDB.LOCK) {
 					DBContext ctx = new DBContext("clfc.db");
@@ -116,12 +146,38 @@ public class RemitRouteCollectionActivity extends ControlActivity
 					populate(list, layout);
 				}				
 			}
+			*/
 		});
 	}	
 	 
 	public void loadFollowups() {
 		getHandler().post(new Runnable() {
+			
 			public void run() {
+				try {
+					runImpl();
+				} catch (Throwable t) {
+					t.printStackTrace();
+					UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+				}
+			}
+			
+			private void runImpl() throws Exception {
+				UserProfile profile = SessionContext.getProfile();
+				String collectorid = (profile != null? profile.getUserId() : "");
+				
+				List<Map> list = collectiongroupdb.getCollectionGroupsByCollector( collectorid, "followup" );
+				if (list != null) {
+					if (list.size() > 0) {
+						rl_followups.setVisibility(View.VISIBLE);	
+					}
+					LinearLayout layout = (LinearLayout) findViewById(R.id.ll_followups);
+					populate( list, layout );
+				}	
+			}
+			
+			/*
+			public void xrun() {
 				List<Map> list = new ArrayList<Map>();
 //				synchronized (MainDB.LOCK) {
 					DBContext ctx = new DBContext("clfc.db");
@@ -146,12 +202,39 @@ public class RemitRouteCollectionActivity extends ControlActivity
 					populate(list, layout);
 				}				
 			}
+			*/
 		});
 	}	
 	
 	public void loadSpecials() {
 		getHandler().post(new Runnable() {
+			
 			public void run() {
+				try {
+					runImpl();
+				} catch (Throwable t) {
+					t.printStackTrace();
+					UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+				}
+			}
+			
+			private void runImpl() throws Exception {
+				UserProfile profile = SessionContext.getProfile();
+				String collectorid = (profile != null? profile.getUserId() : "");
+				
+				List<Map> list = collectiongroupdb.getCollectionGroupsByCollector( collectorid, "special" );
+				
+				if (list != null) {
+					if (list.size() > 0) {
+						rl_specials.setVisibility(View.VISIBLE);
+					}
+					LinearLayout layout = (LinearLayout) findViewById(R.id.ll_specials);
+					populate( list, layout );
+				}	
+			}
+			
+			/*
+			public void xrun() {
 				List<Map> list = new ArrayList<Map>();
 //				synchronized (MainDB.LOCK) {
 					DBContext ctx = new DBContext("clfc.db");
@@ -176,6 +259,7 @@ public class RemitRouteCollectionActivity extends ControlActivity
 					populate(list, layout);
 				}				
 			}
+			*/
 		});
 	}
 	
@@ -282,7 +366,20 @@ public class RemitRouteCollectionActivity extends ControlActivity
 	}
 	
 	private View.OnClickListener cancelOnClickListener = new View.OnClickListener() {
-		public void onClick(View view) {
+		
+		public void onClick( View view ) {
+			try {
+				onClickImpl( view );
+			} catch (Throwable t) {
+				UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+			}
+
+			loadRoutes();
+			loadSpecials();
+			loadFollowups();
+		}
+		/*
+		public void xonClick(View view) {
 			println("cancel button");
 
 			try {
@@ -315,10 +412,45 @@ public class RemitRouteCollectionActivity extends ControlActivity
 				loadFollowups();
 			}
 		}
+		*/
+		private void onClickImpl( View view ) throws Exception {
+			String objid = "";
+			Object obj = view.getTag( OBJID );
+			if (obj != null) {
+				objid = obj.toString();
+			}
+			
+			SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+			try {
+				appdb.beginTransaction();
+				
+				String sql = "update collection_group ";
+				sql += "set cbsno=null ";
+				sql += "where objid='" + objid + "';";
+				
+				appdb.execSQL( sql );
+				
+				appdb.setTransactionSuccessful();
+			} catch (Exception e) {
+				throw e;
+			} finally {
+				appdb.endTransaction();
+			}
+		}
 	};
 	
 	private View.OnClickListener retryOnClickListener = new View.OnClickListener() {
-		public void onClick(View view) {
+		
+		public void onClick( View view ) {
+			try {
+				onClickImpl( view );
+			} catch (Throwable t) {
+				t.printStackTrace();
+				UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+			}
+		}
+		/*
+		public void xonClick(View view) {
 			String objid = "";
 			Object obj = view.getTag(OBJID);
 			if (obj != null) {
@@ -400,11 +532,162 @@ public class RemitRouteCollectionActivity extends ControlActivity
 			item.put("haspayment", flag);
 			remit(item);
 		}
+		*/
+		private void onClickImpl( View view ) throws Exception {
+			String objid = "";
+			Object obj = view.getTag( OBJID );
+			if (obj != null) {
+				objid = obj.toString();
+			}
+			
+			Map item = collectiongroupdb.findCollectionGroup( objid );			
+			if (item == null) item = new HashMap();
+
+			boolean flag = ApplicationUtil.checkUnposted( objid );			
+			if (flag == true) {
+				throw new RuntimeException("Cannot remit. There are still unposted transactions for this billing.");
+			}
+			
+			flag = ApplicationUtil.checkUnpostedCapture();						
+			if (flag == true) {
+				throw new RuntimeException("Cannot remit. There are still pending captured payment(s).");
+			}
+			
+			flag = ApplicationUtil.checkPendingVoidRequests( objid );			
+			if (flag == true) {
+				throw new RuntimeException("Cannot remit. There are still pending void request(s) for this billing.");
+			}
+			
+			item.put("haspayment", cspaymentdb.hasPaymentByItemid( objid ));
+			remit( item );
+		}
 	};
 	
 	private View.OnClickListener collectionOnClickListener = new View.OnClickListener() {
+		
+		public void onClick( View view ) {
+			view.setBackgroundResource(android.R.drawable.list_selector_background);
+			
+			try {
+				onClickImpl( view );
+			} catch (Throwable t) {
+				UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+			}
+		}
+		
+		private void onClickImpl( View view ) throws Exception {
+			String objid = "";
+			Object obj = view.getTag( OBJID_KEY );
+			if (obj != null) {
+				objid = obj.toString();
+			}
+			
+			Map item = collectiongroupdb.findCollectionGroup( objid );
+			String state = MapProxy.getString( item, "state" );
+			if ("REMITTED".equals( state )) return;
+			
+			String itemid = "";
+			if (item.containsKey("objid")) {
+				itemid = MapProxy.getString(item, "objid");
+			}
+
+			boolean flag = ApplicationUtil.checkUnposted( itemid );			
+			if (flag == true) {
+				throw new RuntimeException("Cannot remit. There are still unposted transactions for this billing.");
+//				ApplicationUtil.showShortMsg("Cannot remit. There are still unposted transactions for this billing.");
+//				return;
+			}
+			
+			flag = ApplicationUtil.checkUnpostedCapture();
+			if (flag == true) {
+				throw new RuntimeException("Cannot remit. There are still pending captured payment(s).");
+//				ApplicationUtil.showShortMsg("Cannot remit. There are still pending captured payment(s).");
+//				return;
+			}
+			
+			flag = ApplicationUtil.checkPendingVoidRequests( itemid );						
+			if (flag == true) {
+				throw new RuntimeException("Cannot remit. There are still pending void request(s) for this billing.");
+//				ApplicationUtil.showShortMsg("Cannot remit. There are still pending void request(s) for this billing.");
+//				return;
+			}
+			
+			final Map collection = item;
+			UIDialog dialog = new UIDialog(RemitRouteCollectionActivity.this) {
+				
+				public void onApprove() {
+					try {
+						onApproveImpl();
+					} catch (Throwable t) {
+						t.printStackTrace();
+						UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+					}
+				}
+				
+				private void onApproveImpl() throws Exception {
+					String objid = MapProxy.getString( collection, "objid" );
+					
+					collection.put("haspayment", cspaymentdb.hasPaymentByItemid( objid ));
+					
+					UIDialog dialog = new UIDialog(RemitRouteCollectionActivity.this) {
+						public boolean onApprove(Object value) {
+							if (value == null) {
+								ApplicationUtil.showShortMsg("CBS no. is required.");
+								return false;
+							}
+							collection.put("cbsno", value.toString());
+							saveCbsno(collection);
+							remit(collection);
+							return true;
+//								System.out.println("value " + value);
+						}
+					};
+								
+					dialog.input(null, "Enter CBS No.");
+				}
+				/*
+				public void xonApprove() {
+
+					boolean flag = false;
+					DBContext ctx = new DBContext("clfc.db");
+					DBCSPayment cspayment = new DBCSPayment();
+					cspayment.setDBContext(ctx);
+					try {
+						flag = cspayment.hasPaymentByItemid(collection.get("objid").toString());
+					} catch (Throwable t) {
+						t.printStackTrace();
+						UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+						return;
+					}
+
+					collection.put("haspayment", flag);
+					UIDialog dialog = new UIDialog(RemitRouteCollectionActivity.this) {
+						public boolean onApprove(Object value) {
+							if (value == null) {
+								ApplicationUtil.showShortMsg("CBS no. is required.");
+								return false;
+							}
+							collection.put("cbsno", value.toString());
+							saveCbsno(collection);
+							remit(collection);
+							return true;
+//								System.out.println("value " + value);
+						}
+//							public void onApprove() {
+//								remit(collection);
+//							}
+					};
+								
+					dialog.input(null, "Enter CBS No.");
+				}
+				*/
+			};			
+			dialog.confirm("You are about to remit this collection. Continue?");
+		}
+		
+		/*
 		@Override
-		public void onClick(View view) {
+		public void xonClick(View view) {
 			// TODO Auto-generated method stub
 			view.setBackgroundResource(android.R.drawable.list_selector_background);
 //			view.setPadding(5, 0, 0, 0);
@@ -557,6 +840,7 @@ public class RemitRouteCollectionActivity extends ControlActivity
 //				dialog.confirm("You are about to remit collections for this route. Continue?");
 //			}
 		}
+		*/
 	};
 //	
 	private View.OnLongClickListener collectionOnLongClickListener = new View.OnLongClickListener() {
@@ -578,26 +862,51 @@ public class RemitRouteCollectionActivity extends ControlActivity
 		((RelativeLayout) child).addView(overlay);
 	}
 	
-	private void saveCbsno(Map collection) {
-		SQLTransaction maindb = new SQLTransaction("clfc.db");
+	private void saveCbsno( Map collection ) {
+		
+		String objid = MapProxy.getString( collection, "objid" );
+		String cbsno = MapProxy.getString( collection, "cbsno" );
+		
+		SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
 		try {
-			maindb.beginTransaction();
+			appdb.beginTransaction();
 			
-			String cbsno = MapProxy.getString(collection, "cbsno");
-			String objid = MapProxy.getString(collection, "objid");
-			String sql = "UPDATE collection_group SET cbsno = '" + cbsno + "' WHERE objid = '" + objid + "'";
-			maindb.execute(sql);
+			String sql = "update collection_group ";
+			sql += "set cbsno='" + cbsno + "' ";
+			sql += "where objid='" + objid + "';";
 			
-			maindb.commit();
+			appdb.execSQL( sql );
+			
+			appdb.setTransactionSuccessful();
 		} catch (Throwable t) {
 			t.printStackTrace();
 			UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
 		} finally {
-			maindb.endTransaction();
-			loadRoutes();
-			loadSpecials();
-			loadFollowups();
+			appdb.endTransaction();
 		}
+		loadRoutes();
+		loadSpecials();
+		loadFollowups();
+		
+//		SQLTransaction maindb = new SQLTransaction("clfc.db");
+//		try {
+//			maindb.beginTransaction();
+//			
+//			String cbsno = MapProxy.getString(collection, "cbsno");
+//			String objid = MapProxy.getString(collection, "objid");
+//			String sql = "UPDATE collection_group SET cbsno = '" + cbsno + "' WHERE objid = '" + objid + "'";
+//			maindb.execute(sql);
+//			
+//			maindb.commit();
+//		} catch (Throwable t) {
+//			t.printStackTrace();
+//			UIDialog.showMessage(t, RemitRouteCollectionActivity.this);
+//		} finally {
+//			maindb.endTransaction();
+//			loadRoutes();
+//			loadSpecials();
+//			loadFollowups();
+//		}
 	}
 	
 	private void remit(Map collection) {

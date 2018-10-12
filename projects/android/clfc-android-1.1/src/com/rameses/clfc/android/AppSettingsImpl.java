@@ -19,7 +19,7 @@ public class AppSettingsImpl extends AppSettings
 	protected void afterSave(Map data) {
 		ApplicationImpl app = (ApplicationImpl) Platform.getApplication();
 		if (app != null) {
-			app.locationTrackerSvc.restart();
+//			app.locationTrackerSvc.restart();
 //			app.paymentSvc.restart();
 //			app.broadcastLocationSvc.restart();
 //			app.remarksRemovedSvc.restart();

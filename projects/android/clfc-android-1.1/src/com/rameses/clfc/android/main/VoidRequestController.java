@@ -1,11 +1,15 @@
 package com.rameses.clfc.android.main;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -15,16 +19,16 @@ import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.rameses.clfc.android.ApplicationImpl;
+import com.rameses.clfc.android.ApplicationDatabase;
 import com.rameses.clfc.android.ApplicationUtil;
-import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.VoidRequestDB;
+import com.rameses.clfc.android.db.ApplicationDBUtil;
+import com.rameses.clfc.android.db.CSVoidDB;
+import com.rameses.clfc.android.db.VoidServiceDB;
 import com.rameses.clfc.android.services.LoanPostingService;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.UIActionBarActivity;
 import com.rameses.client.android.UIDialog;
-import com.rameses.db.android.SQLTransaction;
 import com.rameses.util.MapProxy;
 
 public class VoidRequestController 
@@ -37,6 +41,9 @@ public class VoidRequestController
 //	private Fragment fragment;
 	private LayoutInflater inflater;
 	private AlertDialog dialog;
+	
+	private VoidServiceDB voidservicedb = new VoidServiceDB();
+	private CSVoidDB csvoiddb = new CSVoidDB();
 	
 	VoidRequestController(UIActionBarActivity activity, ProgressDialog progressDialog, Map params, AlertDialog dialog) {
 		this.activity = activity;
@@ -108,126 +115,240 @@ public class VoidRequestController
 			}
 		}
 		
-		private void saveVoidRequest(Message msg) throws Exception {
-			SQLTransaction txn = new SQLTransaction("clfcrequest.db");
-			SQLTransaction clfcdb = new SQLTransaction("clfc.db");
-			try {
-				String sql = "";
-				txn.beginTransaction();
-				clfcdb.beginTransaction();
+		private void saveVoidRequest( Message msg ) throws Exception {
+			
+			List<Map> appSqlParams = new ArrayList<Map>();
+			List<Map> voidRequestSqlParams = new ArrayList<Map>();
+			
+			Map xdata = new HashMap();
+			
+//			StringBuilder appdbsb = new StringBuilder();
+//			StringBuilder voidrequestdbsb = new StringBuilder();
+			
+			MapProxy proxy = new MapProxy( params );
+			
+			String objid = proxy.getString("objid");
+			
+			Map request = voidservicedb.findVoidRequestById( objid );
+			if (request == null || request.isEmpty()) {
+				Map data = new HashMap();
+				data.put("objid", objid);
+				data.put("state", proxy.getString("state"));
+				data.put("csid", proxy.getString("csid"));
+				data.put("paymentid", proxy.getString("paymentid"));
+				data.put("itemid", proxy.getString("itemid"));
+				data.put("txndate", proxy.getString("txndate"));
+				data.put("reason", proxy.getString("reason"));
+				
+				Map collector = (Map) proxy.get("collector");
+				data.put("collector_objid", MapProxy.getString(collector, "objid"));
+				data.put("collector_name", MapProxy.getString(collector, "name"));
+				
+				request = data;
+				
+				String sql = ApplicationDBUtil.createInsertSQLStatement("void_request", data);
 
-				MapProxy proxy = new MapProxy(params);
+				xdata = new HashMap();
+				xdata.put("type", "insert");
+				xdata.put("sql", sql);
 				
-				String objid = proxy.getString("objid");
+				voidRequestSqlParams.add( xdata );
 				
-				Map prm = new HashMap();
-				synchronized (VoidRequestDB.LOCK) {
-					sql = "SELECT objid FROM void_request WHERE objid=?";
-					prm = txn.find(sql, new Object[]{objid});
+//				voidrequestdbsb.append( sql );
+				
+				SQLiteDatabase voidrequestdb = ApplicationDatabase.getVoidRequestWritableDB();
+				try {
+					voidrequestdb.beginTransaction();
+					ApplicationDBUtil.executeSQL( voidrequestdb, voidRequestSqlParams );
+//					voidrequestdb.execSQL( voidrequestdbsb.toString() );
+					voidrequestdb.setTransactionSuccessful();
+				} catch (Exception e) {
+					throw e;
+				} finally {
+					voidrequestdb.endTransaction();
 				}
-				
-				if (prm == null || prm.isEmpty()) {
-					prm = new HashMap();
-					prm.put("objid", objid);
-					prm.put("state", proxy.getString("state"));
-					prm.put("csid", proxy.getString("csid"));
-					prm.put("paymentid", proxy.getString("paymentid"));
-					prm.put("itemid", proxy.getString("itemid"));
-					prm.put("txndate", proxy.getString("txndate"));
-					prm.put("reason", proxy.getString("reason"));
-					
-					Map collector = (Map) proxy.get("collector");
-					prm.put("collector_objid", MapProxy.getString(collector, "objid"));
-					prm.put("collector_name", MapProxy.getString(collector, "name"));
-
-					synchronized (VoidRequestDB.LOCK) {
-						txn.insert("void_request", prm);
-					} 
-				}
-				
-//				prm.put("collector_objid", collector.get("objid").toString());
-//				prm.put("collector_name", collector.get("name").toString());
-//				Map mParams = new HashMap();
-//				mParams.put("objid", params.get("objid").toString());
-//				mParams.put("state", params.get("state").toString());
-//				mParams.put("csid", params.get("csid").toString());
-//				mParams.put("paymentid", params.get("paymentid").toString());
-//				mParams.put("itemid", params.get("itemid").toString());
-//				mParams.put("collector_, value)
-//				mParams.put("reason", params.get("reason").toString());
-//				
-//				Map map = (Map) params.get("collector");
-//				mParams.put("collectorid", map.get("objid").toString());
-//				mParams.put("collectorname", map.get("name").toString());
-				
-				
-				Map prm2 = new HashMap();
-				
-				synchronized (MainDB.LOCK) {
-					sql = "SELECT objid FROM void_request WHERE objid=?";
-					prm2 = clfcdb.find(sql, new Object[]{objid});
-				}
-				
-				if (prm2 == null || prm2.isEmpty()) {
-					prm2 = new HashMap();
-					prm2.put("objid", objid);
-					prm2.put("state", MapProxy.getString(prm, "state"));
-					prm2.put("csid", MapProxy.getString(prm, "csid"));
-					prm2.put("paymentid", MapProxy.getString(prm, "paymentid"));
-					prm2.put("itemid", MapProxy.getString(prm, "itemid"));
-					prm2.put("collector_objid", MapProxy.getString(prm, "collector_objid"));
-					synchronized (MainDB.LOCK) {
-						clfcdb.insert("void_request", prm2);
-					}
-				}
-
-				if (view != null) {
-					View overlay = inflater.inflate(R.layout.overlay_void_text, null);
-
-					RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
-					layoutParams.addRule(RelativeLayout.CENTER_VERTICAL, 1);
-					((TextView) overlay).setTextColor(activity.getResources().getColor(R.color.red));
-					((TextView) overlay).setText("VOID REQUEST PENDING");
-					overlay.setLayoutParams(layoutParams);
-					((RelativeLayout) view).addView(overlay);
-					view.setClickable(false);
-					view.setOnClickListener(null);
-					view.setOnLongClickListener(null);
-				}
-				
-//				String index = "";
-//				Object obj = view.getTag(PaymentsAdapter.INDEX);
-//				if (obj != null) {
-//					index = obj.toString();
-//				}
-//				
-//				println("index " + index);
-//				
-//				String paymentid = "";
-//				obj = view.getTag(R.id.paymentid);
-//				if (obj != null) {
-//					paymentid = obj.toString();
-//				}
-//				println("paymentid " + paymentid);
-				
-				
-				if (dialog.isShowing()) dialog.dismiss();
-				activity.getHandler().post(new Runnable() {
-					public void run() {
-						((ApplicationImpl) Platform.getApplication()).voidRequestSvc.start();						
-					}
-				});
-				
-				txn.commit();
-				clfcdb.commit();
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
-			} finally {
-				txn.endTransaction();
-				clfcdb.endTransaction();
 			}
+			
+			Map request2 = csvoiddb.findVoidRequestById( objid );
+			if (request2 == null || request2.isEmpty()) {
+				Map data = new HashMap();
+				data.put("objid", objid);
+				data.put("state", MapProxy.getString(request, "state"));
+				data.put("csid", MapProxy.getString(request, "csid"));
+				data.put("paymentid", MapProxy.getString(request, "paymentid"));
+				data.put("itemid", MapProxy.getString(request, "itemid"));
+				data.put("collector_objid", MapProxy.getString(request, "collector_objid"));
+				
+				request2 = data;
+				String sql = ApplicationDBUtil.createInsertSQLStatement("void_request", data);
+				
+				xdata = new HashMap();
+				xdata.put("type", "insert");
+				xdata.put("sql", sql);
+				
+				appSqlParams.add( xdata );
+				
+//				appdbsb.append( sql );
+				
+				println("app sql params-> " + appSqlParams);
+				
+				SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+				try {
+					appdb.beginTransaction();
+					ApplicationDBUtil.executeSQL( appdb, appSqlParams );
+//					appdb.execSQL( appdbsb.toString() );
+					appdb.setTransactionSuccessful();
+				} catch (Exception e) {
+					throw e;
+				} finally {
+					appdb.endTransaction();
+				}
+			}
+			
+			if (view != null) {
+				View overlay = inflater.inflate(R.layout.overlay_void_text, null);
+
+				RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+				layoutParams.addRule(RelativeLayout.CENTER_VERTICAL, 1);
+				((TextView) overlay).setTextColor(activity.getResources().getColor(R.color.red));
+				((TextView) overlay).setText("VOID REQUEST PENDING");
+				overlay.setLayoutParams(layoutParams);
+				((RelativeLayout) view).addView(overlay);
+				view.setClickable(false);
+				view.setOnClickListener(null);
+				view.setOnLongClickListener(null);
+			}
+			
+			if (dialog.isShowing()) dialog.dismiss();
+			activity.getHandler().post(new Runnable() {
+				public void run() {
+//					((ApplicationImpl) Platform.getApplication()).voidRequestSvc.start();
+					activity.sendBroadcast(new Intent("rameses.clfc.VOID_REQUEST_START_SERVICE"));
+				}
+			});
 		}
+		
+		
+//		private void xsaveVoidRequest(Message msg) throws Exception {
+//			SQLTransaction txn = new SQLTransaction("clfcrequest.db");
+//			SQLTransaction clfcdb = new SQLTransaction("clfc.db");
+//			try {
+//				String sql = "";
+//				txn.beginTransaction();
+//				clfcdb.beginTransaction();
+//
+//				MapProxy proxy = new MapProxy(params);
+//				
+//				String objid = proxy.getString("objid");
+//				
+//				Map prm = new HashMap();
+//				synchronized (VoidRequestDB.LOCK) {
+//					sql = "SELECT objid FROM void_request WHERE objid=?";
+//					prm = txn.find(sql, new Object[]{objid});
+//				}
+//				
+//				if (prm == null || prm.isEmpty()) {
+//					prm = new HashMap();
+//					prm.put("objid", objid);
+//					prm.put("state", proxy.getString("state"));
+//					prm.put("csid", proxy.getString("csid"));
+//					prm.put("paymentid", proxy.getString("paymentid"));
+//					prm.put("itemid", proxy.getString("itemid"));
+//					prm.put("txndate", proxy.getString("txndate"));
+//					prm.put("reason", proxy.getString("reason"));
+//					
+//					Map collector = (Map) proxy.get("collector");
+//					prm.put("collector_objid", MapProxy.getString(collector, "objid"));
+//					prm.put("collector_name", MapProxy.getString(collector, "name"));
+//
+//					synchronized (VoidRequestDB.LOCK) {
+//						txn.insert("void_request", prm);
+//					} 
+//				}
+//				
+////				prm.put("collector_objid", collector.get("objid").toString());
+////				prm.put("collector_name", collector.get("name").toString());
+////				Map mParams = new HashMap();
+////				mParams.put("objid", params.get("objid").toString());
+////				mParams.put("state", params.get("state").toString());
+////				mParams.put("csid", params.get("csid").toString());
+////				mParams.put("paymentid", params.get("paymentid").toString());
+////				mParams.put("itemid", params.get("itemid").toString());
+////				mParams.put("collector_, value)
+////				mParams.put("reason", params.get("reason").toString());
+////				
+////				Map map = (Map) params.get("collector");
+////				mParams.put("collectorid", map.get("objid").toString());
+////				mParams.put("collectorname", map.get("name").toString());
+//				
+//				
+//				Map prm2 = new HashMap();
+//				
+//				synchronized (MainDB.LOCK) {
+//					sql = "SELECT objid FROM void_request WHERE objid=?";
+//					prm2 = clfcdb.find(sql, new Object[]{objid});
+//				}
+//				
+//				if (prm2 == null || prm2.isEmpty()) {
+//					prm2 = new HashMap();
+//					prm2.put("objid", objid);
+//					prm2.put("state", MapProxy.getString(prm, "state"));
+//					prm2.put("csid", MapProxy.getString(prm, "csid"));
+//					prm2.put("paymentid", MapProxy.getString(prm, "paymentid"));
+//					prm2.put("itemid", MapProxy.getString(prm, "itemid"));
+//					prm2.put("collector_objid", MapProxy.getString(prm, "collector_objid"));
+//					synchronized (MainDB.LOCK) {
+//						clfcdb.insert("void_request", prm2);
+//					}
+//				}
+//
+//				if (view != null) {
+//					View overlay = inflater.inflate(R.layout.overlay_void_text, null);
+//
+//					RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+//					layoutParams.addRule(RelativeLayout.CENTER_VERTICAL, 1);
+//					((TextView) overlay).setTextColor(activity.getResources().getColor(R.color.red));
+//					((TextView) overlay).setText("VOID REQUEST PENDING");
+//					overlay.setLayoutParams(layoutParams);
+//					((RelativeLayout) view).addView(overlay);
+//					view.setClickable(false);
+//					view.setOnClickListener(null);
+//					view.setOnLongClickListener(null);
+//				}
+//				
+////				String index = "";
+////				Object obj = view.getTag(PaymentsAdapter.INDEX);
+////				if (obj != null) {
+////					index = obj.toString();
+////				}
+////				
+////				println("index " + index);
+////				
+////				String paymentid = "";
+////				obj = view.getTag(R.id.paymentid);
+////				if (obj != null) {
+////					paymentid = obj.toString();
+////				}
+////				println("paymentid " + paymentid);
+//				
+//				
+//				if (dialog.isShowing()) dialog.dismiss();
+//				activity.getHandler().post(new Runnable() {
+//					public void run() {
+//						((ApplicationImpl) Platform.getApplication()).voidRequestSvc.start();						
+//					}
+//				});
+//				
+//				txn.commit();
+//				clfcdb.commit();
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//				throw e;
+//			} finally {
+//				txn.endTransaction();
+//				clfcdb.endTransaction();
+//			}
+//		}
 	};	
 	
 	private class VoidRequestActionProcess implements Runnable {

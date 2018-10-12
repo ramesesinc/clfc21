@@ -43,7 +43,7 @@ class OtherReceiptController {
     }
     
     def getCollectorList() {
-        def list = service.getCollectorList([txndate: txndate]);
+        def list = service.getCollectorList( [txndate: txndate] );
         if (!list) list = [];
         return list;
     }
@@ -57,7 +57,7 @@ class OtherReceiptController {
     
     def getCollectionList() {
         def params = [txndate: txndate, collectorid: collector?.objid];
-        def list = service.getCollectionList(params);
+        def list = service.getCollectionList( params );
         if (!list) list = [];
         return list;
     }
@@ -81,12 +81,16 @@ class OtherReceiptController {
     }
     
     def next() {
-        entity = service.getOtherReceiptInformation(collection);
+        entity = service.getOtherReceiptInformation( collection );
         if (!entity) entity = [:];
         
+        totalcollection = entity.totalcollection;
+        if (!totalcollection) totalacollection = 0;
+        /*
         def list = entity?.payments?.findAll{ it.state != 'VOIDED' }
         totalcollection = list?.amount?.sum();
         if (!totalcollection) totalcollection = 0;
+        */
         
         listHandler?.reload();
         mode = 'read';
@@ -114,17 +118,27 @@ class OtherReceiptController {
     }
     
     def getTotalcash() {
+        def amt = entity.totalcash;
+        if (!amt) amt = 0;
+        return amt;
+        /*
         def list = entity?.payments?.findAll{ it.payoption == 'cash' && it.state != 'VOIDED' };
         def amt = list?.amount?.sum();
         if (!amt) amt = 0;
         return amt;
+        */
     }
     
     def getTotalnoncash() {
+        def amt = entity.totalnoncash;
+        if (!amt) amt = 0;
+        return amt;
+        /*
         def list = entity?.payments?.findAll{ it.payoption == 'check' && it.state != 'VOIDED' };
         def amt = list?.amount?.sum();
         if (!amt) amt = 0;
         return amt;
+        */
     }
     
     def getCashbreakdown() {
@@ -145,7 +159,7 @@ class OtherReceiptController {
     void remitCollection() {
         if (!MsgBox.confirm('You are about to remit this collection. You cannot void any payment(s) after remitting. Continue?')) return;
         
-        entity = service.remitCollection(entity);
+        entity = service.remitCollection( entity );
     }
     
     def getTotalbreakdown() {
@@ -176,7 +190,7 @@ class OtherReceiptController {
     }
     
     void saveBreakdown() {
-        entity.cashbreakdown = service.saveBreakdown(entity.cashbreakdown);
+        entity.cashbreakdown = service.saveBreakdown( entity.cashbreakdown );
         
         mode = 'read';
     }
@@ -184,21 +198,24 @@ class OtherReceiptController {
     def postCollection() {
         if (!MsgBox.confirm('You about to post this collection. Continue?')) return;
         
-        service.postCollection(entity);
+        service.postCollection( entity );
         MsgBox.alert('Successfully posted collection!');
         action = 'default';
         return 'default';
     }
     
     void reloadPayments() {
-        entity = service.getOtherReceiptInformation(entity);
-        println 'has cash ' + entity.hascash;
+        entity = service.getOtherReceiptInformation( entity );
         //entity.payments = service.getPayments(entity);
         listHandler?.reload();
         
+        totalcollection = entity.totalcollection;
+        if (!totalcollection) totalcollection = 0;
+        /*
         def list = entity?.payments?.findAll{ it.state != 'VOIDED' }
         totalcollection = list?.amount?.sum();
         if (!totalcollection) totalcollection = 0;
+        */
         binding?.refresh();
     }
     
@@ -219,6 +236,19 @@ class OtherReceiptController {
         ];
         
         def op = Inv.lookupOpener(invtype, params);
+        if (!op) return null;
+        return op;
+    }
+    
+    void submitCbsForVerification() {
+        if (!MsgBox.confirm("You are about to submit CBS for this collection for verification. Continue?")) return;
+        
+        entity.cashbreakdown = service.submitCbsForVerification( entity );
+        reloadPayments()
+    }
+        
+    def viewCbsSendbackRemarks() {
+        def op = Inv.lookupOpener('remarks:open', [title: 'Reason for Send Back', remarks: entity.cashbreakdown.sendbackremarks])
         if (!op) return null;
         return op;
     }

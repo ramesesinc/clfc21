@@ -1902,9 +1902,11 @@ containing a value of this type.
         public static final int clfcrequestdb_upgrade=0x7f05000b;
         public static final int clfcspecialcollectiondb_create=0x7f05000c;
         public static final int clfcspecialcollectiondb_upgrade=0x7f05000d;
-        public static final int clfctrackerdb_create=0x7f05000e;
-        public static final int clfctrackerdb_upgrade=0x7f05000f;
-        public static final int services=0x7f050010;
+        public static final int clfcstatusdb_create=0x7f05000e;
+        public static final int clfcstatusdb_upgrade=0x7f05000f;
+        public static final int clfctrackerdb_create=0x7f050010;
+        public static final int clfctrackerdb_upgrade=0x7f050011;
+        public static final int services=0x7f050012;
     }
     public static final class styleable {
         /**  ============================================ 

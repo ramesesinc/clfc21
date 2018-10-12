@@ -20,6 +20,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -35,25 +36,23 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.rameses.clfc.android.AppSettingsImpl;
+import com.rameses.clfc.android.ApplicationDatabase;
 import com.rameses.clfc.android.ApplicationImpl;
 import com.rameses.clfc.android.ApplicationUtil;
 import com.rameses.clfc.android.ControlActivity;
-import com.rameses.clfc.android.MainDB;
-import com.rameses.clfc.android.PaymentDB;
 import com.rameses.clfc.android.R;
 import com.rameses.clfc.android.ReceiptWriter;
 import com.rameses.clfc.android.TextFormatter;
-import com.rameses.clfc.android.db.DBBankService;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBPaymentService;
+import com.rameses.clfc.android.db.ApplicationDBUtil;
+import com.rameses.clfc.android.db.BankDB;
+import com.rameses.clfc.android.db.CollectionSheetDB;
+import com.rameses.clfc.android.db.PaymentServiceDB;
 import com.rameses.client.android.AppSettings;
 import com.rameses.client.android.NetworkLocationProvider;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIAction;
 import com.rameses.client.android.UIDialog;
-import com.rameses.db.android.DBContext;
-import com.rameses.db.android.SQLTransaction;
 import com.rameses.util.MapProxy;
 
 public class PaymentActivity extends ControlActivity 
@@ -72,16 +71,16 @@ public class PaymentActivity extends ControlActivity
 	private BigDecimal amountdue = new BigDecimal("0").setScale(2);
 	private BigDecimal dailydue = new BigDecimal("0").setScale(2);
 	private BigDecimal totaldue = new BigDecimal("0").setScale(2);
-	private double lng = 0.0, lat = 0.0;
+//	private double lng = 0.0, lat = 0.0;
 	
 	private RelativeLayout rl_overpayment, rl_container, rl_check;
 	
 	private LayoutInflater inflater;
-	private SQLTransaction paymentdb;
-	private DBCollectionSheet colSheetSvc = new DBCollectionSheet();
-	private DBPaymentService paymentSvc = new DBPaymentService();
-	private Location location;
-	private String message;	
+//	private SQLTransaction paymentdb;
+//	private DBCollectionSheet colSheetSvc = new DBCollectionSheet();
+//	private DBPaymentService paymentSvc = new DBPaymentService();
+//	private Location location;
+//	private String message;	
 	
 	private String itemid, txndate, option = "cash";
 	private Spinner optionSpinner, bankSpinner;
@@ -99,7 +98,11 @@ public class PaymentActivity extends ControlActivity
     private BluetoothAdapter btAdapter;
     private BluetoothSocket btSocket;
     private OutputStream btOut;
-	
+    
+    private BankDB bankdb = new BankDB();
+    private CollectionSheetDB collectionsheetdb = new CollectionSheetDB();
+	private PaymentServiceDB paymentservicedb = new PaymentServiceDB();
+    
 	@Override
 	protected void onCreateProcess(Bundle savedInstanceState) {
 		super.onCreateProcess(savedInstanceState);
@@ -161,18 +164,25 @@ public class PaymentActivity extends ControlActivity
 			}
 		});
 		
+		bankSrc = new ArrayList<Map>();
+		try {
+			bankSrc = bankdb.getBanks();
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		
 //		synchronized (MainDB.LOCK) {
-			DBContext ctx = new DBContext("clfc.db");
-			DBBankService bankSvc = new DBBankService();
-			bankSvc.setDBContext(ctx);
-			bankSvc.setCloseable(false);
-			try {
-				bankSrc = bankSvc.getBanks();
-			} catch (Throwable t) {
-				t.printStackTrace();
-			} finally {
-				ctx.close();
-			}
+//			DBContext ctx = new DBContext("clfc.db");
+//			DBBankService bankSvc = new DBBankService();
+//			bankSvc.setDBContext(ctx);
+//			bankSvc.setCloseable(false);
+//			try {
+//				bankSrc = bankSvc.getBanks();
+//			} catch (Throwable t) {
+//				t.printStackTrace();
+//			} finally {
+//				ctx.close();
+//			}
 //		} 
 		
 		if (bankSrc != null && !bankSrc.isEmpty()) {
@@ -244,15 +254,23 @@ public class PaymentActivity extends ControlActivity
 		Intent intent = getIntent();	
 		itemid = intent.getStringExtra("itemid");
 		if (itemid != null) {
+			try {
+				Map data = collectionsheetdb.findCollectionSheet( itemid );
+				collectionSheet = new MapProxy( data );
+			} catch (Throwable t) {
+				t.printStackTrace();
+				UIDialog.showMessage(t, PaymentActivity.this);
+			}
+			
 //			synchronized (MainDB.LOCK) {
-				ctx = new DBContext("clfc.db");
-				colSheetSvc.setDBContext(ctx);
-				try {
-					collectionSheet = new MapProxy(colSheetSvc.findCollectionSheet(itemid));
-				} catch (Throwable t) {
-					t.printStackTrace();
-					UIDialog.showMessage(t, PaymentActivity.this);
-				}
+//				ctx = new DBContext("clfc.db");
+//				colSheetSvc.setDBContext(ctx);
+//				try {
+//					collectionSheet = new MapProxy(colSheetSvc.findCollectionSheet(itemid));
+//				} catch (Throwable t) {
+//					t.printStackTrace();
+//					UIDialog.showMessage(t, PaymentActivity.this);
+//				}
 //			}
 		}
 		
@@ -273,19 +291,31 @@ public class PaymentActivity extends ControlActivity
 			
 			totaldue = dailydue.multiply(new BigDecimal(totaldays + "").setScale(2)).setScale(2, BigDecimal.ROUND_HALF_UP);
 //			synchronized (PaymentDB.LOCK) {
-				ctx = new DBContext("clfcpayment.db");
-				paymentSvc.setDBContext(ctx);
-				paymentSvc.setCloseable(false);
+			
+			if (itemid != null) {
 				try {
-					if (paymentSvc.hasPayments(itemid)) {
-						refno += paymentSvc.noOfPayments(itemid);
+					boolean flag = paymentservicedb.hasPayments( itemid );
+					if (flag == true) {
+						refno += paymentservicedb.noOfPayments( itemid );
 					}
 				} catch (Throwable t) {
 					t.printStackTrace();
 					UIDialog.showMessage(t, PaymentActivity.this);
-				} finally {
-					ctx.close();
-				}
+				}	
+			}
+//				ctx = new DBContext("clfcpayment.db");
+//				paymentSvc.setDBContext(ctx);
+//				paymentSvc.setCloseable(false);
+//				try {
+//					if (paymentSvc.hasPayments(itemid)) {
+//						refno += paymentSvc.noOfPayments(itemid);
+//					}
+//				} catch (Throwable t) {
+//					t.printStackTrace();
+//					UIDialog.showMessage(t, PaymentActivity.this);
+//				} finally {
+//					ctx.close();
+//				}
 //			}
 		}
 		et_amount.setText(defaultAmount.toString());
@@ -442,7 +472,7 @@ public class PaymentActivity extends ControlActivity
 				onApproveImpl();
 			}
 		};
-		message = amt.toString();
+		String message = amt.toString();
 //		message = "Amount Paid: "+amt.toString();
 //		if (type.equals("over") && isfirstbill == 1) message += "\nOverpayment: "+amt2.toString();
 //		message += "\n\nEnsure that all information are correct. Continue?";
@@ -456,46 +486,250 @@ public class PaymentActivity extends ControlActivity
 	
 	private void onApproveImpl() {
 		getHandler().post(new Runnable() {
+			
 			public void run() {
-				paymentdb = new SQLTransaction("clfcpayment.db");
-				SQLTransaction clfcdb = new SQLTransaction("clfc.db");
 				try {
-					paymentdb.beginTransaction();
-					clfcdb.beginTransaction();
-					
-					runImpl(paymentdb, clfcdb);
-					
-					paymentdb.commit();
-					clfcdb.commit();
-					
-//					app.paymentSvc.start();
-					app.paymentDateResolverSvc.start();
+					runImpl();
+					sendBroadcast(new Intent("rameses.clfc.PAYMENT_START_SERVICE"));
 					finish();
 				} catch (Throwable t) {
 					t.printStackTrace();
-					UIDialog.showMessage(t, PaymentActivity.this); 
-				} finally {
-					paymentdb.endTransaction();
-					clfcdb.endTransaction();
+					UIDialog.showMessage(t, PaymentActivity.this);
 				}
 			}
 			
-			private void runImpl(SQLTransaction paymentdb, SQLTransaction clfcdb) throws Exception {
-				String trackerid = settings.getTrackerid();
-//				synchronized (PaymentDB.LOCK) {
-				execPayment(paymentdb, clfcdb, trackerid);
+//			public void xrun() {
+//				paymentdb = new SQLTransaction("clfcpayment.db");
+//				SQLTransaction clfcdb = new SQLTransaction("clfc.db");
+//				try {
+//					paymentdb.beginTransaction();
+//					clfcdb.beginTransaction();
+//					
+//					runImpl(paymentdb, clfcdb);
+//					
+//					paymentdb.commit();
+//					clfcdb.commit();
+//					
+////					app.paymentSvc.start();
+//					app.paymentDateResolverSvc.start();
+//					finish();
+//				} catch (Throwable t) {
+//					t.printStackTrace();
+//					UIDialog.showMessage(t, PaymentActivity.this); 
+//				} finally {
+//					paymentdb.endTransaction();
+//					clfcdb.endTransaction();
 //				}
+//			}
+			
+			private void runImpl() throws Exception {
+				String trackerid = settings.getTrackerid();
+				executePayment( trackerid );
 				
 				if (isfirstbill == 1) {
-					synchronized (MainDB.LOCK) {
-						Map params = new HashMap();
-						params.put("objid", collectionSheet.getString("objid"));
-						params.put("isfirstbill", 0);
-						params.put("paymentmethod", type);
-						String sql = "UPDATE collectionsheet SET isfirstbill = $P{isfirstbill}, paymentmethod = $P{paymentmethod} WHERE objid = $P{objid}";
-						clfcdb.execute(sql, params);
+					SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+					try {
+						appdb.beginTransaction();
 						
+						String sql = "update collectionsheet ";
+						sql += "set isfirstbill=0, ";
+						sql += "paymentmethod='" + type + "' ";
+						sql += "where objid='" + objid + "';";
+						
+						appdb.execSQL( sql );
+						
+						appdb.setTransactionSuccessful();
+					} catch (Exception e) {
+						throw e;
+					} finally {
+						appdb.endTransaction();
 					}
+					
+					
+//					synchronized (MainDB.LOCK) {
+//						Map params = new HashMap();
+//						params.put("objid", collectionSheet.getString("objid"));
+//						params.put("isfirstbill", 0);
+//						params.put("paymentmethod", type);
+//						String sql = "UPDATE collectionsheet SET isfirstbill = $P{isfirstbill}, paymentmethod = $P{paymentmethod} WHERE objid = $P{objid}";
+//						clfcdb.execute(sql, params);
+//						
+//					}
+				}
+			}
+			
+//			private void xrunImpl(SQLTransaction paymentdb, SQLTransaction clfcdb) throws Exception {
+//				String trackerid = settings.getTrackerid();
+////				synchronized (PaymentDB.LOCK) {
+//				execPayment(paymentdb, clfcdb, trackerid);
+////				}
+//				
+//				if (isfirstbill == 1) {
+//					synchronized (MainDB.LOCK) {
+//						Map params = new HashMap();
+//						params.put("objid", collectionSheet.getString("objid"));
+//						params.put("isfirstbill", 0);
+//						params.put("paymentmethod", type);
+//						String sql = "UPDATE collectionsheet SET isfirstbill = $P{isfirstbill}, paymentmethod = $P{paymentmethod} WHERE objid = $P{objid}";
+//						clfcdb.execute(sql, params);
+//						
+//					}
+//				}
+//			}
+			
+			private void executePayment( String trackerid ) throws Exception {
+				
+//				StringBuilder appdbsb = new StringBuilder();
+//				StringBuilder paymentdbsb = new StringBuilder();
+				List<Map> appSqlParams = new ArrayList<Map>();
+				List<Map> paymentSqlParams = new ArrayList<Map>();
+				
+				Map data = new HashMap();
+				
+								
+				String lng = "0", lat = "0";
+				Location location = NetworkLocationProvider.getLocation();
+				if (location != null) {
+					lng = location.getLongitude() + "";
+					lat = location.getLatitude() + "";
+				}
+
+				Date date = Platform.getApplication().getServerDate();
+				String parentid = collectionSheet.getString("objid");
+								
+				Map params = new HashMap();
+				params.put("objid", objid);
+				params.put("parentid", parentid);
+				params.put("state", "PENDING");
+				params.put("itemid", collectionSheet.getString("itemid"));
+				params.put("billingid", collectionSheet.getString("billingid"));
+				params.put("trackerid", trackerid);
+				params.put("collector_objid", SessionContext.getProfile().getUserId());
+				params.put("collector_name", SessionContext.getProfile().getFullName());
+				params.put("borrower_objid", collectionSheet.getString("borrower_objid"));
+				params.put("borrower_name", collectionSheet.getString("borrower_name"));
+				params.put("loanapp_objid", collectionSheet.getString("loanapp_objid"));
+				params.put("loanapp_appno", collectionSheet.getString("loanapp_appno"));
+				params.put("routecode", collectionSheet.getString("routecode"));
+				params.put("refno", refno);
+				params.put("txndate", date.toString());
+				params.put("paytype", type);
+				params.put("payoption", option);
+				params.put("amount", new BigDecimal(et_amount.getText().toString()));
+				params.put("paidby", et_paidby.getText().toString());
+				params.put("isfirstbill", isfirstbill);
+				params.put("lng", lng);
+				params.put("lat", lat);
+				params.put("type", collectionSheet.getString("type"));
+				params.put("overpaymentamount", 0);
+				if ("over".equals(type)) {
+					overpayment = new BigDecimal(et_overpayment.getText().toString()).setScale(2);
+					params.put("overpaymentamount", overpayment);
+					collectionSheet.put("overpaymentamount", overpayment);
+					
+					String sql = "update collectionsheet set overpaymentamount=" + overpayment + " where objid='" + parentid + "';";
+					
+					data = new HashMap();
+					data.put("type", "update");
+					data.put("sql", sql);
+					
+					appSqlParams.add( data );
+					
+//					appdbsb.append( sql );
+				}
+				
+				if ("check".equals(option)) {
+					params.put("bank_objid", bank.get("objid").toString());
+					params.put("bank_name", bank.get("name").toString());
+					params.put("check_no", et_checkno.getText().toString());
+					params.put("check_date", java.sql.Date.valueOf(et_checkdate.getText().toString()));
+				}		
+								
+				params.put("forupload", 0);
+				Calendar cal = Calendar.getInstance();
+				
+				Date phonedate = new Timestamp(cal.getTimeInMillis());
+				params.put("dtsaved", phonedate.toString());
+				
+				AppSettings settings = Platform.getApplication().getAppSettings();
+				Map map = settings.getAll();
+				
+				long timedifference = 0L;
+				if (map.containsKey("timedifference")) {
+					timedifference = settings.getLong("timedifference");
+				}
+				params.put("timedifference", timedifference);
+				
+				String paymentdbsql = ApplicationDBUtil.createInsertSQLStatement("payment", params);
+				
+				data = new HashMap();
+				data.put("type", "insert");
+				data.put("sql", paymentdbsql);
+				
+				paymentSqlParams.add( data );
+				
+//				paymentdbsb.append( paymentdbsql );
+								
+				String posttype = "Schedule";
+				BigDecimal amountpaid = new BigDecimal(params.get("amount").toString()).setScale(2);
+				if (amountpaid.compareTo(totaldue) > 0) {
+					posttype = "Overpayment";
+				} else if (amountpaid.compareTo(totaldue) < 0) {
+					posttype = "Underpayment";
+				}
+				
+				Map prm = new HashMap();
+				prm.put("objid", params.get("objid").toString());
+				prm.put("parentid", params.get("parentid").toString());
+				prm.put("itemid", params.get("itemid").toString());
+				prm.put("billingid", params.get("billingid").toString());
+				prm.put("txndate", params.get("txndate").toString());
+				prm.put("refno", params.get("refno").toString());
+				prm.put("posttype", posttype);
+				prm.put("paytype", params.get("paytype").toString());
+				prm.put("payoption", params.get("payoption").toString());
+				prm.put("amount", params.get("amount").toString());
+				prm.put("paidby", params.get("paidby").toString());
+				prm.put("collector_objid", params.get("collector_objid").toString());
+				
+				if ("check".equals(option)) {		
+					prm.put("bank_objid", params.get("bank_objid").toString());
+					prm.put("bank_name", params.get("bank_name").toString());
+					prm.put("check_no", params.get("check_no").toString());
+					prm.put("check_date", params.get("check_date").toString());
+				}
+				
+				String appdbsql = ApplicationDBUtil.createInsertSQLStatement("payment", prm);
+				
+				data = new HashMap();
+				data.put("type", "insert");
+				data.put("sql", appdbsql);
+				
+				appSqlParams.add( data );
+				
+//				appdbsb.append( appdbsql );
+
+				SQLiteDatabase paymentdb = ApplicationDatabase.getPaymentWritableDB();
+				SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+				try {
+					paymentdb.beginTransaction();
+					if (paymentSqlParams.size() > 0) {
+						ApplicationDBUtil.executeSQL( paymentdb, paymentSqlParams );
+					}
+					
+					appdb.beginTransaction();
+					if (appSqlParams.size() > 0) {
+						ApplicationDBUtil.executeSQL( appdb, appSqlParams );
+					}
+
+					appdb.setTransactionSuccessful();
+					paymentdb.setTransactionSuccessful();
+					
+				} catch (Exception e) {
+					throw e;
+				} finally {
+					paymentdb.endTransaction();
+					appdb.endTransaction();
 				}
 			}
 
@@ -624,6 +858,7 @@ public class PaymentActivity extends ControlActivity
 //					throw new RuntimeException("stopping");
 //				}
 			}
+			/*
 			private void execPayment(SQLTransaction paymentdb, SQLTransaction clfcdb, String trackerid) throws Exception {
 				
 				location = NetworkLocationProvider.getLocation();
@@ -670,14 +905,14 @@ public class PaymentActivity extends ControlActivity
 					params.put("overpaymentamount", overpayment);
 					collectionSheet.put("overpaymentamount", overpayment);
 					synchronized (MainDB.LOCK) {
-						/*DBCollectionSheet dbCollectionSheet = new DBCollectionSheet();
-						dbCollectionSheet.setDBContext(clfcdb.getContext());
-						dbCollectionSheet.setCloseable(false);
-						Map prm = new HashMap();
-						prm.put("objid", collectionSheet.getString("objid"));
-						prm.put("amount", overpayment);
-						clfcdb.update("collectionsheet", "objid='"+c, params)
-						dbCollectionSheet.updateOverpaymentamountById(prm);*/
+//						DBCollectionSheet dbCollectionSheet = new DBCollectionSheet();
+//						dbCollectionSheet.setDBContext(clfcdb.getContext());
+//						dbCollectionSheet.setCloseable(false);
+//						Map prm = new HashMap();
+//						prm.put("objid", collectionSheet.getString("objid"));
+//						prm.put("amount", overpayment);
+//						clfcdb.update("collectionsheet", "objid='"+c, params)
+//						dbCollectionSheet.updateOverpaymentamountById(prm);
 						Map prm = new HashMap();
 						prm.put("overpaymentamount", overpayment);
 						clfcdb.update("collectionsheet", "objid='" + collectionSheet.getString("objid") + "'", prm);
@@ -762,7 +997,7 @@ public class PaymentActivity extends ControlActivity
 //					throw e;
 //				}
 			}
-			
+			*/
 		});
 	}		
 }

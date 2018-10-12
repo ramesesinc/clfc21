@@ -8,7 +8,7 @@ import java.rmi.server.UID;
 
 class ProductTypeController {
 
-    @Caller
+    @Caller 
     def caller;
     
     @Binding
@@ -18,8 +18,11 @@ class ProductTypeController {
     def service;
     
     def entity, mode = "read";
+    def preventity;
+    /*
     def preventity, prevgenattr, prevloanattr;
-    def prevloanfields, prevpostingheader, prevpostingseq;
+    def prevloaninfo, prevpostinginfo;
+    */
     
     void create() {
         entity = createEntity();
@@ -28,7 +31,7 @@ class ProductTypeController {
     }
     
     void open() {
-        entity = service.open(entity);
+        entity = service.open( entity );
         mode = "read";
         binding?.refresh();
     }
@@ -37,7 +40,7 @@ class ProductTypeController {
         def defaultgenattr = service.getDefaultGeneralInfoAttributes();
         def defaultloanattr = service.getDefaultLoanInfoAttributes();
         def data = [
-            code        : 'PT' + new UID().toString().hashCode(),
+            code        : 'PT' + new UID(),
             txnstate    : "DRAFT", 
             generalinfo : [
                 title       : "GENERALINFO",
@@ -57,7 +60,39 @@ class ProductTypeController {
         return data;
     }
     
+    def copyMap( src ) {
+        def data = [:];
+        
+        src?.each{ k, v->
+            if (v instanceof Map) {
+                data[k] = copyMap( v );
+            } else if (v instanceof List) {
+                data[k] = copyList( v );
+            } else {
+                data[k] = v;
+            }
+        }
+        
+        return data;
+    }
+    
     def copyList( src ) {
+        def list = [];
+        
+        src?.each{
+            if (it instanceof Map) {
+                list << copyMap( it );
+            } else if (it instanceof List) {
+                list << copyList( it );
+            } else {
+                list << it;
+            }
+        }
+        
+        return list;
+    }
+    
+    def xcopyList( src ) {
         def list = [];
         src?.each{ o->
             def d = [:];
@@ -113,9 +148,9 @@ class ProductTypeController {
         if (res.haserror == true) throw new Exception(res.msg);
         
         if (mode == "create") {
-            entity = service.createData(entity);
+            entity = service.createData( entity );
         } else if (mode == "edit") {
-            entity = service.updateData(entity);
+            entity = service.updateData( entity );
         }
         
         mode = "read";
@@ -135,24 +170,41 @@ class ProductTypeController {
     def cancel() {
         if (mode == "edit") {
             
-            entity = preventity;
+            if (preventity) {
+                entity = preventity;
+            }
             
+            /*
             if (entity.generalinfo) {
                 entity.generalinfo.attributes = prevgenattr;
                 entity.generalinfo._addedattr = [];
                 entity.generalinfo._removedattr = [];
             }
             
+            if (prevloaninfo) {
+                entity.loaninfo = prevloaninfo;
+            }
+            */
+            /*
             if (entity.loaninfo) {
                 entity.loaninfo.attributes = prevloanattr;
+                entity.loaninfo.fields = prevloanfields;
                 entity.loaninfo._addedattr = [];
                 entity.loaninfo._removedattr = [];
             }
-            
+            */
+            /*
+            if (prevpostinginfo) {
+                entity.postinginfo = prevpostinginfo;
+            }
+            */
+            /*
             if (entity.postinginfo) {
+                
                 entity.postinginfo.postingheader = prevpostingheader;
                 entity.postinginfo.postingsequence = prevpostingseq;
             }
+            */
             
             mode = "read";
             
@@ -164,14 +216,27 @@ class ProductTypeController {
     void edit() {
         preventity = [:];
         if (entity) {
-            preventity = entity;
+            preventity = copyMap( entity );
+        }
+        
+        /*
+        prevloaninfo = [:];
+        if (entity.loaninfo) {
+            prevloaninfo = copyMap( entity.loaninfo );
+        }
+        
+        prevpostinginfo = [:];
+        if (entity.postinginfo) {
+            prevpostinginfo = copyMap( entity.postinginfo );
         }
         
         prevgenattr = [];
         if (entity.generalinfo?.attributes) {
             prevgenattr = copyList(entity.generalinfo.attributes);
         }
+        */
         
+        /*
         prevloanattr = [];
         if (entity.loaninfo.attributes) {
             prevloanattr = copyList(entity.loaninfo.attributes);
@@ -181,7 +246,9 @@ class ProductTypeController {
         if (entity.loaninfo?.fields) {
             prevloanfields = copyList(entity.loaninfo.fields);
         }
+        */
         
+        /*
         prevpostingheader = [];
         if (entity.postinginfo?.postingheader) {
             prevpostingheader = copyList(entity.postinginfo.postingheader)
@@ -191,6 +258,7 @@ class ProductTypeController {
         if (entity.postinginfo.postingsequence) {
             prevpostingseq = copyList(entity.postinginfo.postingsequence);
         }
+        */
         
         mode = "edit";
         binding?.refresh();
@@ -198,7 +266,7 @@ class ProductTypeController {
     
     
     void activate() {
-        entity = service.activate(entity);
+        entity = service.activate( entity );
         EventQueue.invokeLater({    
             binding?.refresh();
             caller?.reload();
@@ -206,7 +274,7 @@ class ProductTypeController {
     }
     
     void deactivate() {
-        entity = service.deactivate(entity);
+        entity = service.deactivate( entity );
         EventQueue.invokeLater({    
             binding?.refresh();
             caller?.reload();
@@ -214,7 +282,7 @@ class ProductTypeController {
     }
     
     void testExpression() {
-        service.testExpression(entity);
+        service.testExpression( entity );
     }
     
 }

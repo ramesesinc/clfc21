@@ -1,7 +1,7 @@
 package com.rameses.clfc.android.main;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,14 +12,15 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBNoteService;
+import com.rameses.clfc.android.db.NoteServiceDB;
 import com.rameses.client.android.UIDialog;
-import com.rameses.db.android.DBContext;
 
 public class NotesFragment extends Fragment {
 
 	private Handler handler = new Handler();
 	private ListView listview;
+	
+	private NoteServiceDB noteservicedb = new NoteServiceDB();
 	
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		View view = inflater.inflate(R.layout.fragment_listview, container, false);
@@ -44,7 +45,25 @@ public class NotesFragment extends Fragment {
 		final String objid = args.getString("objid");
 		
 		handler.post(new Runnable() {
+			
 			public void run() {
+				try {
+					
+				} catch (Throwable t) {
+					t.printStackTrace();
+					UIDialog.showMessage(t, ((CollectionSheetInfoMainActivity) getActivity()));
+				}
+				
+			}
+			
+			private void runImpl() throws Exception {
+				List<Map> list = noteservicedb.getNotes( objid );
+				
+				listview.setAdapter(new NotesAdapter(getActivity(), list));
+			}
+			
+			/*
+			public void xrun() {
 				DBContext ctx = new DBContext("clfc.db");
 				
 				DBNoteService noteSvc = new DBNoteService();
@@ -64,6 +83,7 @@ public class NotesFragment extends Fragment {
 				
 				listview.setAdapter(new NotesAdapter(getActivity(), list));
 			}
+			*/
 		});
 	}
 	

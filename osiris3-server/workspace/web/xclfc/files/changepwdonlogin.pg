@@ -1,5 +1,0 @@
-{
-	fragment	: true,
-	title		: 'Change Password',
-	secured		: true 
-} 

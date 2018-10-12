@@ -1,11 +1,12 @@
 package com.rameses.clfc.android.main;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -15,24 +16,26 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import com.rameses.clfc.android.ApplicationDatabase;
 import com.rameses.clfc.android.ApplicationUtil;
-import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.RemarksDB;
-import com.rameses.clfc.android.RemarksRemovedDB;
-import com.rameses.clfc.android.db.DBCSRemarks;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBFollowupRemarks;
-import com.rameses.clfc.android.db.DBRemarksService;
+import com.rameses.clfc.android.db.ApplicationDBUtil;
+import com.rameses.clfc.android.db.CSRemarksDB;
+import com.rameses.clfc.android.db.CollectionSheetDB;
+import com.rameses.clfc.android.db.FollowupRemarksDB;
+import com.rameses.clfc.android.db.RemarksServiceDB;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.UIDialog;
-import com.rameses.db.android.DBContext;
-import com.rameses.db.android.SQLTransaction;
 
 public class FollowupRemarksFragment extends Fragment {
 	
 	private ListView listview;
 	private Handler handler = new Handler();
+	
+	private FollowupRemarksDB followupremarksdb = new FollowupRemarksDB();
+	private CollectionSheetDB collectionsheetdb = new CollectionSheetDB();
+	private CSRemarksDB csremarksdb = new CSRemarksDB();
+	private RemarksServiceDB remarksservicedb = new RemarksServiceDB();
 
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		View view = inflater.inflate(R.layout.fragment_listview, container, false);
@@ -57,7 +60,231 @@ public class FollowupRemarksFragment extends Fragment {
 		final String objid = args.getString("objid");
 		
 		handler.post(new Runnable() {
+			
 			public void run() {
+				try {
+					runImpl();
+				} catch (Throwable t) {
+					t.printStackTrace();
+					UIDialog.showMessage(t, ((CollectionSheetInfoMainActivity) getActivity()));
+				}
+				
+			}
+			
+			private void runImpl() throws Exception {
+				List<Map> list = followupremarksdb.getRemarks( objid );
+				
+				boolean flag = false;
+				Map item = collectionsheetdb.findCollectionSheet( objid );
+				if (item != null && !item.isEmpty()) {
+					String val = "";
+					if (item.containsKey("type")) {
+						val = item.get("type").toString().toLowerCase();
+					}
+					
+					if (val.equals("followup")) {
+						flag = true;
+					}
+				}
+				
+				item = new HashMap();
+				if (flag == true) {
+					item = csremarksdb.findRemarksById( objid );
+				}
+				
+				if (item != null && !item.isEmpty()) {
+					Map map = new HashMap();
+					String date = new SimpleDateFormat("yyyy-MM-dd").format(Platform.getApplication().getServerDate());
+					map.put("txndate", date);
+					map.put("collectorname", item.get("collector_name").toString());
+					map.put("remarks", item.get("remarks").toString());
+					list.add(0, map);
+				} 
+				listview.setAdapter(new RemarksAdapter(getActivity(), list));
+				listview.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+					
+					public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+						if (position > 0) return true;
+						
+						boolean hasremarks = false;
+						try {
+							hasremarks = csremarksdb.hasRemarksById( objid );
+						} catch (Throwable t) {
+							hasremarks = false;
+						}
+						
+						if (hasremarks == false) return true;
+						
+						hasremarks = false;
+						try {
+							hasremarks = remarksservicedb.hasRemarksById( objid );
+						} catch (Throwable t) {
+							hasremarks = false;
+						}
+						if (hasremarks == false) return true;
+						
+						CharSequence[] items = {"Edit Remarks", "Remove Remarks"};
+						UIDialog dialog = new UIDialog((CollectionSheetInfoMainActivity) getActivity()) {
+							public void onSelectItem(int index) {
+								switch (index) {
+									case 0: editRemarks(); break;
+									case 1: removeRemarks(); break;
+								}
+							}
+						};
+						
+						dialog.select(items);
+						
+						return false;
+					}
+					
+					private void editRemarks() {
+						UIDialog dialog = new UIDialog((CollectionSheetInfoMainActivity) getActivity()) {
+							
+							public boolean onApprove( Object value ) {
+								if (value == null || "".equals( value.toString() )) {
+									ApplicationUtil.showShortMsg("Remarks is required.");
+									return false;
+								}
+								
+								final CollectionSheetInfoMainActivity activity = (CollectionSheetInfoMainActivity) getActivity();
+
+								try {
+									onApproveImpl( value.toString() );
+									
+									activity.getHandler().post(new Runnable() {
+										public void run() {
+											loadRemarks();
+											activity.supportInvalidateOptionsMenu();
+											activity.sendBroadcast(new Intent("rameses.clfc.REMARK_START_SERVICE"));
+//											activity.getApp().remarksSvc.start();
+										}
+									});
+								} catch (Throwable t) {
+									t.printStackTrace();
+									UIDialog.showMessage(t, activity);
+								}
+								
+								return true;
+							}
+							
+							private void onApproveImpl( String remarks ) throws Exception {
+								SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+								try {
+									appdb.beginTransaction();
+									String sql = "update remarks set remarks='" + remarks + "' where objid='" + objid + "';";
+									appdb.execSQL( sql );
+									appdb.setTransactionSuccessful();
+								} catch (Exception e) {
+									throw e;
+								} finally {
+									appdb.endTransaction();
+								}								
+								
+								SQLiteDatabase remarksdb = ApplicationDatabase.getRemarksWritableDB();
+								try {
+									remarksdb.beginTransaction();
+//									String sql = "update remarks set remarks='" + remarks + "' where objid='" + objid + "';";
+									String sql = "update remarks set remarks='" + remarks + "', state='PENDING' where objid='" + objid + "';";
+									remarksdb.execSQL( sql );
+									remarksdb.setTransactionSuccessful();
+								} catch (Exception e) {
+									throw e;
+								} finally {
+									remarksdb.endTransaction();
+								}								
+
+								ApplicationUtil.showShortMsg("Successfully updated remark.");
+							}
+						};
+						
+						Map item = new HashMap();
+						try {
+							item = csremarksdb.findRemarksById( objid );
+						} catch (Throwable t) {
+							t.printStackTrace();
+						}
+						
+						String value = "";
+						if (item != null && !item.isEmpty()) value = item.get("remarks").toString();
+						dialog.input( value );
+					}
+					
+					private void removeRemarks() {
+						final CollectionSheetInfoMainActivity activity = (CollectionSheetInfoMainActivity) getActivity();
+						
+						try {
+							removeRemarksImpl();							
+							ApplicationUtil.showShortMsg("Successfully removed remarks.");
+							activity.getHandler().post(new Runnable() {
+								public void run() {
+									loadRemarks();
+//									activity.getApp().remarksRemovedSvc.start();
+									activity.supportInvalidateOptionsMenu();
+									activity.sendBroadcast(new Intent("rameses.clfc.REMARK_REMOVED_START_SERVICE"));
+								}
+							});
+						} catch (Throwable t) {
+							t.printStackTrace();
+							 UIDialog.showMessage(t, activity);
+						}
+					}
+					
+					private void removeRemarksImpl() throws Exception {
+						SQLiteDatabase remarksdb = ApplicationDatabase.getRemarksWritableDB();
+						try {
+							remarksdb.beginTransaction();
+							
+							String sql = "delete from remarks where objid='" + objid + "';";
+							remarksdb.execSQL( sql );
+							
+							remarksdb.setTransactionSuccessful();
+						} catch (Exception e) {
+							throw e;
+						} finally {
+							remarksdb.endTransaction();
+						}
+						
+						SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+						try {
+							appdb.beginTransaction();
+							
+							String sql = "delete from remarks where objid='" + objid + "';";
+							appdb.execSQL( sql );
+							
+							appdb.setTransactionSuccessful();
+						} catch (Exception e) {
+							throw e;
+						} finally {
+							appdb.endTransaction();
+						}
+						
+						Map collectionsheet = collectionsheetdb.findCollectionSheet( objid );
+
+				 		Map params = new HashMap();
+				 		params.put("objid", objid);
+				 		params.put("billingid", collectionsheet.get("billingid").toString());
+				 		params.put("itemid", collectionsheet.get("itemid").toString());
+				 		params.put("state", "PENDING");
+				 		
+				 		String sql = ApplicationDBUtil.createInsertSQLStatement("remarks_removed", params);
+				 		
+				 		SQLiteDatabase remarksremoveddb = ApplicationDatabase.getRemarksRemovedWritableDB();
+				 		try {
+				 			remarksremoveddb.beginTransaction();
+				 			remarksremoveddb.execSQL( sql );
+				 			remarksremoveddb.setTransactionSuccessful();
+				 		} catch (Exception e) {
+				 			throw e;
+				 		} finally {
+				 			remarksremoveddb.endTransaction();
+				 		}
+					}
+				});
+			}
+			
+			/*
+			public void xrun() {
 				DBContext ctx = new DBContext("clfc.db");
 				
 				DBFollowupRemarks dbremarks = new DBFollowupRemarks();
@@ -318,6 +545,7 @@ public class FollowupRemarksFragment extends Fragment {
 				});
 				
 			}
+			*/
 		});
 	}
 	

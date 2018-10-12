@@ -5,12 +5,12 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.rameses.db.android.AbstractDB;
 
-public class TrackerDB extends AbstractDB
-{	
+public class TrackerDB extends AbstractDB {
+	
 	public final static Object LOCK = new Object();
+	
 	public TrackerDB(Context ctx, String dbname, int dbversion) {
 		super(ctx, dbname, dbversion); 
-		setDebug(true);
 		System.out.println("instantiate TrackerDB");
 	}
 
@@ -37,4 +37,5 @@ public class TrackerDB extends AbstractDB
 			throw new RuntimeException(e.getMessage(), e); 
 		}		
 	}
+	
 }

@@ -8,18 +8,8 @@ import com.rameses.osiris2.common.*;
 class NumberHandler extends ConstraintHandler {
     def varList;
 
-    void init() {
-        //if(constraint.usevar == 1 ) buildVarList();
-    }
+    void init() {}
 
-    /*
-    void buildVarList() {
-        varList = [];
-        varList = service.findAllVarsByType( [ruleid:condition.parentid, datatype:field.vardatatype, pos: condition.pos ] ).collect{  
-            [objid: it.objid, name: it.name]
-        };
-    }
-    */
 
     @PropertyChangeListener
     def listener = [
@@ -27,9 +17,7 @@ class NumberHandler extends ConstraintHandler {
             if( o == 1) {
                 constraint.intvalue = null;
                 constraint.decimalvalue = null;
-                //buildVarList();
-            }
-            else {
+            } else {
                 constraint.var = null;
             }
         }

@@ -102,7 +102,6 @@ class LoanLedgerBillingController
                     }        
 
                     entity.putAll(o);
-                    generatePDFFile();
 
                     if (entity._added) entity.remove('_added');
                     if (entity._removed) entity.remove('_removed');
@@ -114,14 +113,14 @@ class LoanLedgerBillingController
                     def msg = "Billing created successfully!";
                     if (mode == 'edit') msg = "Billing updated successfully!";
 
-                    mode = 'read';
+                    mode = 'read';                
+                    MsgBox.alert( msg );
                 
                     EventQueue.invokeLater({
                         binding?.refresh();
                         caller?.reload();
+                        generatePDFFile();
                     });
-                
-                    MsgBox.alert(msg);
 
                 },
                 onTimeout: {

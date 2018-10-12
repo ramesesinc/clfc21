@@ -115,8 +115,9 @@ abstract class AbstractFollowupCollectionController {
         mode = 'read';
         MsgBox.alert(msg);
         EventQueue.invokeLater({
-            listHandler?.reload();
-            binding?.refresh('formActions');
+             binding?.refresh();
+             listHandler?.reload();
+             caller?.reload();
         });
     }
    
@@ -155,10 +156,10 @@ abstract class AbstractFollowupCollectionController {
             if (entity._addedledger) entity.remove('_addedledger');
             if (entity._removedledger) entity.remove('_removedledger');
                 
-            mode = 'read';
+            mode = 'read';  
             EventQueue.invokeLater({
-                listHandler?.reload();
-                binding?.refresh();
+                 binding?.refresh();
+                 listHandler?.reload();
             });
         
             return null;
@@ -246,26 +247,46 @@ abstract class AbstractFollowupCollectionController {
     void resetBilling() {
         if (!MsgBox.confirm("You are about to reset this billing. Continue?")) return;
         
-        entity = service.resetBilling(entity);
+        entity = service.resetBilling( entity );
         MsgBox.alert("Resetting billing has been successfully processed.");
+        EventQueue.invokeLater({
+             binding?.refresh();
+             listHandler?.reload();
+             caller?.reload();
+        });
     }
     
     void submitForVerification() {
         if (!MsgBox.confirm("You are about to submit this document for verification. Continue?")) return;
         
-        entity = service.submitForVerification(entity);
+        entity = service.submitForVerification( entity );
+        EventQueue.invokeLater({
+             binding?.refresh();
+             listHandler?.reload();
+             caller?.reload();
+        });
     }
     
     void verify() {
         if (!MsgBox.confirm("You are about to verify this document. Continue?")) return;
         
-        entity = service.verify(entity);
+        entity = service.verify( entity );
+        EventQueue.invokeLater({
+             binding?.refresh();
+             listHandler?.reload();
+             caller?.reload();
+        });
     }
     
     void submitForApproval() {
         if (!MsgBox.confirm("You are about to submit this document for approval. Continue?")) return;
         
-        entity = service.submitForApproval(entity);
+        entity = service.submitForApproval( entity );
+        EventQueue.invokeLater({
+             binding?.refresh();
+             listHandler?.reload();
+             caller?.reload();
+        });
     }
     
     def approveDocument() {        
@@ -281,7 +302,6 @@ abstract class AbstractFollowupCollectionController {
                 return;
             }
             entity = o;
-            generatePDFFile();
             loadingOpener.handle.closeForm();
             //entity.putAll(o);
             //def msg = ;
@@ -290,7 +310,8 @@ abstract class AbstractFollowupCollectionController {
             MsgBox.alert("Follow-up collection billing created successfully!");
             EventQueue.invokeLater({
                 binding?.refresh();
-                listHandler?.reload();
+                caller?.reload();
+                generatePDFFile();
             });
         }
         
@@ -358,7 +379,7 @@ abstract class AbstractFollowupCollectionController {
             MsgBox.alert("Follow-up collection billing created successfully!");
             EventQueue.invokeLater({
                 binding?.refresh();
-                listHandler?.reload();
+                caller?.reload();
             });
         }
         
@@ -451,6 +472,10 @@ abstract class AbstractFollowupCollectionController {
         if (!MsgBox.confirm("You are about to disapprove this document. Continue?")) return;
         
         entity = service.disapprove(entity);
+        EventQueue.invokeLater({ 
+            caller?.reload();
+            binding?.refresh();
+        });
     }
     
     void generatePDFFile() {

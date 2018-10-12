@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<db>
+    <sql>
+        CREATE TABLE mobile_status (
+        	objid TEXT NOT NULL PRIMARY KEY,
+        	txndate TEXT NOT NULL,
+        	trackerid TEXT NOT NULL,
+        	collectorid TEXT NOT NULL,
+        	wifi NUMERIC NOT NULL, -- 1 or 0
+        	mobiledata NUMERIC NOT NULL, -- 1 or 0
+        	gps NUMERIC NOT NULL, -- 1 or 0
+        	network NUMERIC NOT NULL, -- 1 or 0
+        	phonestatus TEXT,
+        	lng NUMERIC NOT NULL,
+        	lat NUMERIC NOT NULL,
+        	prevlng NUMERIC NOT NULL,
+        	prevlat NUMERIC NOT NULL,
+        	forupload NUMERIC NOT NULL, -- 1 or 0
+        	timedifference NUMERIC NOT NULL,
+        	dtsaved TEXT NOT NULL,
+        	dtposted TEXT
+        )
+    </sql>
+</db>

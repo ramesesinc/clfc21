@@ -48,6 +48,8 @@ public class LoanInfoPage extends javax.swing.JPanel {
         xLabel2.setExpression("Fields");
         xLabel2.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
 
+        xDataTable1.setHandler("fieldListHandler");
+        xDataTable1.setName("selectedField"); // NOI18N
         xDataTable1.setColumns(new com.rameses.rcp.common.Column[]{
             new com.rameses.rcp.common.Column(new Object[]{
                 new Object[]{"name", "title"}
@@ -59,11 +61,13 @@ public class LoanInfoPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.NONE}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             }),
             new com.rameses.rcp.common.Column(new Object[]{
-                new Object[]{"name", "fact.varname"}
+                new Object[]{"name", "fact.title"}
                 , new Object[]{"caption", "Fact"}
                 , new Object[]{"width", 100}
                 , new Object[]{"minWidth", 0}
@@ -72,12 +76,14 @@ public class LoanInfoPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.NONE}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             }),
             new com.rameses.rcp.common.Column(new Object[]{
-                new Object[]{"name", "field.name"}
-                , new Object[]{"caption", "Field Name"}
+                new Object[]{"name", "field.title"}
+                , new Object[]{"caption", "Field"}
                 , new Object[]{"width", 100}
                 , new Object[]{"minWidth", 0}
                 , new Object[]{"maxWidth", 0}
@@ -85,22 +91,22 @@ public class LoanInfoPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.NONE}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             })
         });
-        xDataTable1.setHandler("fieldListHandler");
-        xDataTable1.setName("selectedField"); // NOI18N
 
         xButton2.setDisableWhen("${mode=='read'}");
-        xButton2.setImmediate(true);
         xButton2.setName("addField"); // NOI18N
+        xButton2.setImmediate(true);
         xButton2.setText("+");
 
         xButton3.setDepends(new String[] {"selectedField"});
         xButton3.setDisableWhen("${mode=='read'||selectedField==null}");
-        xButton3.setImmediate(true);
         xButton3.setName("removeField"); // NOI18N
+        xButton3.setImmediate(true);
         xButton3.setText("-");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);

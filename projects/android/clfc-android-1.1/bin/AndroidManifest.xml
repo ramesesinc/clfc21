@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.rameses.clfc.android"
     android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionName="1.23.20" >
 
     <uses-sdk
         android:minSdkVersion="9"
@@ -70,6 +70,29 @@
         <activity android:name="com.rameses.clfc.android.main.CapturePaymentActivity"  android:screenOrientation="portrait"/>
         <activity android:name="com.rameses.clfc.android.main.CollectionSheetInfoMainActivity"  android:screenOrientation="portrait"/>
         <activity android:name="com.rameses.clfc.android.main.CollectionSheetListActivity"  android:screenOrientation="portrait"/>
+        
+        <receiver
+            android:name="com.rameses.clfc.android.receiver.ApplicationBroadcastReceiver"
+            android:exported="true"
+            android:enabled="true" >
+            	<intent-filter>
+        			<action android:name="android.provider.Telephony.SMS_RECEIVED" />
+					<action android:name="android.intent.action.TIME_SET" />
+					<action android:name="android.intent.action.BOOT_COMPLETED" />
+					<action android:name="android.intent.action.ACTION_SHUTDOWN" />
+            	    <action android:name="rameses.clfc.START_SERVICES" />
+            	    <action android:name="rameses.clfc.STOP_SERVICES" />
+            	    <action android:name="rameses.clfc.DESTROY_SERVICES" />
+            	    <action android:name="rameses.clfc.TRACKER_START_SERVICE" />
+            	    <action android:name="rameses.clfc.TRACKER_STOP_SERVICE" />
+            	    <action android:name="rameses.clfc.PAYMENT_START_SERVICE" />
+            	    <action android:name="rameses.clfc.REMARK_START_SERVICE" />
+            	    <action android:name="rameses.clfc.CAPTURE_START_SERVICE" />
+            	    <action android:name="rameses.clfc.REMARK_REMOVED_START_SERVICE" />
+            	    <action android:name="rameses.clfc.VOID_REQUEST_START_SERVICE" />
+            	</intent-filter>
+        </receiver>
+        
 <!--         <receiver  -->
 <!--             android:exported="true"  -->
 <!--             android:name="com.rameses.clfc.android.receiver.SmsListener"> -->
@@ -85,19 +108,27 @@
 <!--             </intent-filter> -->
 <!--         </receiver> -->
         
-        <receiver
-            android:exported="true"
-            android:enabled="true"
-            android:name="com.rameses.clfc.android.receiver.PhoneStatusListener">
-            <intent-filter>
-                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="rameses.clfc.APPLICATION_START" />
-            </intent-filter>
-         </receiver>
-        <service 
-            android:name="com.rameses.clfc.android.receiver.SmsService">
-        </service>
+<!--         <receiver -->
+<!--             android:exported="true" -->
+<!--             android:enabled="true" -->
+<!--             android:name="com.rameses.clfc.android.receiver.PhoneStatusListener"> -->
+<!--             <intent-filter> -->
+<!--                 <action android:name="android.intent.action.ACTION_SHUTDOWN" /> -->
+<!--                 <action android:name="android.intent.action.BOOT_COMPLETED" /> -->
+<!--                 <action android:name="rameses.clfc.APPLICATION_START" /> -->
+<!--             </intent-filter> -->
+<!--          </receiver> -->
+
+        <service android:name="com.rameses.clfc.android.receiver.services.CancelledBillingCheckerService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.CaptureBroadcastService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.ConnectivityCheckerService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.LocationTrackerService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.MobileStatusTrackerService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.PaymentBroadcastService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.RemarksBroadcastService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.RemarksRemovedBroadcastService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.SmsService" />
+        <service android:name="com.rameses.clfc.android.receiver.services.VoidRequestBroadcastService" />
     </application>
 
 </manifest>

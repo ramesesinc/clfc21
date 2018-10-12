@@ -1,6 +1,0 @@
-{
-	title: 		'Roles',
-	context:	'rolelist',
-	fragment: 	true,
-	secured:	true
-}

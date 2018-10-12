@@ -1,7 +1,0 @@
-{
-	secured		: true, 
-	context		: 'userinfo', 
-	title		: 'User',
-	hidden  	: true,
-	options 	: {headless:false, width:500, height:500}
-}

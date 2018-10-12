@@ -14,6 +14,7 @@ left join followupcollection f on s.objid=f.objid
 where f.objid is null
 	and s.collector_objid=$P{collectorid}
 	and s.txndate=$P{date}
+	and s.txntype='ONLINE'
 order by s.dtfiled desc
 
 [getRequestList]

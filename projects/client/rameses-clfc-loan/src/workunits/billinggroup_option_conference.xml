@@ -1,6 +1,8 @@
 <workunit extends='wtemplates/BillingGroupListController.xml'>
     <invokers>
+        <!--
         <invoker type='billinggroup-option' action='init' caption='Conference Accounts' index='1' />
+        -->
     </invokers>
     
     <code>

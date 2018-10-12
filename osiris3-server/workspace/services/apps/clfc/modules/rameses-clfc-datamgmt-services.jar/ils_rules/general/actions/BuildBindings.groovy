@@ -10,8 +10,16 @@ public class BuildBindings implements RuleActionHandler {
 	public void execute(def params, def drools) {
 		def fields = params.fields;
 		def dbParams = params.dbParams;
-		def bindings = SERVICE.buildBindings( fields, dbParams );
-		params.bindings = bindings;
+		def bindings = [:];
+
+		try {
+			bindings = SERVICE.buildBindings( fields, dbParams );
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		//println 'bindings->' + bindings;
+		if (params.bindings == null) params.bindings = [:];
+		params.bindings.putAll( bindings );
 		/*
 		try {
 			SERVICE.buildConstraintExpression(params);

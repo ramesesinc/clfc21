@@ -1,7 +1,0 @@
-{
-	title: 		'Org Units',
-	context:	'orgunit-list',
-	fragment: 	true,
-	sortorder:	3,
-	secured:	true
-}

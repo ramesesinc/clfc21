@@ -48,6 +48,7 @@ public abstract class UIApplication extends Application
     private TimeTicker timeTicker;
     
     private boolean isDateSync = false;
+    private boolean isConnected = false;
     
     public UIApplication() {
         super(); 
@@ -248,7 +249,11 @@ public abstract class UIApplication extends Application
         }
     } 
     
-    protected boolean getIsConnected() { return true; }
+    public boolean getIsConnected() { return isConnected; }
+    public void setIsConnected( boolean isConnected ) {
+        this.isConnected = isConnected;
+        afterSetIsConnected( isConnected );
+    }
     
     public boolean getIsDateSync() { return isDateSync; }
     public void setIsDateSync(boolean isDateSync) {
@@ -259,6 +264,7 @@ public abstract class UIApplication extends Application
     protected long getServerTime() { return 0L; }
     
     protected void afterSetIsDateSync(boolean isDateSync) {}
+    protected void afterSetIsConnected( boolean isConnected ) {}
     
     protected void dateChanged(Date date) {}
     

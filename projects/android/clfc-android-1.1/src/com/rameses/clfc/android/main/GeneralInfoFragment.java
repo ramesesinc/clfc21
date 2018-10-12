@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.FieldPosition;
 import java.text.SimpleDateFormat;
+import java.util.Map;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -15,12 +16,10 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCSAmnesty;
-import com.rameses.clfc.android.db.DBCollectionSheet;
+import com.rameses.clfc.android.db.CSAmnestyDB;
+import com.rameses.clfc.android.db.CollectionSheetDB;
 import com.rameses.client.android.UIDialog;
-import com.rameses.db.android.DBContext;
 import com.rameses.util.MapProxy;
 
 public class GeneralInfoFragment extends Fragment {
@@ -42,6 +41,9 @@ public class GeneralInfoFragment extends Fragment {
 	private BigDecimal dailydue = new BigDecimal("0"), overpayment = new BigDecimal("0"), interest = new BigDecimal("0");
 	private BigDecimal penalty = new BigDecimal("0"), others = new BigDecimal("0");
 	private int term = 0;
+	
+	private CollectionSheetDB collectionsheetdb = new CollectionSheetDB();
+	private CSAmnestyDB csamnestydb = new CSAmnestyDB();
 	
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		View view = inflater.inflate(R.layout.fragment_generalinfo, container, false);
@@ -118,28 +120,41 @@ public class GeneralInfoFragment extends Fragment {
 				SimpleDateFormat df = new SimpleDateFormat("MMM-dd-yyyy");
 				SimpleDateFormat df2 = new SimpleDateFormat("yyyy-MM-dd");
 				
-				DBContext ctx = new DBContext("clfc.db");
-				DBCollectionSheet collectionsheetdb = new DBCollectionSheet();
-				collectionsheetdb.setDBContext(ctx);
-				collectionsheetdb.setCloseable(false);
-				
-				DBCSAmnesty amnestydb = new DBCSAmnesty();
-				amnestydb.setDBContext(ctx);
-				amnestydb.setCloseable(false);
-				synchronized (MainDB.LOCK) {
-					try {
-						collectionsheet = new MapProxy(collectionsheetdb.findCollectionSheet(objid));
-						String id = "";
-						if (collectionsheet != null && !collectionsheet.isEmpty()) id = collectionsheet.getString("objid");
-						amnesty = new MapProxy(amnestydb.findByParentid(id));
-//						runImpl(ctx);
-					} catch (Throwable t) {
-						t.printStackTrace();
-						UIDialog.showMessage(t, ((CollectionSheetInfoMainActivity) getActivity())); 
-					} finally {
-						ctx.close();
-					}
+				try {
+					Map data = collectionsheetdb.findCollectionSheet( objid );
+					collectionsheet = new MapProxy( data );
+					
+					String id = collectionsheet.getString("objid");
+					data = csamnestydb.findByParentid( id );
+					amnesty = new MapProxy( data );
+					
+				} catch (Throwable t) {
+					t.printStackTrace();
+					UIDialog.showMessage(t, ((CollectionSheetInfoMainActivity) getActivity())); 
 				}
+				
+//				DBContext ctx = new DBContext("clfc.db");
+//				DBCollectionSheet collectionsheetdb = new DBCollectionSheet();
+//				collectionsheetdb.setDBContext(ctx);
+//				collectionsheetdb.setCloseable(false);
+//				
+//				DBCSAmnesty amnestydb = new DBCSAmnesty();
+//				amnestydb.setDBContext(ctx);
+//				amnestydb.setCloseable(false);
+//				synchronized (MainDB.LOCK) {
+//					try {
+//						collectionsheet = new MapProxy(collectionsheetdb.findCollectionSheet(objid));
+//						String id = "";
+//						if (collectionsheet != null && !collectionsheet.isEmpty()) id = collectionsheet.getString("objid");
+//						amnesty = new MapProxy(amnestydb.findByParentid(id));
+////						runImpl(ctx);
+//					} catch (Throwable t) {
+//						t.printStackTrace();
+//						UIDialog.showMessage(t, ((CollectionSheetInfoMainActivity) getActivity())); 
+//					} finally {
+//						ctx.close();
+//					}
+//				}
 				
 				if (collectionsheet != null && !collectionsheet.isEmpty()) {
 					acctname = collectionsheet.getString("borrower_name");

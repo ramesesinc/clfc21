@@ -25,6 +25,8 @@ class LoanProductTypeAttributeService extends ActiveCrudListService {
 
 		//cols << [name: "code", caption: "Code"];
 		cols << [name: "title", caption: "Title"];
+		cols << [name: "fieldname", caption: "Field Name"];
+		cols << [name: "varname", caption: "Var. Name"];
 		cols << [name: "datatype", caption: "Data Type"];
 		cols << [name: "handler", caption: "Handler"];
 		cols << [name: "category", caption: "Category"];

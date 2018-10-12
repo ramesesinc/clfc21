@@ -1009,6 +1009,8 @@ int xml clfcrequestdb_create 0x7f05000a
 int xml clfcrequestdb_upgrade 0x7f05000b
 int xml clfcspecialcollectiondb_create 0x7f05000c
 int xml clfcspecialcollectiondb_upgrade 0x7f05000d
-int xml clfctrackerdb_create 0x7f05000e
-int xml clfctrackerdb_upgrade 0x7f05000f
-int xml services 0x7f050010
+int xml clfcstatusdb_create 0x7f05000e
+int xml clfcstatusdb_upgrade 0x7f05000f
+int xml clfctrackerdb_create 0x7f050010
+int xml clfctrackerdb_upgrade 0x7f050011
+int xml services 0x7f050012

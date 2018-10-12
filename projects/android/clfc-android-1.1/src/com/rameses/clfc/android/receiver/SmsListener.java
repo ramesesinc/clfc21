@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.rameses.clfc.android.AppSettingsImpl;
+import com.rameses.clfc.android.receiver.services.SmsService;
 import com.rameses.client.android.Platform;
 
 public class SmsListener extends BroadcastReceiver {

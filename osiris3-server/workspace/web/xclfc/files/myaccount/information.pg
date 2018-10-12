@@ -1,7 +1,0 @@
-{ 
-	fragment	: true,	
-	title		: 'Basic Information', 
-	context		: 'myaccount', 
-	secured		: true, 
-	sortorder	: -1000 
-} 

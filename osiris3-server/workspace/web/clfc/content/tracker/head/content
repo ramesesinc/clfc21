@@ -3,14 +3,16 @@ def svc = SERVICE.lookup("MobileTrackerService", "admin");
 //def data = svc.open([objid: PARAMS.objid]); 
 def data = svc.openLog( [objid: PARAMS.objid] );
 if (PARAMS.type == 'end') {
-	data.txndate = data.txndate;
 	data.remarks = 'TRACKING SESSION ENDED'; 
+
 } else if (PARAMS.type == 'start') {
-	data.txndate = data.txndate;
 	data.remarks = 'STARTING POINT';
+
 } else if (PARAMS.type == 'download') {
-	data.txndate = data.txndate;
 	data.remarks = 'Billing Downloaded';
+
+} else if (PARAMS.type == 'remit') {
+	data.remarks = 'Billing Remitted';
 }
 %>
 <style>
@@ -28,7 +30,7 @@ if (PARAMS.type == 'end') {
 	<span id="title">General Information</span>
 	<table cellpadding="0" cellspacing="0" style="white-space:nowrap;border-collapse:collapse;margin-top:5px;">
 	<tr class="data-row">
-		<td class="label">Txn Date</td>
+		<td class="label">Date</td>
 		<td class="value">${data.txndate}</td>
 	</tr>	
 	<tr class="data-row">

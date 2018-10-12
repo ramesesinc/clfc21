@@ -1,0 +1,6 @@
+"entity.postinginfo.advanceposting.allow" [mode == 'read'] {
+    enabled: false;
+}
+"entity.postinginfo.advanceposting.allow" [mode != 'read'] {
+    enabled: true;
+}

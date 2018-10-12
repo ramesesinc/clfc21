@@ -1,3 +1,7 @@
+CREATE DATABASE `filemgmt`
+;
+USE `filemgmt`
+;
 CREATE TABLE `sys_fileloc` (
   `objid` varchar(50) NOT NULL,
   `url` varchar(255) NOT NULL,

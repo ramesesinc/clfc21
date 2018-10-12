@@ -13,9 +13,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBPaymentService;
-import com.rameses.clfc.android.db.DBVoidService;
+import com.rameses.clfc.android.db.CollectionSheetDB;
+import com.rameses.clfc.android.db.PaymentServiceDB;
+import com.rameses.clfc.android.db.VoidServiceDB;
 import com.rameses.util.MapProxy;
 
 public class CollectionSheetAdapter extends BaseAdapter 
@@ -23,9 +23,10 @@ public class CollectionSheetAdapter extends BaseAdapter
 	private Activity activity;
 	private List<Map> list;
 	private boolean showAll = true;
-	private DBPaymentService paymentSvc = new DBPaymentService();
-	private DBVoidService voidSvc = new DBVoidService();
-	private DBCollectionSheet collectionSheet = new DBCollectionSheet();
+	
+//	private DBPaymentService paymentSvc = new DBPaymentService();
+//	private DBVoidService voidSvc = new DBVoidService();
+//	private DBCollectionSheet collectionSheet = new DBCollectionSheet();
 	
 	public CollectionSheetAdapter(Activity activity, List<Map> list) {
 		this.activity = activity;

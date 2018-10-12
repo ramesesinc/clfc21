@@ -1,6 +1,0 @@
-{
-	secured		: true, 
-	context		: 'usergrouplist', 
-	title		: 'User Groups', 
-	description : 'Manage User Groups'
-}

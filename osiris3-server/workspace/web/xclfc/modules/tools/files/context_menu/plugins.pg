@@ -1,6 +1,0 @@
-{
-	href:		'/context/plugins',
-	title: 		'Plugins',
-	secured:	true,
-	fragment:	true
-}

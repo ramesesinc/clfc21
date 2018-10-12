@@ -1,7 +1,0 @@
-{
-	title: 		'Personnel Info',
-	context:	'personnel_edit',
-	fragment: 	true,
-	hidden:		true,
-	options: 	{width:500, height:300}
-}

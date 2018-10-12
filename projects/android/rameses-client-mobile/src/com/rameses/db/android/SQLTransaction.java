@@ -10,6 +10,7 @@
 package com.rameses.db.android;
 
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -189,5 +190,9 @@ public class SQLTransaction implements SQLExecutor
             writabledb = null;
             readabledb = null;
         }
+    }
+    
+    private void println( Object msg ) {
+        Log.i("SQLTransaction", msg.toString());
     }
 }

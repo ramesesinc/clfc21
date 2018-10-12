@@ -2,8 +2,6 @@ package com.rameses.clfc.android.main;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import android.app.ProgressDialog;
@@ -22,30 +20,26 @@ import android.widget.RelativeLayout;
 import com.rameses.clfc.android.ApplicationUtil;
 import com.rameses.clfc.android.ControlActivity;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCapturePayment;
-import com.rameses.clfc.android.db.DBCollectionGroup;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBPaymentService;
-import com.rameses.clfc.android.db.DBRemarksService;
-import com.rameses.clfc.android.db.DBVoidService;
+import com.rameses.clfc.android.db.CollectionGroupDB;
 import com.rameses.clfc.android.system.ChangePasswordActivity;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIDialog;
 import com.rameses.client.interfaces.UserProfile;
-import com.rameses.db.android.DBContext;
 
 public class ControlPanelActivity extends ControlActivity 
 {
 	private ProgressDialog progressDialog;
-	private ArrayList<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+//	private ArrayList<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 	private GridView gv_menu;
 	private String txndate;
-	private DBCollectionGroup colGroup = new DBCollectionGroup();
+//	private DBCollectionGroup colGroup = new DBCollectionGroup();
 	//private DBRouteService routeSvc = new DBRouteService();
 	//private DBSystemService systemSvc = new DBSystemService();
-	private Map<String, Object> item;
-	private String itemId; 
+//	private Map<String, Object> item;
+//	private String itemId; 
+	
+	private CollectionGroupDB collectiongroupdb = new CollectionGroupDB();
 	
 	public boolean isCloseable() { return false; }	
 		
@@ -84,9 +78,9 @@ public class ControlPanelActivity extends ControlActivity
 		
 //		System.out.println("serverDate -> " + Platform.getApplication().getServerDate().toString());
 //		println("server date " + Platform.getApplication().getServerDate());
-		DBContext clfcdb = new DBContext("clfc.db");
-		colGroup.setDBContext(clfcdb);
-		colGroup.setCloseable(false);
+//		DBContext clfcdb = new DBContext("clfc.db");
+//		colGroup.setDBContext(clfcdb);
+//		colGroup.setCloseable(false);
 //		DBSystemService systemSvc = new DBSystemService();
 //		systemSvc.setDBContext(clfcdb);
 		//routeSvc.setDBContext(clfcdb);
@@ -135,24 +129,32 @@ public class ControlPanelActivity extends ControlActivity
 		
 		txndate = null;
 //		System.out.println("userid " + userid);
-		clfcdb = new DBContext("clfc.db");
-		colGroup.setDBContext(clfcdb);
-		colGroup.setCloseable(false);
+//		clfcdb = new DBContext("clfc.db");
+//		colGroup.setDBContext(clfcdb);
+//		colGroup.setCloseable(false);
 		try {
 			String xdt = ApplicationUtil.formatDate(dt, "yyyy-MM-dd");
-			if (colGroup.hasCollectionGroupByCollectorAndDate(userid, xdt)) {
+			if (collectiongroupdb.hasCollectionGroupByCollectorAndDate(userid, xdt)) {
 				txndate = ApplicationUtil.formatDate(dt, "MMM dd, yyyy");
-			}
-//			if (colGroup.hasCollectionGroupByCollector(userid) && dt != null) {
-//				txndate = ApplicationUtil.formatDate(dt, "MMM dd, yyyy");
-//			}			
+			}		
 		} catch (Exception e) {
 			e.printStackTrace();
-		} finally {
-			clfcdb.close();
 		}
+//		try {
+//			String xdt = ApplicationUtil.formatDate(dt, "yyyy-MM-dd");
+//			if (collectiongroupdb.hasCollectionGroupByCollectorAndDate(userid, xdt)) {
+//				txndate = ApplicationUtil.formatDate(dt, "MMM dd, yyyy");
+//			}
+////			if (colGroup.hasCollectionGroupByCollector(userid) && dt != null) {
+////				txndate = ApplicationUtil.formatDate(dt, "MMM dd, yyyy");
+////			}			
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		} finally {
+//			clfcdb.close();
+//		}
 		
-		list.clear();
+		ArrayList<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 		list.add(ApplicationUtil.createMenuItem("download", "Download", null, R.drawable.download));
 		list.add(ApplicationUtil.createMenuItem("payment", "Payment(s)", txndate, R.drawable.payment));
 		list.add(ApplicationUtil.createMenuItem("posting", "Posting", null, R.drawable.posting));		
@@ -188,8 +190,11 @@ public class ControlPanelActivity extends ControlActivity
 	}
 	
 	private void selectionChanged(AdapterView<?> parent, View view, int position, long id) throws Exception {
-		item = (Map<String, Object>) parent.getItemAtPosition(position);
-		itemId = item.get("id").toString();
+		Map<String, Object> item = (Map<String, Object>) parent.getItemAtPosition(position);
+		String itemId = "";
+		if (item.containsKey("id")) {
+			itemId = item.get("id").toString();
+		}
 		if (itemId.equals("logout")) {
 			new LogoutController(this, progressDialog).execute(); 
 			
@@ -230,7 +235,12 @@ public class ControlPanelActivity extends ControlActivity
 			Intent intent = new Intent(this, TrackerActivity.class);
 			startActivity(intent);
 			
-		} else if (itemId.equals("request")) {
+		} else if (itemId.equals("remit")) {
+			Intent intent = new Intent(this, RemitRouteCollectionActivity.class);
+			startActivity(intent);
+			
+		}
+		/* else if (itemId.equals("request")) {
 			UserProfile prof = SessionContext.getProfile();
 			Map roles = (prof != null? prof.getRoles() : null);
 			
@@ -250,24 +260,26 @@ public class ControlPanelActivity extends ControlActivity
 //			} else { 
 //				startActivity(intent);
 //			}
-		} else if (itemId.equals("remit")) {
-			Intent intent = new Intent(this, RemitRouteCollectionActivity.class);
-			startActivity(intent);
-			
-		}
+		} 
+		*/
 	} 	
 	
 	private boolean hasPreviousBillings(String date) {
 		boolean flag = false;
+		try {
+			flag = collectiongroupdb.hasPreviousBilling( date );
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
 //		synchronized (MainDB.LOCK) {
-			DBContext ctx = new DBContext("clfc.db");
-			DBCollectionGroup colGroup = new DBCollectionGroup();
-			colGroup.setDBContext(ctx);
-			try {
-				flag = colGroup.hasPreviousBilling(date);
-			} catch (Throwable t) {
-				t.printStackTrace();
-			}
+//			DBContext ctx = new DBContext("clfc.db");
+//			DBCollectionGroup colGroup = new DBCollectionGroup();
+//			colGroup.setDBContext(ctx);
+//			try {
+//				flag = colGroup.hasPreviousBilling(date);
+//			} catch (Throwable t) {
+//				t.printStackTrace();
+//			}
 //		}
 		
 		return flag;
@@ -327,6 +339,7 @@ public class ControlPanelActivity extends ControlActivity
 //		}
 	}
 	
+	/*
 	private class ExportPreviousBillingProcess implements Runnable
 	{
 		private String date;
@@ -859,5 +872,5 @@ public class ControlPanelActivity extends ControlActivity
 			}
 		}
 	}
-	
+	*/
 }

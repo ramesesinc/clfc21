@@ -56,8 +56,11 @@ class CashBreakdownController
     }
     
     void refreshRouteList() {
-        def params = [txndate: entity.txndate, collectorid: entity.collector.objid];
-        routeList = service.getRoutes( params );
+        routeList = [];
+        if (entity?.txndate && entity?.collector?.objid) {
+            def params = [txndate: entity?.txndate, collectorid: entity?.collector?.objid];
+            routeList = service.getRoutes( params );
+        }
         binding?.refresh('route');
     }
 

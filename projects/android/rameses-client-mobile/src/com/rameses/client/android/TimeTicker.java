@@ -81,7 +81,8 @@ class TimeTicker
         boolean isConnected = Platform.getApplication().getIsConnected();
         boolean isDateSync = Platform.getApplication().getIsDateSync();
         long timemillis = 0;
-        System.out.println("[TimeTicker] is date synced " + Platform.getApplication().getIsDateSync());
+//        System.out.println("[TimeTicker] is date synced " + Platform.getApplication().getIsDateSync());
+//        Log.i("TimeTicker", "isConncted: " + isConnected + " isDateSync: " + isDateSync);
         if (isConnected == true && isDateSync == false) {
             timemillis = getServerTime();
             Log.i("TimeTicker", "timemillis-> " + timemillis);
@@ -114,7 +115,7 @@ class TimeTicker
         
     private long getServerTime() {
         long timemillis = 0;
-        try { 
+        try {             
             timemillis = new CommonService().getServerTime(); 
             
             Calendar cal = Calendar.getInstance();

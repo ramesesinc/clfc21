@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import android.app.ProgressDialog;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,18 +18,19 @@ import android.os.Message;
 import android.util.Log;
 
 import com.rameses.clfc.android.AppSettingsImpl;
+import com.rameses.clfc.android.ApplicationDatabase;
 import com.rameses.clfc.android.ApplicationUtil;
-import com.rameses.clfc.android.MainDB;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBSystemService;
+import com.rameses.clfc.android.db.ApplicationDBUtil;
+import com.rameses.clfc.android.db.CollectionSheetDB;
+import com.rameses.clfc.android.db.SystemDB;
 import com.rameses.clfc.android.services.LoanBillingService;
 import com.rameses.client.android.NetworkLocationProvider;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.TerminalManager;
 import com.rameses.client.android.UIActionBarActivity;
+import com.rameses.client.android.UIDialog;
 import com.rameses.client.interfaces.UserProfile;
-import com.rameses.db.android.SQLTransaction;
 import com.rameses.util.MapProxy;
 
 public class DownloadBillingController 
@@ -39,6 +41,9 @@ public class DownloadBillingController
 	private Map route;
 	private LoanBillingService svc;
 	private AppSettingsImpl settings;
+	
+	private SystemDB systemdb = new SystemDB();
+	private CollectionSheetDB collectionsheetdb = new CollectionSheetDB();
 
 	DownloadBillingController(UIActionBarActivity activity, ProgressDialog progressDialog, Map route) {
 		this.activity = activity;
@@ -68,9 +73,11 @@ public class DownloadBillingController
 			Object o = data.getSerializable("response"); 
 			if (o instanceof Throwable) {
 				Throwable t = (Throwable)o;
-				ApplicationUtil.showShortMsg("[ERROR] " + t.getMessage());		
+				UIDialog.showMessage(t.getMessage(), activity);
+//				ApplicationUtil.showShortMsg("[ERROR] " + t.getMessage());		
 			} else {
-				ApplicationUtil.showShortMsg("[ERROR] " + o);	
+				UIDialog.showMessage(o, activity);
+//				ApplicationUtil.showShortMsg("[ERROR] " + o);
 			} 
 		} 
 	}; 
@@ -142,7 +149,7 @@ public class DownloadBillingController
 				String tracker_owner = settings.getTrackerOwner(date);
 				params.put("trackerid", trackerid);
 
-				Map map = svc.downloadBilling(params);
+				Map map = svc.downloadBilling( params );
 
 //				String mTrackerid = map.get("trackerid").toString();
 //				String userid = SessionContext.getProfile().getUserId();
@@ -176,9 +183,9 @@ public class DownloadBillingController
 //				}
 				
 				Platform.getLogger().log("[DownloadBillingController.ActionProcess.run] map-> "+map);
-				runImpl(map);
+				runImpl( map );
 
-				boolean flag = ApplicationUtil.isCollectionCreated(itemid);
+				boolean flag = ApplicationUtil.isCollectionCreated( itemid );
 				if (flag == false) {
 					throw new RuntimeException("Collection not created.");
 				}
@@ -213,7 +220,374 @@ public class DownloadBillingController
 			handler.sendMessage(message); 
 		}
 		
-		private void runImpl(Map map) throws Exception {
+		private void runImpl( Map data ) throws Exception {
+			
+			UserProfile profile = SessionContext.getProfile();
+			if (profile == null) {
+				throw new RuntimeException("Collector not specified.");
+			}
+			
+			String collectorid = profile.getUserId();
+			
+			String billdate = MapProxy.getString(route, "billdate");
+			if (billdate == null || "".equals(billdate)) {
+				throw new RuntimeException("Billdate is required.");
+			}
+			
+//			StringBuilder appdbsb = new StringBuilder();
+			List<Map> sqlParams = new ArrayList<Map>();
+			Map xdata = new HashMap();
+			
+			MapProxy proxy = new MapProxy((Map) data.get("item"));
+			String billingid = proxy.getString("parentid");
+			
+			boolean flag = systemdb.hasBillingid(collectorid, billdate);
+			if (flag == false) {
+//				String sql = "insert or ignore into sys_var(`name`,`value`) values('" + collectorid + "-" + billdate + "','" + billingid  + "');";
+				Map params = new HashMap();
+				params.put("name",  collectorid + "-" + billdate);
+				params.put("value", billingid);
+				String sql = ApplicationDBUtil.createInsertSQLStatement("sys_var", params);
+//				appdbsb.append( sql );
+				
+				xdata = new HashMap();
+				xdata.put("type", "insert");
+				xdata.put("sql", sql);
+				
+				sqlParams.add( xdata );
+			}
+
+			if (!proxy.isEmpty()) {
+				
+				/*
+				String sql = "insert or ignore into collection_group(`objid`,`state`,`description`,`area`,`billingid`,`billdate`,`collectorid`,`type`)";
+				sql += " values(";
+				
+				//objid
+				sql += "'" + proxy.getString("objid") + "'";
+				
+				//state
+				sql += ",'ACTIVE'";
+
+				//description
+				sql += ",'" + MapProxy.getString(route, "description") + "'";
+				
+				//area
+				sql += ",'" + MapProxy.getString(route, "area") + "'";
+
+				//billingid
+				sql += ",'" + proxy.getString("parentid") + "'";
+				
+				//billdate
+				sql += ",'" + billdate + "'";
+
+				//collectorid
+				sql += ",'" + collectorid + "'";
+				
+				//type
+				sql += ",'route'";
+				sql += ");";
+				*/
+				Map params = new HashMap();
+				params.put("objid", proxy.getString("objid"));
+				params.put("state", "ACTIVE");
+				params.put("description", MapProxy.getString( route, "description" ));
+				params.put("area", MapProxy.getString( route, "area" ));
+				params.put("billingid", proxy.getString( "parentid" ));
+				params.put("billdate", billdate);
+				params.put("collectorid", collectorid);
+				params.put("type", "route");
+				
+				String sql = ApplicationDBUtil.createInsertSQLStatement("collection_group", params);
+
+				xdata = new HashMap();
+				xdata.put("type", "insert");
+				xdata.put("sql", sql);
+				
+				sqlParams.add( xdata );
+//				appdbsb.append( sql );
+			}
+			
+			List<Map> billings = new ArrayList<Map>();
+			if (data.containsKey("billings")) {
+				billings = (List<Map>) data.get("billings");
+			}
+			
+			if (billings.isEmpty()) return;
+			
+			collectionsheetdb.dropIndex();
+			
+			String objid;
+			BigDecimal amountdue;
+			for (Map item : billings) {
+				proxy = new MapProxy( item );
+				amountdue = new BigDecimal("0");				
+				objid = proxy.getString("objid");
+				
+				Map xitem = collectionsheetdb.findCollectionSheet( objid );
+				if (xitem.isEmpty()) {
+					amountdue = new BigDecimal(proxy.getString("amountdue")).setScale(2);
+
+					Map params = new HashMap();
+					params.put("objid", proxy.getString("objid"));
+					params.put("billingid", proxy.getString("billingid"));
+					params.put("itemid", proxy.getString("parentid"));
+					params.put("seqno", proxy.getInteger("seqno"));
+					params.put("borrower_objid", proxy.getString("acctid"));
+					params.put("borrower_name", proxy.getString("acctname"));
+					params.put("loanapp_objid", proxy.getString("loanappid"));
+					params.put("loanapp_appno", proxy.getString("appno"));
+					params.put("loanapp_loanamount", proxy.getDouble("loanamount"));
+					params.put("amountdue", proxy.getDouble("amountdue"));
+					params.put("overpaymentamount", proxy.getDouble("overpaymentamount"));
+					params.put("refno", proxy.getString("refno"));
+					params.put("routecode", proxy.getString("routecode"));
+					params.put("term", proxy.getInteger("term"));
+					params.put("releasedate", proxy.getString("dtreleased"));
+					params.put("maturitydate", proxy.getString("dtmatured"));
+					params.put("dailydue", proxy.getDouble("dailydue"));
+					params.put("balance", proxy.getDouble("balance"));
+					params.put("interest", proxy.getDouble("interest"));
+					params.put("penalty", proxy.getDouble("penalty"));
+					params.put("others", proxy.getDouble("others"));
+					params.put("homeaddress", proxy.getString("homeaddress"));
+					params.put("collectionaddress", proxy.getString("collectionaddress"));
+					params.put("type", "NORMAL");
+					params.put("paymentmethod", proxy.getString("paymentmethod"));
+					params.put("isfirstbill", proxy.getInteger("isfirstbill"));
+					params.put("totaldays", proxy.getInteger("totaldays"));
+					
+					String sql = ApplicationDBUtil.createInsertSQLStatement("collectionsheet", params);
+					
+					xdata = new HashMap();
+					xdata.put("type", "insert");
+					xdata.put("sql", sql);
+					
+					sqlParams.add( xdata );
+//					appdbsb.append( sql );
+				} else {
+					if (xitem.containsKey("amountdue")) {
+						amountdue = new BigDecimal( xitem.get("amountdue").toString() ).setScale(2);
+					}
+				}
+				
+				if (proxy.containsKey("notes")) {
+					List<Map> list = (List<Map>) proxy.get("notes");
+					
+					String txndate;
+					for (Map map : list) {
+						MapProxy m = new MapProxy( map );
+						
+						txndate = new SimpleDateFormat("yyyy-MM-dd").parse(m.getString("dtcreated")).toString();
+						
+						Map params = new HashMap();
+						params.put("objid", m.getString("objid"));
+						params.put("parentid", proxy.getString("objid"));
+						params.put("itemid", proxy.getString("parentid"));
+						params.put("txndate", txndate);
+						params.put("dtcreated", m.getString("dtcreated"));
+						params.put("remarks", m.getString("remarks"));
+						
+						String sql = ApplicationDBUtil.createInsertSQLStatement("notes", params);
+						
+						xdata = new HashMap();
+						xdata.put("type", "insert");
+						xdata.put("sql", sql);
+						
+						sqlParams.add( xdata );
+//						appdbsb.append( sql );
+					}
+				}
+				
+				if (proxy.containsKey("payments")) {
+					List<Map> list = (List<Map>) proxy.get("payments");
+					
+					for (Map map : list) {
+						MapProxy m = new MapProxy( map );
+						
+						BigDecimal amount = new BigDecimal(m.getString("amount"));
+						String posttype = "Schedule";
+						int val = amount.compareTo(amountdue);
+						if (val < 0) {
+							posttype = "Underpayment";
+						} else if (val > 0) {
+							posttype = "Overpayment";
+						}
+						
+						Map params = new HashMap();
+						params.put("objid", m.getString("objid"));
+						params.put("parentid", m.getString("parentid"));
+						params.put("itemid", m.getString("itemid"));
+						params.put("billingid", m.getString("billingid"));
+						params.put("collector_objid", collectorid);
+						params.put("txndate", m.getString("txndate"));
+						params.put("refno", m.getString("refno"));
+						params.put("posttype", posttype);
+						params.put("paytype", m.getString("paytype"));
+						params.put("amount", m.getDouble("amount"));
+						params.put("paidby", m.getString("paidby"));;
+						
+						String option = m.getString("payoption");
+						params.put("payoption", option);
+						
+						if ("check".equals(option)) {
+							params.put("bank_objid", m.getString("bank_objid"));
+							params.put("bank_name", m.getString("bank_name"));
+							params.put("check_no", m.getString("check_no"));
+							params.put("check_date", m.getString("check_date"));
+						}
+						
+						String sql = ApplicationDBUtil.createInsertSQLStatement("payment", params);
+						
+						xdata = new HashMap();
+						xdata.put("type", "insert");
+						xdata.put("sql", sql);
+						
+						sqlParams.add( xdata );
+						
+//						appdbsb.append( sql );
+					}
+				}
+				
+				if (proxy.containsKey("remarkslist")) {
+					List<Map> list = (List<Map>) proxy.get("remarkslist");
+					
+					for (Map map : list) {
+						MapProxy m = new MapProxy( map );
+						
+						int isfollowup = m.getInteger("isfollowup");
+
+						Map params = new HashMap();
+						params.put("objid", "REM" + UUID.randomUUID().toString());
+						params.put("parentid", proxy.getString("objid"));
+						params.put("txndate", m.getString("txndate"));
+						params.put("collectorname", m.getString("collectorname"));
+						params.put("remarks", m.getString("remarks"));
+						
+						String tablename = "collector_remarks";
+						if (isfollowup == 1) {
+							tablename = "followup_remarks";
+						}
+						
+						String sql = ApplicationDBUtil.createInsertSQLStatement(tablename, params);
+						
+						xdata = new HashMap();
+						xdata.put("type", "insert");
+						xdata.put("sql", sql);
+						
+						sqlParams.add( xdata );
+//						appdbsb.append( sql );
+					}					
+				}
+				
+				if (proxy.containsKey("remarks") && proxy.get("remarks") != null) {
+
+					Map params = new HashMap();
+					params.put("objid", proxy.getString("objid"));
+					params.put("billingid", proxy.getString("billingid"));
+					params.put("itemid", proxy.getString("parentid"));
+					params.put("remarks", proxy.getString("remarks"));
+					params.put("collector_objid", profile.getUserId());
+					params.put("collector_name", profile.getFullName());
+					
+					String sql = ApplicationDBUtil.createInsertSQLStatement("remarks", params);
+					
+					xdata = new HashMap();
+					xdata.put("type", "insert");
+					xdata.put("sql", sql);
+					
+					sqlParams.add( xdata );
+					
+//					appdbsb.append( sql );
+				}
+				
+				if (proxy.containsKey("amnesty") && proxy.get("amnesty") != null) {
+					MapProxy m = new MapProxy((Map) proxy.get("amnesty"));
+					if (!m.isEmpty()) {
+						Map params = new HashMap();
+						params.put("objid", m.getString("objid"));
+						params.put("parentid", proxy.getString("objid"));
+						params.put("refno", m.getString("refno"));
+						params.put("dtstarted", m.getString("dtstarted"));
+						params.put("dtended", m.getString("dtended"));
+						params.put("amnestyoption", m.getString("amnestyoption"));						
+						params.put("iswaivepenalty", m.getInteger("iswaivepenalty"));
+						params.put("iswaiveinterest", m.getInteger("iswaiveinterest"));
+						MapProxy offer = new MapProxy((Map) m.get("grantedoffer"));
+						params.put("grantedoffer_amount", offer.getDouble("amount"));
+						params.put("grantedoffer_days", offer.getInteger("days"));
+						params.put("grantedoffer_months", offer.getInteger("months"));
+						params.put("grantedoffer_isspotcash", offer.getInteger("isspotcash"));
+						params.put("grantedoffer_date", offer.getString("date"));
+						
+						String sql = ApplicationDBUtil.createInsertSQLStatement("amnesty", params);
+						
+						xdata = new HashMap();
+						xdata.put("type", "insert");
+						xdata.put("sql", sql);
+						
+						sqlParams.add( xdata );
+						
+//						appdbsb.append( sql );
+					}
+				}
+				
+				if (proxy.containsKey("segregation")) {
+					List<Map> list = (List<Map>) proxy.get("segregation");
+					
+					for (Map map : list) {
+						MapProxy m = new MapProxy( map );
+						Map params = new HashMap();
+						params.put("collectionsheetid", proxy.getString("objid"));
+						params.put("segregationtypeid", m.getString("segregationid"));
+						
+						String sql = ApplicationDBUtil.createInsertSQLStatement("collectionsheet_segregation", params);
+						
+						xdata = new HashMap();
+						xdata.put("type", "insert");
+						xdata.put("sql", sql);
+						
+						sqlParams.add( xdata );
+						
+//						appdbsb.append( sql );
+					}
+				}
+			}
+			
+			
+//			println("sql-> " + appdbsb.toString());
+			for (Map map : sqlParams) {
+				String str = "";
+				if (map.containsKey("type")) {
+					str += map.get("type").toString() + ": ";
+				}
+				
+				if (map.containsKey("sql")) {
+					str+= map.get("sql").toString();
+				}
+				
+				println("str-> " + str);
+			}
+			
+			if (sqlParams.size() > 0) {
+				SQLiteDatabase appdb = ApplicationDatabase.getAppWritableDB();
+				try {
+					appdb.beginTransaction();
+					ApplicationDBUtil.executeSQL( appdb, sqlParams );
+//					appdb.execSQL( appdbsb.toString() );					
+					appdb.setTransactionSuccessful();
+				} catch (Exception e) {
+					throw e;
+				} finally {
+					appdb.endTransaction();
+				}
+			}
+
+			collectionsheetdb.addIndex();			
+		}
+		
+		/* old code for billing insert
+		private void xrunImpl(Map map) throws Exception {
 			SQLTransaction clfcdb = new SQLTransaction("clfc.db");
 //			SQLTransaction paymentdb = new SQLTransaction("clfcpayment.db");
 //			SQLTransaction remarksdb = new SQLTransaction("clfcremarks.db");
@@ -309,14 +683,14 @@ public class DownloadBillingController
 					clfcdb.insert("collection_group", item);
 				}
 			}
-			/*params = new HashMap();
-			params.put("routecode",route.get("code").toString());
-			params.put("state", "ACTIVE");
-			params.put("routedescription", route.get("description").toString());
-			params.put("routearea", route.get("area").toString());
-			params.put("sessionid", billingid);
-			params.put("collectorid", SessionContext.getProfile().getUserId());
-			clfcdb.insert("route", params);*/
+//			params = new HashMap();
+//			params.put("routecode",route.get("code").toString());
+//			params.put("state", "ACTIVE");
+//			params.put("routedescription", route.get("description").toString());
+//			params.put("routearea", route.get("area").toString());
+//			params.put("sessionid", billingid);
+//			params.put("collectorid", SessionContext.getProfile().getUserId());
+//			clfcdb.insert("route", params);
 			
 			DBCollectionSheet csSvc = new DBCollectionSheet();
 			csSvc.setDBContext(clfcdb.getContext());
@@ -551,5 +925,6 @@ public class DownloadBillingController
 			}
 			csSvc.addIndex();
 		}
+		*/
 	}
 }

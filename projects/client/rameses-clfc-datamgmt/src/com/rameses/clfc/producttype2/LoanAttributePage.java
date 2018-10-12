@@ -38,9 +38,10 @@ public class LoanAttributePage extends javax.swing.JPanel {
         xSubFormPanel1 = new com.rameses.rcp.control.XSubFormPanel();
         xFormPanel2 = new com.rameses.rcp.control.XFormPanel();
         xCheckBox1 = new com.rameses.rcp.control.XCheckBox();
-        xCheckBox2 = new com.rameses.rcp.control.XCheckBox();
-        xFormPanel3 = new com.rameses.rcp.control.XFormPanel();
         xCheckBox3 = new com.rameses.rcp.control.XCheckBox();
+        xFormPanel3 = new com.rameses.rcp.control.XFormPanel();
+        xCheckBox2 = new com.rameses.rcp.control.XCheckBox();
+        xCheckBox4 = new com.rameses.rcp.control.XCheckBox();
 
         xFormPanel1.setCaptionWidth(120);
 
@@ -54,8 +55,8 @@ public class LoanAttributePage extends javax.swing.JPanel {
         xLookupField1.setRequired(true);
         xFormPanel1.add(xLookupField1);
 
-        xSubFormPanel1.setDynamic(true);
         xSubFormPanel1.setHandler("opener");
+        xSubFormPanel1.setDynamic(true);
 
         javax.swing.GroupLayout xSubFormPanel1Layout = new javax.swing.GroupLayout(xSubFormPanel1);
         xSubFormPanel1.setLayout(xSubFormPanel1Layout);
@@ -75,32 +76,40 @@ public class LoanAttributePage extends javax.swing.JPanel {
 
         xCheckBox1.setCaption("");
         xCheckBox1.setCheckValue(1);
-        xCheckBox1.setMargin(new java.awt.Insets(2, 0, 2, 2));
         xCheckBox1.setName("entity.computeduringapplication"); // NOI18N
-        xCheckBox1.setText("Compute during application");
         xCheckBox1.setUncheckValue(0);
+        xCheckBox1.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox1.setText("Compute during application");
         xFormPanel2.add(xCheckBox1);
 
-        xCheckBox2.setCaption("");
-        xCheckBox2.setCheckValue(1);
-        xCheckBox2.setMargin(new java.awt.Insets(2, 0, 2, 2));
-        xCheckBox2.setName("entity.computeduringposting"); // NOI18N
-        xCheckBox2.setText("Compute during posting");
-        xCheckBox2.setUncheckValue(0);
-        xFormPanel2.add(xCheckBox2);
+        xCheckBox3.setCaption("");
+        xCheckBox3.setCheckValue(1);
+        xCheckBox3.setName("entity.computeuponmaturity"); // NOI18N
+        xCheckBox3.setUncheckValue(0);
+        xCheckBox3.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox3.setText("Compute upon maturity");
+        xFormPanel2.add(xCheckBox3);
 
         xFormPanel3.setAddCaptionColon(false);
         xFormPanel3.setCaptionWidth(0);
         xFormPanel3.setOrientation(com.rameses.rcp.constant.UIConstants.HORIZONTAL);
         xFormPanel3.setPadding(new java.awt.Insets(0, 0, 0, 0));
 
-        xCheckBox3.setCaption("");
-        xCheckBox3.setCheckValue(1);
-        xCheckBox3.setMargin(new java.awt.Insets(2, 0, 2, 2));
-        xCheckBox3.setName("entity.computeuponmaturity"); // NOI18N
-        xCheckBox3.setText("Compute upon maturity");
-        xCheckBox3.setUncheckValue(0);
-        xFormPanel3.add(xCheckBox3);
+        xCheckBox2.setCaption("");
+        xCheckBox2.setCheckValue(1);
+        xCheckBox2.setName("entity.computebeforeposting"); // NOI18N
+        xCheckBox2.setUncheckValue(0);
+        xCheckBox2.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox2.setText("Compute before posting");
+        xFormPanel3.add(xCheckBox2);
+
+        xCheckBox4.setCaption("");
+        xCheckBox4.setCheckValue(1);
+        xCheckBox4.setName("entity.computeduringposting"); // NOI18N
+        xCheckBox4.setUncheckValue(0);
+        xCheckBox4.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox4.setText("Compute during posting");
+        xFormPanel3.add(xCheckBox4);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -133,6 +142,7 @@ public class LoanAttributePage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XCheckBox xCheckBox1;
     private com.rameses.rcp.control.XCheckBox xCheckBox2;
     private com.rameses.rcp.control.XCheckBox xCheckBox3;
+    private com.rameses.rcp.control.XCheckBox xCheckBox4;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
     private com.rameses.rcp.control.XFormPanel xFormPanel2;
     private com.rameses.rcp.control.XFormPanel xFormPanel3;

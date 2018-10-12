@@ -31,16 +31,16 @@ import android.widget.TextView;
 import com.rameses.clfc.android.AppSettingsImpl;
 import com.rameses.clfc.android.ApplicationUtil;
 import com.rameses.clfc.android.ControlActivity;
-import com.rameses.clfc.android.MainDB;
 import com.rameses.clfc.android.R;
 import com.rameses.clfc.android.RemarksDB;
 import com.rameses.clfc.android.RemarksRemovedDB;
-import com.rameses.clfc.android.db.DBCSPayment;
-import com.rameses.clfc.android.db.DBCSRemarks;
-import com.rameses.clfc.android.db.DBCSVoid;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBNoteService;
-import com.rameses.clfc.android.db.DBPrevLocation;
+import com.rameses.clfc.android.XMainDB;
+import com.rameses.clfc.android.db.XDBCSPayment;
+import com.rameses.clfc.android.db.XDBCSRemarks;
+import com.rameses.clfc.android.db.XDBCSVoid;
+import com.rameses.clfc.android.db.XDBCollectionSheet;
+import com.rameses.clfc.android.db.XDBNoteService;
+import com.rameses.clfc.android.db.XDBPrevLocation;
 import com.rameses.client.android.NetworkLocationProvider;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
@@ -79,13 +79,13 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 	private ProgressDialog progressDialog;
 	private RelativeLayout rl_container;
 	
-	private DBCollectionSheet dbCollectionSheet = new DBCollectionSheet();	
+	private XDBCollectionSheet dbCollectionSheet = new XDBCollectionSheet();	
 //	private DBPaymentService paymentSvc = new DBPaymentService();
-	private DBCSPayment cspayment = new DBCSPayment();
+	private XDBCSPayment cspayment = new XDBCSPayment();
 //	private DBVoidService voidSvc = new DBVoidService();
-	private DBCSVoid csvoid = new DBCSVoid();
+	private XDBCSVoid csvoid = new XDBCSVoid();
 //	private DBRemarksService remarksSvc = new DBRemarksService();
-	private DBCSRemarks csremarks = new DBCSRemarks();
+	private XDBCSRemarks csremarks = new XDBCSRemarks();
 
 	private Map collectionSheet = new HashMap();
 	private BigDecimal amountdue = new BigDecimal("0").setScale(2);
@@ -165,7 +165,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 		boolean hasNotes = false;
 //		synchronized (MainDB.LOCK) {
 			DBContext ctx = new DBContext("clfc.db");
-			DBNoteService noteSvc = new DBNoteService();
+			XDBNoteService noteSvc = new XDBNoteService();
 			try {
 				hasNotes = noteSvc.hasNotes(objid);
 			} catch (Throwable t) {
@@ -431,7 +431,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 				List<Map> notes = new ArrayList<Map>();
 //				synchronized (MainDB.LOCK) {
 					DBContext ctx = new DBContext("clfc.db");
-					DBNoteService noteSvc = new DBNoteService();
+					XDBNoteService noteSvc = new XDBNoteService();
 					noteSvc.setDBContext(ctx);
 					try {
 						notes = noteSvc.getNotes(objid);
@@ -471,7 +471,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 		List<Map> list = new ArrayList<Map>();
 //		synchronized (MainDB.LOCK) {
 			DBContext ctx = new DBContext("clfc.db");
-			DBNoteService noteSvc = new DBNoteService();
+			XDBNoteService noteSvc = new XDBNoteService();
 			noteSvc.setDBContext(ctx); 
 			try {
 				list = noteSvc.getNotes(objid);
@@ -564,7 +564,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 			}
 		}
 		
-		synchronized (MainDB.LOCK) {
+		synchronized (XMainDB.LOCK) {
 			SQLTransaction clfcdb = new SQLTransaction("clfc.db");
 			try {
 				clfcdb.beginTransaction();
@@ -603,7 +603,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 		ApplicationUtil.showShortMsg("Successfully removed remarks.");
 		getHandler().post(new Runnable() {
 			public void run() {
-				getApp().remarksRemovedSvc.start();
+//				getApp().remarksRemovedSvc.start();
 			}
 		});
 	}
@@ -837,7 +837,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 			 		SQLTransaction remarksdb = new SQLTransaction("clfcremarks.db");
 			 		SQLTransaction clfcdb = new SQLTransaction("clfc.db");
 			 		DBContext ctx = new DBContext("clfctracker.db");
-			 		DBPrevLocation prevLocationSvc = new DBPrevLocation();
+			 		XDBPrevLocation prevLocationSvc = new XDBPrevLocation();
 			 		prevLocationSvc.setDBContext(ctx);
 			 		try {
 			 			remarksdb.beginTransaction();
@@ -845,11 +845,13 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 			 			execRemarks(remarksdb, clfcdb, mode, trackerid, prevLocationSvc);
 			 			remarksdb.commit();
 			 			clfcdb.commit();
+			 			/*
 			 			getHandler().post(new Runnable() {
 							public void run() {
 								getApp().remarksSvc.start();
 							}
 						});
+						*/
 			 		} catch (Throwable t) {
 			 			t.printStackTrace();
 						UIDialog.showMessage(t, XCollectionSheetInfoActivity.this);
@@ -861,7 +863,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 //			 	}
 		 }
 		 
-		private void execRemarks(SQLTransaction remarksdb, SQLTransaction clfcdb, String mode, String trackerid, DBPrevLocation prevLocationSvc) throws Exception {
+		private void execRemarks(SQLTransaction remarksdb, SQLTransaction clfcdb, String mode, String trackerid, XDBPrevLocation prevLocationSvc) throws Exception {
 			location = NetworkLocationProvider.getLocation();
 			double lng = 0.00;
 			double lat = 0.00;
@@ -911,7 +913,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 				prm.put("remarks", params.get("remarks").toString());
 				prm.put("collector_objid", params.get("collector_objid").toString());
 				
-				synchronized (MainDB.LOCK) {
+				synchronized (XMainDB.LOCK) {
 					clfcdb.insert("remarks", prm);
 				}
 				
@@ -926,7 +928,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 				synchronized (RemarksDB.LOCK) {
 					remarksdb.update("remarks", "objid='"+objid+"'", params2);
 				}
-				synchronized (MainDB.LOCK) {
+				synchronized (XMainDB.LOCK) {
 					clfcdb.update("remarks", "objid='"+objid+"'", params2);
 				}
 //				remarksdb.update("remarks", "loanappid='"+loanappid+"'", params);
@@ -936,7 +938,7 @@ public class XCollectionSheetInfoActivity extends ControlActivity
 				
 //			DBRemarksService remarksSvc = new DBRemarksService();
 //			remarksSvc.setDBContext(remarksdb.getContext());
-			DBCSRemarks csremarks = new DBCSRemarks();
+			XDBCSRemarks csremarks = new XDBCSRemarks();
 			csremarks.setDBContext(clfcdb.getContext());
 			remarks = csremarks.findRemarksById(objid);
 			((TextView) findViewById(R.id.tv_info_remarks)).setText(mRemarks);

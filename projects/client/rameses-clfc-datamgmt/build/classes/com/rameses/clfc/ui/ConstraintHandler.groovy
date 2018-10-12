@@ -21,7 +21,7 @@ class ConstraintHandler {
     void removeConstraint() {
         def z = condition.constraints.find{ it.objid == constraint.objid };
         condition.constraints.remove( z );
-        if(removehandler) removehandler(z);
+        if(removehandler) removehandler( z );
     }
 }
 

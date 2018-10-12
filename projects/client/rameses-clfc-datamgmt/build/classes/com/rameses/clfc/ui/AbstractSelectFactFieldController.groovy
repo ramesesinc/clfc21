@@ -43,7 +43,7 @@ abstract class AbstractSelectFactFieldController {
     def doOk() {
         if(!selectedFact || !selectedField) 
             throw new Exception("Please select an item");
-        
+                
         if (onselect) {
             onselect([fact: selectedFact, field: selectedField]);
         }

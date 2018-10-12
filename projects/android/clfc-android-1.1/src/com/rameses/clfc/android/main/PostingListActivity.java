@@ -1,6 +1,5 @@
 package com.rameses.clfc.android.main;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -9,6 +8,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -19,14 +19,14 @@ import android.widget.TextView;
 
 import com.rameses.clfc.android.ControlActivity;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.db.DBCollectionSheet;
-import com.rameses.clfc.android.db.DBPaymentService;
-import com.rameses.clfc.android.db.DBRemarksService;
+import com.rameses.clfc.android.db.CollectionSheetDB;
+import com.rameses.clfc.android.db.PaymentServiceDB;
+import com.rameses.clfc.android.db.RemarksServiceDB;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.Task;
 import com.rameses.client.android.UIActionBarActivity;
-import com.rameses.db.android.DBContext;
+import com.rameses.client.interfaces.UserProfile;
 import com.rameses.util.MapProxy;
 
 public class PostingListActivity extends ControlActivity 
@@ -34,14 +34,14 @@ public class PostingListActivity extends ControlActivity
 	private Context context = this;
 	private LayoutInflater inflater;
 	private EditText et_search;
-	private int size;
-	private Map map;
-	private MapProxy proxy;
-	private String objid;
-	private boolean haspayments = false;
-	private boolean hasremarks = false;
-	private boolean hasunpostedpayments = false;
-	private boolean hasunpostedremarks;
+//	private int size;
+//	private Map map;
+//	private MapProxy proxy;
+//	private String objid;
+//	private boolean haspayments = false;
+//	private boolean hasremarks = false;
+//	private boolean hasunpostedpayments = false;
+//	private boolean hasunpostedremarks;
 	private ProgressDialog progressDialog;
 	
 	private TextView tv_posted;
@@ -135,15 +135,20 @@ public class PostingListActivity extends ControlActivity
 		ll_unposted.removeAllViewsInLayout();
 		ll_unposted.removeAllViews();
 		
+		
 		boolean posted = false;
-		for (int i=0; i<size; i++) {
-			proxy = new MapProxy((Map) list.get(i));
+		for (Map item : list) {
+			MapProxy proxy = new MapProxy( item );
+			posted = false;
 			
-			haspayments = proxy.getBoolean("haspayments");
-			hasremarks = proxy.getBoolean("hasremarks");
+			boolean haspayments = proxy.getBoolean("haspayments");
+			boolean hasremarks = proxy.getBoolean("hasremarks");
+			
+			Log.i("PostingListActivity", proxy.getString("borrower_name") + " has payments->" + haspayments + " has remarks->" + hasremarks);
+			
 			if (haspayments == true || hasremarks == true) {
-				hasunpostedpayments = proxy.getBoolean("hasunpostedpayments");
-				hasunpostedremarks = proxy.getBoolean("hasunpostedremarks");
+				boolean hasunpostedpayments = proxy.getBoolean("hasunpostedpayments");
+				boolean hasunpostedremarks = proxy.getBoolean("hasunpostedremarks");
 				
 				if (haspayments && !hasunpostedpayments) {
 					posted = true;
@@ -180,9 +185,14 @@ public class PostingListActivity extends ControlActivity
 		private String queryString;
 //		private UIActivity activity;
 		private UIActionBarActivity activity;
-		private DBCollectionSheet collectionSheet = new DBCollectionSheet();
-		private DBPaymentService paymentSvc = new DBPaymentService();
-		private DBRemarksService remarksSvc = new DBRemarksService();
+
+		private CollectionSheetDB collectionsheetdb = new CollectionSheetDB();
+		private PaymentServiceDB paymentservicedb = new PaymentServiceDB();
+		private RemarksServiceDB remarksservicedb = new RemarksServiceDB();
+		
+//		private DBCollectionSheet collectionSheet = new DBCollectionSheet();
+//		private DBPaymentService paymentSvc = new DBPaymentService();
+//		private DBRemarksService remarksSvc = new DBRemarksService();
 		
 		public LoadCollectionSheetTask(String queryString, UIActionBarActivity activity) {
 			this.queryString = queryString;
@@ -202,6 +212,34 @@ public class PostingListActivity extends ControlActivity
 		}
 		
 		private void runImpl() throws Exception {
+			if (queryString == null || queryString.equals("")) queryString = "";
+			queryString += "%";
+			
+			UserProfile profile = SessionContext.getProfile();
+			String collectorid = (profile != null? profile.getUserId() : "");
+			
+			List<Map> list = collectionsheetdb.getCollectionSheetsByCollector( collectorid, queryString );
+			for (int i=0; i<list.size(); i++) {
+				Map map = list.get( i );
+
+				String objid = MapProxy.getString( map, "objid" );
+				
+				map.put("haspayments", paymentservicedb.hasPayments( objid ));
+				map.put("hasunpostedpayments", paymentservicedb.hasUnpostedPayments( objid ));
+				map.put("hasremarks", remarksservicedb.hasRemarksById( objid ));
+				map.put("hasunpostedremarks", remarksservicedb.hasUnpostedRemarksById( objid ));
+			}
+			
+			final List<Map> l = list;
+			activity.getHandler().post(new Runnable() {
+				public void run() {
+					loadCollectionSheetsImpl( l );
+				}
+			});
+		}
+		
+		/*
+		private void xrunImpl() throws Exception {
 
 			queryString = (!queryString.equals("")? queryString : "") + "%";
 			List<Map> list = new ArrayList<Map>();
@@ -260,5 +298,6 @@ public class PostingListActivity extends ControlActivity
 			});
 			
 		}
+		*/
 	}
 }

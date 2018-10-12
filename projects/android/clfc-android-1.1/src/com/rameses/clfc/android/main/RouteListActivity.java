@@ -1,5 +1,6 @@
 package com.rameses.clfc.android.main;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -16,16 +17,14 @@ import android.widget.TextView;
 
 import com.rameses.clfc.android.ApplicationUtil;
 import com.rameses.clfc.android.ControlActivity;
-import com.rameses.clfc.android.PaymentDB;
 import com.rameses.clfc.android.R;
-import com.rameses.clfc.android.RemarksDB;
-import com.rameses.clfc.android.db.DBPaymentService;
-import com.rameses.clfc.android.db.DBRemarksService;
-import com.rameses.clfc.android.db.DBSystemService;
+import com.rameses.clfc.android.db.PaymentServiceDB;
+import com.rameses.clfc.android.db.RemarksServiceDB;
+import com.rameses.clfc.android.db.SystemDB;
 import com.rameses.client.android.Platform;
 import com.rameses.client.android.SessionContext;
 import com.rameses.client.android.UIDialog;
-import com.rameses.db.android.DBContext;
+import com.rameses.client.interfaces.UserProfile;
 import com.rameses.util.MapProxy;
 
 public class RouteListActivity extends ControlActivity 
@@ -45,6 +44,10 @@ public class RouteListActivity extends ControlActivity
 	private RelativeLayout rl_followups;
 	private RelativeLayout rl_specials;
 	private LayoutInflater inflater;
+	
+	private PaymentServiceDB paymentservicedb = new PaymentServiceDB();
+	private RemarksServiceDB remarksservicedb = new RemarksServiceDB();
+	private SystemDB systemdb = new SystemDB();
 	
 	protected void onCreateProcess(Bundle savedInstanceState) {
 		super.onCreateProcess(savedInstanceState);
@@ -471,6 +474,25 @@ public class RouteListActivity extends ControlActivity
 	};
 
 	private void processDB() throws Exception {
+		String msg = "There are still collection sheets to upload. Please upload the collection sheets before downloading current collection sheets.";
+		
+//		DBPaymentService dbPs = new DBPaymentService();
+//		dbPs.setDBContext(paymentdb);
+//		dbPs.setCloseable(false);
+		
+		boolean hasError = paymentservicedb.hasUnpostedPayments();
+		
+		if (hasError == true) {
+			throw new RuntimeException( msg );
+		}
+		
+		hasError = remarksservicedb.hasUnpostedRemarks();
+		if (hasError == true) {
+			throw new RuntimeException( msg );
+		}
+	}
+	/*
+	private void processDB() throws Exception {
 		DBContext paymentdb = new DBContext("clfcpayment.db");
 		DBContext remarksdb = new DBContext("clfcremarks.db");
 //		SQLTransaction clfcdb = new SQLTransaction("clfc.db");
@@ -485,7 +507,8 @@ public class RouteListActivity extends ControlActivity
 			remarksdb.close();
 		} 
 	}
-			
+	*/	
+	/*
 	private void execute(DBContext paymentdb, DBContext remarksdb) throws Exception {
 		String msg = "There are still collection sheets to upload. Please upload the collection sheets before downloading current collection sheets.";
 		
@@ -515,7 +538,7 @@ public class RouteListActivity extends ControlActivity
 		}
 		
 	}
-	
+	*/
 	private View.OnLongClickListener routeOnLongClickListener = new View.OnLongClickListener() {
 		public boolean onLongClick(View view) {
 			view.setBackgroundResource(android.R.drawable.list_selector_background);
@@ -529,21 +552,36 @@ public class RouteListActivity extends ControlActivity
 	
 	private boolean hasBilling() {
 		boolean flag = false;
-		
-		DBContext ctx = new DBContext("clfc.db");
-		DBSystemService sysSvc = new DBSystemService();
-		sysSvc.setDBContext(ctx);
-		
-		String collectorid = SessionContext.getProfile().getUserId();
-		String date = ApplicationUtil.formatDate(Platform.getApplication().getServerDate(), "yyyy-MM-dd");
-		
+				
 		try {
-			flag = sysSvc.hasBillingid(collectorid, date);
+			UserProfile profile = SessionContext.getProfile();
+			String collectorid = (profile != null? profile.getUserId() : "");
+			
+			String date = "";
+			Date dt = Platform.getApplication().getServerDate();
+			if (dt != null) {
+				date = ApplicationUtil.formatDate( dt, "yyyy-MM-dd" );
+			}
+			
+			flag = systemdb.hasBillingid(collectorid, date);
 		} catch (Throwable t) {
 			UIDialog.showMessage(t, RouteListActivity.this);
 		}
-		
 		return flag;
+		
+//		DBContext ctx = new DBContext("clfc.db");
+//		DBSystemService sysSvc = new DBSystemService();
+//		sysSvc.setDBContext(ctx);
+//		
+//		String collectorid = SessionContext.getProfile().getUserId();
+//		String date = ApplicationUtil.formatDate(Platform.getApplication().getServerDate(), "yyyy-MM-dd");
+//		
+//		try {
+//			flag = sysSvc.hasBillingid(collectorid, date);
+//		} catch (Throwable t) {
+//			UIDialog.showMessage(t, RouteListActivity.this);
+//		}
+		
 	}
 	
 //	private boolean hasUnremittedCollections(Map route) {

@@ -27,8 +27,8 @@
             visibleWhen="${action=='view' &amp;&amp; mode=='read' &amp;&amp; totalCollection==totalbreakdown &amp;&amp; entity.allowpost==true}" />
         
         <invoker type="formActions" action="submitCbsForVerification" caption="Submit CBS for Verification" mnemonic="s" shortcut="ctrl s"
-            visibleWhen="${action=='view' &amp;&amp; mode=='read' &amp;&amp; entity.cashbreakdown?.allowcbssubmitforverification==true}"
-            role="CASHIER" />
+            visibleWhen="${action=='view' &amp;&amp; mode=='read' &amp;&amp; entity.cashbreakdown?.allowcbssubmitforverification==true
+            &amp;&amp; totalCollection==totalbreakdown}" role="CASHIER" />
             
         <invoker type="formActions" action="viewCbsSendbackRemarks" caption="View CBS Send Back Remarks" mnemonic="v" shortcut="ctrl v"
             visibleWhen="${action=='view' &amp;&amp; mode=='read' &amp;&amp; entity.cashbreakdown?.sendbackremarks}" />

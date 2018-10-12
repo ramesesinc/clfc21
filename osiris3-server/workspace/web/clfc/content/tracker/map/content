@@ -452,7 +452,7 @@ function addDownloadLog( item ) {
 		var marker = new google.maps.Marker({ 
 			position 	: new google.maps.LatLng(item.lat, item.lng), 
 			title 		: "Downloaded", 
-			icon 		: '/images/mapicons/phone-icon.png', 				
+			icon 		: '/images/mapicons/download.png', 				
 			map 		: workspace.map, 
 			draggable 	: false, 
 			zIndex 		: 1000
@@ -460,6 +460,53 @@ function addDownloadLog( item ) {
 
 		item.marker = marker;
 		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/head?objid=' + item.objid + '&type=download'); 	
+	}
+}
+
+function addRemitLog( item ) {
+	if (!isGoogleMapReady()) return; 
+	if (!workspace.logs) workspace.logs = [];
+	if (!workspace.trackercount) workspace.trackercount = 0;
+
+	var logs = workspace.logs;
+	var logitem = logs.find(function(o){ return (o.objid==item.objid? o: null); });  
+	if (logitem) return; 
+
+	updateCurrentLocation(item); 
+	logs.push(item);
+	workspace.trackercount++;
+
+	var logcount = workspace.trackercount;
+
+	if (item.lat && item.lat != 0 && item.lng && item.lng != 0) {
+
+
+		/*
+		endlocation.lat = item.lat;
+		endlocation.lng = item.lng;
+		var endMarker = new google.maps.Marker({ 
+			position: new google.maps.LatLng(tracker.closedlat, tracker.closedlng), 
+			map 	: workspace.map, 
+			title 	: 'End Point',
+			icon 	: '/images/mapicons/end.png',
+			zIndex 	: 1000
+		});	
+		workspace.markers.push(endMarker);
+		workspace.endlog = {lat: tracker.closedlat, lng: tracker.closedlng, objid: tracker.objid, type:'end'}
+		new HeadWindowHandler(workspace, endMarker, workspace.endlog);
+		*/
+
+		var marker = new google.maps.Marker({ 
+			position 	: new google.maps.LatLng(item.lat, item.lng), 
+			title 		: "Remitted", 
+			icon 		: '/images/mapicons/remit.png', 				
+			map 		: workspace.map, 
+			draggable 	: false, 
+			zIndex 		: 1000
+		});	
+
+		item.marker = marker;
+		new GmapInfoWindowHandler(workspace, marker, item, '/tracker/head?objid=' + item.objid + '&type=remit'); 	
 	}
 }
 
@@ -746,13 +793,14 @@ function addLog(item) {
 
 	//window.console.log( item.reftype );
 	switch (item.reftype.toLowerCase()) {
-		case "payment": addPaymentLog(item); break;
-		case "remarks": addRemarksLog(item); break;
-		case "track": addTrackerLog(item); break;
-		case "status": addStatusLog(item); break;
-		case "start": addStartLog( item ); break;
-		case "stop": addStopLog( item ); break;
-		case "download": addDownloadLog( item ); break;
+		case "payment" 	: addPaymentLog(item); break;
+		case "remarks" 	: addRemarksLog(item); break;
+		case "track" 	: addTrackerLog(item); break;
+		case "status" 	: addStatusLog(item); break;
+		case "start" 	: addStartLog( item ); break;
+		case "stop" 	: addStopLog( item ); break;
+		case "download" : addDownloadLog( item ); break;
+		case "remit" 	: addRemitLog( item ); break;
 		//default: addNormalLog(item); break;
 	}
 

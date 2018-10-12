@@ -1,6 +1,0 @@
-{
-	href:		'/context/personnel/docinfo',
-	secured:	true,
-	fragment:	true,
-	sortorder:	100
-}

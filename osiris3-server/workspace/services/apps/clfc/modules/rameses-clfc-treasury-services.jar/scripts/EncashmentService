@@ -1920,8 +1920,7 @@ class EncashmentService extends ActiveCrudListService
 			if (!i) {
 				collection_cb.create(item, 'cb-forverification');
 			}
-
-
+			
 			def msginfo = [ 
 				objid 		: item.objid, 
 				dtcreated	: currentdate, 
