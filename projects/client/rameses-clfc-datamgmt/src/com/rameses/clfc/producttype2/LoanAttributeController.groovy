@@ -45,7 +45,7 @@ class LoanAttributeController {
     ]);
     
     void create() {
-        entity = [objid: "LATTR" + new UID()];
+        entity = [objid: "LATTR" + new UID(), db: [:]];
     }
     
     void open() {
@@ -54,6 +54,7 @@ class LoanAttributeController {
             d.putAll(entity);
             entity = d;
         }
+        if (!entity.db) entity.db = [:];
     }
     
     def getOpener() {

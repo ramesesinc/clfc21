@@ -95,12 +95,12 @@ class LoanInfoController {
         }
         def item;
         
-        entity?.generalinfo?.attributes?.each{ o->
+        entity?.generalinfo?.attributes?.each{ o->            
             item = [
                 caption     : o.attribute?.varname,
                 title       : o.attribute?.varname,
                 signature   : o.attribute?.varname,
-                handler     : o.attribute?.type
+                handler     : o.attribute?.handler
             ];
             
             if (item.handler == "expression") {
@@ -113,12 +113,12 @@ class LoanInfoController {
         }
         
         def xl = entity.loaninfo.attributes?.findAll{ it.index < index }
-        xl?.each{ o->
+        xl?.each{ o->            
             item = [
                 caption     : o.attribute?.varname,
                 title       : o.attribute?.varname,
                 signature   : o.attribute?.varname,
-                handler     : o.attribute?.type
+                handler     : o.attribute?.handler
             ];
             
             if (item.handler == "expression") {
@@ -127,7 +127,23 @@ class LoanInfoController {
                 item.description = "(" + item.handler + ")";
             }
             
-            list << item;
+            list << item;            
+            
+            if (o.showpaid == 1) {
+                def xi = [
+                    caption     : item.caption + "_paid",
+                    title       : item.title + "_paid",
+                    signature   : item.signature + "_paid",
+                    handler     : item.handler
+                ];
+
+                if (xi.handler == "expression") {
+                    xi.description = "(decimal)";
+                } else if (xi.handler) {
+                    xi.description = "(" + item.handler + ")";
+                }
+                list << xi;
+            }
         }
         
         return list;

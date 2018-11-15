@@ -1,0 +1,12 @@
+<workunit>    
+    <invokers>
+        <invoker type="posting:header:fieldupdate:create" action="init" caption="Field Update" target="popup" />
+        <invoker type="posting:header:fieldupdate:open" action="open" caption="Field Update" target="popup" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.posting.header2.FieldUpdateController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.posting.header2.FieldUpdatePage" />
+    </pages>
+</workunit>

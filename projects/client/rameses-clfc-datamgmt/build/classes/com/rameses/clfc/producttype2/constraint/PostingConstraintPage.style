@@ -31,6 +31,12 @@
 "entity.deductabletoamountusevar" [mode=='read' || entity.isdeductabletoamount==null || entity.isdeductabletoamount==false] {
     enabled: false;
 }
+"entity.updatedb.*" [mode != 'read' && entity.allowupdatedb==true] {
+    enabled: true;
+}
+"entity.updatedb.*" [mode == 'read' || entity.allowupdatedb==null || entity.allowupdatedb==false] {
+    enabled: false;
+}
 "entity.*" [mode=='read'] {
     enabled: false;
 }

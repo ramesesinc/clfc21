@@ -124,7 +124,7 @@ class PostingConstraintController
     ]);
     
     void init() {
-        entity = [objid: "PC" + new UID(), fields: []];
+        entity = [objid: "PC" + new UID(), fields: [], updatedb: [:]];
         group = null;
         ruleset = null;
         rulegroup = null;
@@ -132,6 +132,7 @@ class PostingConstraintController
     
     void open() {
         entity = copyMap( entity );
+        if (!entity.updatedb) entity.updatedb = [:];
         
         entity?.constraints?.each {
             addConstraintControl( it );

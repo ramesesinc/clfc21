@@ -8,9 +8,9 @@
         <invoker type="formActions" caption="Cancel" action="cancelEdit" visibleWhen="#{mode=='edit'}" immediate="true"/> 
     </invokers>
     
-    <code class="com.rameses.clfc.loan.controller.LoanAppPrincipalBorrowerController"/>
+    <code class="com.rameses.clfc.loan.controller.LoanAppPrincipalBorrowerController" />
     
     <pages>
-        <page template="com.rameses.clfc.loan.LoanAppPrincipalBorrowerPage"/>
+        <page template="com.rameses.clfc.loan.LoanAppPrincipalBorrowerPage" />
     </pages>
 </workunit>

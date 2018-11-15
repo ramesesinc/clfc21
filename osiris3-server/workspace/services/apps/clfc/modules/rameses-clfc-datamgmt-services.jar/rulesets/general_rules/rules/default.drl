@@ -26,17 +26,48 @@ function void println( Object msg ) {
 	System.out.println(msg.toString());
 }
 
+function Map buildBindings( Map src ) {
+	Map data = new HashMap();
+
+	if (src != null) {
+		Iterator itr = src.keySet().iterator();
+
+		while (itr.hasNext()) {
+			Object k = itr.next();
+			if (k != null) {
+				Object val = src.get( k.toString() );
+				if (val != null) {
+					String key = k.toString();
+					//println("key->" + key + " class->" + key.getClass());
+					if (val instanceof Map) {
+						Map xb = (Map) val;
+						if (xb.containsKey("value")) {
+							data.put( key, xb.get("value") );
+						}
+						//data.put( key, copyMap( (Map) val ) );
+					} else {
+						data.put( key, val );
+					}
+				}
+			}
+		}
+	}
+
+	return data;
+}
+
 rule "calculate amount"
 	when
 		References( isDecimal == true )
 	then
 
 		if (bindings == null) bindings = new HashMap();
+		Map xb = buildBindings( bindings );
+		//println("bindings->" + xb);
 
 		Map params = new HashMap();
 		params.put("key", fieldname);
-		params.put(fieldname, (new ActionExpression(expr, bindings)) );
-
+		params.put(fieldname, (new ActionExpression(expr, xb)) );
 		action.execute("calcAmount", params, drools);
 end
 
@@ -46,13 +77,13 @@ rule "calculate date"
 	then
 
 		if (bindings == null) bindings = new HashMap();
+		Map xb = buildBindings( bindings );
+		//println("xb-> " + xb);
 
 		Map params = new HashMap();
 		params.put("key", fieldname);
-		System.out.println("field name-> " + fieldname);
-		//params.put(fieldname, (new ActionExpression(expr, bindings)) );
-
-		//action.execute("calcDate", params, drools);
+		params.put(fieldname, (new ActionExpression(expr, xb)) );
+		action.execute("calcDate", params, drools);
 end
 
 rule "compute total days"

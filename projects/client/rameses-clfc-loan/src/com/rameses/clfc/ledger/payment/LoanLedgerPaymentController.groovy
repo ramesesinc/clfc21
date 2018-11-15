@@ -26,12 +26,18 @@ class LoanLedgerPaymentListController
 
     void open() {
         entity.payments = svc.getList(entity);
+        //if (paymentsHandler) paymentsHandler.rows = entity.payments.size();
+        if (paymentsHandler) {
+            paymentsHandler.setPagingEnabled( false );
+            paymentsHandler.reload();
+        }
     }
     
     void refresh() {
         def res = svc.refresh(entity);
         if (res) {
             entity.payments = res.list;
+            //if (paymentsHandler) paymentsHandler.rows = entity.payments.size();
             entity.lastpageindex = res.lastpageindex;
             //entity.ledgercount = res.ledgercount;
             //if (!entity.ledgercount) entity.ledgercount = 1;
@@ -39,6 +45,7 @@ class LoanLedgerPaymentListController
             //entity.lastpageindex = caller?.getLastPageIndex(entity);
             caller?.binding.refresh('entity.*');
         }
+        if (paymentsHandler) paymentsHandler.setPagingEnabled( false );
         paymentsHandler.reload();
     }
 
@@ -119,10 +126,12 @@ class LoanLedgerPaymentListController
 
     def paymentsHandler = [
         isPagingEnabled: { return false; },
+        getRows: {
+            if (!entity.payments) entity.payments = [];
+            return entity.payments.size();
+        },
         fetchList: {
-            //println 'removed ' + entity._removed;
-            //println 'added ' + entity._added;
-            if (!entity.payments) entity.payments = []; 
+            if (!entity.payments) entity.payments = [];
             return entity.payments;
         },
         createItem: { return [objid: 'LLP' + new UID()] },
@@ -165,7 +174,7 @@ class LoanLedgerPaymentListController
             if (itm.isproceedcollection == 1 || itm.isonline == 1) return false;
             return true;
         }
-    ] as BasicListModel;
+    ] as EditorListModel;//BasicListModel;
 
     def getTotal() {
         if (!entity.payments) return 0;

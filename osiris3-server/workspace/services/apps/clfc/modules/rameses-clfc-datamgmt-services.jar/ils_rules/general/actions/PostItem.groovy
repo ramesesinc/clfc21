@@ -5,7 +5,7 @@ import com.rameses.util.*;
 import java.text.SimpleDateFormat;
 
 public class PostItem implements RuleActionHandler {
-	def NS;
+	def NS, SERVICE;
 	private def DATE_FORMAT = new SimpleDateFormat('yyyy-MM-dd');
 
 	public void execute( def params, def drools ) {
@@ -179,7 +179,7 @@ public class PostItem implements RuleActionHandler {
 			def paymentamount = params.PAYMENT.amount - params.PAYMENT.deductableToAmount;
 			//println 'deductable to amount->' + item.isdeductabletoamount + ' payment amount->' + paymentamount;
 			//println 'item->' + item.name + ' header->' + header.name + ' values->' + params.values;
-			if (item.isdeductabletoamount == true && paymentamount > 0) {	
+			if (item.isdeductabletoamount == true && paymentamount > 0) {
 			
 				if (!params.PAYMENT.totalPaid[header.name]) params.PAYMENT.totalPaid[header.name] = 0;
 				if (!params.PAYMENT.totalPaid[item.name]) params.PAYMENT.totalPaid[item.name] = 0;
@@ -223,11 +223,13 @@ public class PostItem implements RuleActionHandler {
 						}
 					}
 					
+					/*
 					if (params.ADVANCE_POSTING) {
 						println 'amount1->' + params.ADVANCE_POSTING.amount;
 						params.ADVANCE_POSTING.amount -= varamt;
 						println 'amount2->' + params.ADVANCE_POSTING.amount;
 					}
+					*/
 
 					if (item.overridevalue == true) {
 						params.PAYMENT.deductableToAmount = varamt;
@@ -346,6 +348,10 @@ public class PostItem implements RuleActionHandler {
 
 				}
 
+				if (item.allowupdatedb == true) {
+					SERVICE.updateDB( item, params.values, params.incrementAfterPosting, params.dbParams );
+				}
+
 				//println item.name + ' val->' + params.loancopy.info[item.name] + ' : ' + amt; 
 				
 				//println 'item->' + item.name + ' header->' + header.name + ' values->' + params.values;
@@ -368,6 +374,9 @@ public class PostItem implements RuleActionHandler {
 			params.allowRepost = false;
 		}
 
+		println 'amount-> ' + params.PAYMENT.amount;
+		println 'deductable to amount-> ' + params.PAYMENT.deductableToAmount;
+		println 'balance ' + params.PAYMENT.balance;
 		params.PAYMENT.balance = params.PAYMENT.amount - params.PAYMENT.deductableToAmount;
 		//println 'balance->' + params.PAYMENT.balance;
 		/*
@@ -513,7 +522,12 @@ public class PostItem implements RuleActionHandler {
 			//println 'name-> ' + item.name + ' val-> ' + val;
 
 			//params.PAYMENT.addToCurrentSchedule += 1;
+			println 'allow updatedb->' + item.allowupdatedb;
+			if (item.allowupdatedb == true) {
+				SERVICE.updateDB( item, params.values, params.incrementAfterPosting, params.dbParams );
+			}
 		}
+
 	}
 
 	public void xexecute(def params, def drools) {

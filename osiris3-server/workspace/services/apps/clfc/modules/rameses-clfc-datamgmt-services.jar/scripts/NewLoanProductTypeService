@@ -671,7 +671,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			ledgerid	: "LEDGER-7d4c2fc0:145c6219f8c:-77c6",
 			payments 	: [
 				[paymentid: "LLP-4da142a:145c7c7e749:1632"],
-				[paymentid: "LLP70b6b5f0:145ebcbaa08:-d71"],
+				//[paymentid: "LLP70b6b5f0:145ebcbaa08:-d71"],
 				//[paymentid: "LLP70b6b5f0:145ebcbaa08:-d6f"]
 			]
 		];
@@ -714,9 +714,12 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		if (info) {
 
 			data.generalinfo?.attributes.each{ o->
-				bindings[o.attribute.varname] = o.value;
-				bindings2["GENINFO_" + o.attribute.varname] = o.value;
-				loanbindings[o.attribute.varname] = o.value;
+				//bindings[o.attribute.varname] = o.value;
+				bindings[o.attribute.varname] = [key: o.attribute.fieldname, value: o.value];
+				//["GENINFO_" + o.attribute.varname] = o.value;
+				bindings["GENINFO_" + o.attribute.varname] = [key: o.attribute.fieldname, value: o.value];
+				//loanbindings[o.attribute.varname] = o.value;
+				loanbindings[o.attribute.varname] = [key: o.attribute.fieldname, value: o.value];
 			}
 
 
@@ -732,27 +735,39 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 					if (factfield.subschemaname) {
 						f = schema.read(xprm, factfield.subschemaname);
 					}
-					bindings[o.title] = f[factfield.fieldname];
+					//println 'o->' + o;
+					def val = f[factfield.fieldname];
+					//[key: o.attribute.fieldname, value: val];
+					bindings[o.title] = [key: o.field.name, value: val];
 				}
 			}
 
 			//info.attributes[0].each{ println it }
 
+			app = loanapp.read([objid: xparams.appid]);
 			def list = info.attributes?.findAll{ it.computeduringapplication==1 }
 			list.sort{ it.index }
 			list.each{ o->
 				def res = executeApplicationRule(bindings, o);
 				//println 'result-> ' + res;
-				bindings[o.attribute.varname] = res[o.attribute.fieldname];
+				def val = res[o.attribute.fieldname];
+				//bindings[o.attribute.varname] = res[o.attribute.fieldname];
+				bindings[o.attribute.varname] = [key: o.attribute.fieldname, value: val];
+
+				if (o.updatedb == 1 && o.db?.dbname == 'loanapp') {
+					app[o.db.fieldname] = val;
+				}
 			}
 
 			//def app = [:];
-			app = loanapp.read([objid: xparams.appid]);
-			list.each{
+			//list.each{
 				//println it.attribute.fieldname + '-> ' + bindings[it.attribute.varname];
-				app[it.attribute.fieldname] = bindings[it.attribute.varname]
-			}
+			//	app[it.attribute.fieldname] = bindings[it.attribute.varname]
+			//}
+			//println 'bindings';
+			//bindings?.each{ println it }
 
+			/*
 			//bindings = [:];
 			info.attributes?.each{ 
 				//bindings[it.attribute.varname] = null;
@@ -760,14 +775,26 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 					//bindings[it.attribute.varname] = app[it.attribute.fieldname];
 					bindings2["LOANINFO_" + it.attribute.varname] = app[it.attribute.fieldname];
 					loanbindings[it.attribute.varname] = app[it.attribute.fieldname];
+
+					if (it.updatedb==1) {
+						def prm = [objid: xparams.ledgerid];
+						prm[it.db.fieldname] = app[it.attribute.fieldname];
+						loan_ledger.update( prm );
+					}
 				}
 				
 			}
+			*/
 		}
+
+		//println 'bindings';
+		//bindings?.each{ println it }
+		//return;
 
 		//println 'loanbindings';
 		//loanbindings?.each{ println it }
 		//println '';
+		//return;
 
 		//println 'bindings';
 		//bindings.each{ println it }
@@ -786,6 +813,10 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		loanbindings?.each{ println it }
 		println '';
 		*/
+
+		//println 'loanbindings';
+		//loanbindings?.each{ println it }
+		//println ''
 
 		info = data.postinginfo;
 		def appinfo = data.loaninfo;
@@ -928,7 +959,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		def ledger = loan_ledger.read( [objid: params.ledgerid] );
 		ledger.dtlastpaid = pyt.txndate;
 
-		println 'current schedule ' + ledger?.dtcurrentschedule + ' payment date->' + pyt.txndate;
+		//println 'current schedule ' + ledger?.dtcurrentschedule + ' payment date->' + pyt.txndate;
 
 		pyt.previous = [
 			balance 	: ledger.balance,
@@ -1034,7 +1065,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		];
 
 		//println 'is past due->' + ref.isPastDue;
-		println 'allow advance posting->' + ref.allowAdvancePosting;
+		//println 'allow advance posting->' + ref.allowAdvancePosting;
 
 		//println 'posting sequence';
 		//item.postingsequence?.each{ println it }
@@ -1048,12 +1079,26 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			incrementDays 			: false
 		];
 
+
+		//println 'posting sequence';
+		posting.sequence?.each{ 
+			if (it.header) {
+				def h = postingheader.read([objid: it.header.objid]);
+				if (h) it.header.fieldstoupdate = h.fieldstoupdate;
+			}
+		}
+		//println '';
+
 		def loan = [
 			index 		: 0, 
 			attributes 	: applist, 
 			bindings 	: loanBindings,
 			info 		: [:]
 		];
+
+		//loan?.attributes?.each{ println it }
+
+		//println 'attributes->' + loan.attributes?.size();
 
 		if (appextinfo?.loaninfo) {
 			loan.info = appextinfo.loaninfo;
@@ -1092,9 +1137,9 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			payment.balance = payment.amount;
 		}
 
-		println 'prevpayment'
 
 		if (prevpayment) {
+			//println 'prevpayment '+ prevpayment.objid;
 			//println 'total paid->' + prevpayment.totalpaid;
 			payment.totalPaid = prevpayment.totalpaid;
 			payment.lacking = prevpayment.lacking;
@@ -1142,7 +1187,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		actions.addCommand( "buildAppBindings", new ils_rules.general.actions.BuildAppBindings( SERVICE: selfSvc ) );
 		actions.addCommand( "validateConstraintExpression", new ils_rules.general.actions.ValidateConstraintExpression( SERVICE: selfSvc ) )
 		actions.addCommand( "supplyFieldValue", new ils_rules.general.actions.SupplyFieldValue( NS: numSvc ) );
-		actions.addCommand( "postItem", new ils_rules.general.actions.PostItem( NS: numSvc ) );
+		actions.addCommand( "postItem", new ils_rules.general.actions.PostItem( NS: numSvc, SERVICE: selfSvc ) );
 
 		def postingItems = [];
 
@@ -1162,7 +1207,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		def loanCopy = copyMap( loan );
 		req.addGlobal("loanCopy", loanCopy);
 
-		println '';
+		//println '';
 		//println 'loan';
 		//loan?.each{ println it }
 
@@ -1173,6 +1218,18 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		//println 'references';
 		//ref?.each{ println it }
 		//println '';
+
+		/*
+		println 'attributes';
+		if (loan?.attributes) {
+			def aaa = loan.attributes[0];
+			if (aaa.fields) {
+				aaa.fields[0].each{ println it }
+			}
+		}
+		*/
+		//loan?.attributes?.each{ println it }
+		//return [list: []];
 
 		try {
 			ruleSvc.execute( req );
@@ -1193,12 +1250,12 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		*/
 
 
-		println '';
-		println 'totalpaid->' + payment.totalPaid;
-		println 'total->' + payment.total;
-		println 'lacking->' + payment.lacking;
-		println 'current->' + payment.current;
-		println '';
+		//println '';
+		//println 'totalpaid->' + payment.totalPaid;
+		//println 'total->' + payment.total;
+		//println 'lacking->' + payment.lacking;
+		//println 'current->' + payment.current;
+		//println '';
 
 		pyt.totalpaid = payment.totalPaid;
 		pyt.lacking = payment.lacking;
@@ -1213,6 +1270,9 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			ledger.dtcurrentschedule = parseDate( new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime()) );
 			//edger.dtcurrentschedule = pyt.current?.dtschedule;
 		}
+
+		def xxl = loan_ledger.read( [objid: ledger.objid] );
+		println 'xxl->' + xxl;
 
 		if (pyt.current?.balance) {
 			ledger.balance = pyt.current?.balance;
@@ -1339,8 +1399,16 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		def ledger = loan_ledger.read([objid: params.ledgerid]);
 		def payment = loan_ledger.read([objid: params.paymentid], "payment");
 
-		def ref = [isDecimal: false, isDate: false, isComputeTotalDays: true];
-		def totalDaysRef = [currentSchedule: ledger?.dtcurrentschedule, paymentDate: payment?.txndate, totalDays: 0];
+		def ref = [
+			isDecimal: false, 
+			isDate: false, 
+			isComputeTotalDays: true
+		];
+		def totalDaysRef = [
+			currentSchedule: ledger?.dtcurrentschedule, 
+			paymentDate: payment?.txndate, 
+			totalDays: 0
+		];
 		/*
 		if (params.incrementdtschedule) {
 
@@ -1366,7 +1434,8 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 		//println 'total days ' + totalDaysRef.totalDays;
 		//println 'resutl ' + result;
-		if (!result.totaldays) result.totaldays = 1;
+		//if (!result.totaldays) result.totaldays = 1;
+		if (result.totaldays == null) result.totaldays = 0;
 		return result.totaldays;
 		//throw new RuntimeException("stop total days");
 	}
@@ -1468,10 +1537,11 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 	@ProxyMethod
 	public def buildBindings( fields, params ) { 
+		println 'build bindings';
 		//println 'fields';
 
-		//println 'params';
-		//params.each{ println it }
+		println 'params';
+		params.each{ println it }
 
 		def bindings = [:];
 		fields.each{ f->
@@ -1741,6 +1811,58 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		//exprList?.each{ println it }
 
 		return exprList;
+	}
+
+	@ProxyMethod
+	public def updateDB( item, values, incrementafterposting, params ) {
+
+		def x = item.updatedb;
+
+		def schema  = db.lookup("main", x.schemaname);
+
+		def prm = [:];
+		prm[x.primarykey] = params[x.paramkey];
+
+		def ff = schema.read( prm );
+		if (x.subschemaname) {
+			ff = schema.read( prm, x.subschemaname );
+		}
+		def val = ff[ x.fieldname ];
+
+		switch (item?.datatype) {
+			case 'date':
+				if (incrementafterposting[ item?.header?.name ]) {
+					def cal = Calendar.getInstance();
+					cal.add( Calendar.DATE, incrementafterposting[ item?.header?.name ]);
+					val = parseDate( "yyyy-MM-dd", cal.getTime() );
+				}
+				break;
+		}
+
+		prm[ x.fieldname ] = val;
+		if (x.subschemaname) {
+			schema.update( prm, x.subschemaname );
+		} else {
+			schema.update( prm );
+		}
+
+		//bindings[f.title] = ff[field.fieldname];
+		//println 'updatedb method';
+		//println 'val->' + val;
+		/*
+		println 'item';
+		item?.each{ println it }
+		println '';
+		println 'values';
+		values?.each{ println it }
+		println '';
+		println 'increment after posting';
+		incrementafterposting?.each{ println it }
+		println '';
+		println 'params';
+		params?.each{ println it }
+		println '';
+		*/
 	}
 
 	private def parseDate( date ) {

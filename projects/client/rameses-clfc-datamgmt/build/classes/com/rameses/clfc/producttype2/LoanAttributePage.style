@@ -1,0 +1,6 @@
+"entity.db.*" [mode=='read' || entity.updatedb==null || entity.updatedb==0] {
+    enabled: false;
+}
+"entity.db.*" [mode!='read' && entity.updatedb==1] {
+    enabled: true;
+}

@@ -59,6 +59,11 @@ class PostingHeaderService extends ActiveCrudListService
 		//updateInfo(data);
 	}
 
+	void beforeUpdate( data ) {
+		println 'before update';
+		data?.each{ println it }
+	}
+
 	void afterUpdate( data ) {
 		//updateInfo(data);
 	}

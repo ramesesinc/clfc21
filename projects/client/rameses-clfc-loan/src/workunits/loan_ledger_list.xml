@@ -43,6 +43,7 @@
                     query.segregationid = o.typeid;
                     query.segregationtype = o.type;
                     reload();
+                    binding?.refresh("title");
                 }
             ] as ListPaneModel;
         }

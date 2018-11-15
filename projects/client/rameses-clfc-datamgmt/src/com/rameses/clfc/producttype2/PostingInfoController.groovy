@@ -324,7 +324,7 @@ class PostingInfoController {
     
     def buildHeaderList() {
         def list = [];
-        entity?.postinginfo?.postingheader?.each{ 
+        entity?.postinginfo?.postingheader?.each{
             list << [objid: it.objid, title: it.title, name: it.name, datatype: it.datatype];
         }
         /*

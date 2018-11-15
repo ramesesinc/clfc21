@@ -36,12 +36,15 @@ public class LoanAttributePage extends javax.swing.JPanel {
         xFormPanel1 = new com.rameses.rcp.control.XFormPanel();
         xLookupField1 = new com.rameses.rcp.control.XLookupField();
         xSubFormPanel1 = new com.rameses.rcp.control.XSubFormPanel();
-        xFormPanel2 = new com.rameses.rcp.control.XFormPanel();
-        xCheckBox1 = new com.rameses.rcp.control.XCheckBox();
-        xCheckBox3 = new com.rameses.rcp.control.XCheckBox();
-        xFormPanel3 = new com.rameses.rcp.control.XFormPanel();
-        xCheckBox2 = new com.rameses.rcp.control.XCheckBox();
+        xCheckBox5 = new com.rameses.rcp.control.XCheckBox();
         xCheckBox4 = new com.rameses.rcp.control.XCheckBox();
+        xCheckBox2 = new com.rameses.rcp.control.XCheckBox();
+        xCheckBox3 = new com.rameses.rcp.control.XCheckBox();
+        xCheckBox1 = new com.rameses.rcp.control.XCheckBox();
+        xCheckBox6 = new com.rameses.rcp.control.XCheckBox();
+        xFormPanel2 = new com.rameses.rcp.control.XFormPanel();
+        xTextField5 = new com.rameses.rcp.control.XTextField();
+        xTextField6 = new com.rameses.rcp.control.XTextField();
 
         xFormPanel1.setCaptionWidth(120);
 
@@ -62,46 +65,19 @@ public class LoanAttributePage extends javax.swing.JPanel {
         xSubFormPanel1.setLayout(xSubFormPanel1Layout);
         xSubFormPanel1Layout.setHorizontalGroup(
             xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 411, Short.MAX_VALUE)
+            .addGap(0, 468, Short.MAX_VALUE)
         );
         xSubFormPanel1Layout.setVerticalGroup(
             xSubFormPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 223, Short.MAX_VALUE)
+            .addGap(0, 100, Short.MAX_VALUE)
         );
 
-        xFormPanel2.setAddCaptionColon(false);
-        xFormPanel2.setCaptionWidth(0);
-        xFormPanel2.setOrientation(com.rameses.rcp.constant.UIConstants.HORIZONTAL);
-        xFormPanel2.setPadding(new java.awt.Insets(0, 0, 0, 0));
-
-        xCheckBox1.setCaption("");
-        xCheckBox1.setCheckValue(1);
-        xCheckBox1.setName("entity.computeduringapplication"); // NOI18N
-        xCheckBox1.setUncheckValue(0);
-        xCheckBox1.setMargin(new java.awt.Insets(2, 0, 2, 2));
-        xCheckBox1.setText("Compute during application");
-        xFormPanel2.add(xCheckBox1);
-
-        xCheckBox3.setCaption("");
-        xCheckBox3.setCheckValue(1);
-        xCheckBox3.setName("entity.computeuponmaturity"); // NOI18N
-        xCheckBox3.setUncheckValue(0);
-        xCheckBox3.setMargin(new java.awt.Insets(2, 0, 2, 2));
-        xCheckBox3.setText("Compute upon maturity");
-        xFormPanel2.add(xCheckBox3);
-
-        xFormPanel3.setAddCaptionColon(false);
-        xFormPanel3.setCaptionWidth(0);
-        xFormPanel3.setOrientation(com.rameses.rcp.constant.UIConstants.HORIZONTAL);
-        xFormPanel3.setPadding(new java.awt.Insets(0, 0, 0, 0));
-
-        xCheckBox2.setCaption("");
-        xCheckBox2.setCheckValue(1);
-        xCheckBox2.setName("entity.computebeforeposting"); // NOI18N
-        xCheckBox2.setUncheckValue(0);
-        xCheckBox2.setMargin(new java.awt.Insets(2, 0, 2, 2));
-        xCheckBox2.setText("Compute before posting");
-        xFormPanel3.add(xCheckBox2);
+        xCheckBox5.setCaption("");
+        xCheckBox5.setCheckValue(1);
+        xCheckBox5.setName("entity.showpaid"); // NOI18N
+        xCheckBox5.setUncheckValue(0);
+        xCheckBox5.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox5.setText("Show paid in variables");
 
         xCheckBox4.setCaption("");
         xCheckBox4.setCheckValue(1);
@@ -109,7 +85,52 @@ public class LoanAttributePage extends javax.swing.JPanel {
         xCheckBox4.setUncheckValue(0);
         xCheckBox4.setMargin(new java.awt.Insets(2, 0, 2, 2));
         xCheckBox4.setText("Compute during posting");
-        xFormPanel3.add(xCheckBox4);
+
+        xCheckBox2.setCaption("");
+        xCheckBox2.setCheckValue(1);
+        xCheckBox2.setName("entity.computebeforeposting"); // NOI18N
+        xCheckBox2.setUncheckValue(0);
+        xCheckBox2.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox2.setText("Compute before posting");
+
+        xCheckBox3.setCaption("");
+        xCheckBox3.setCheckValue(1);
+        xCheckBox3.setName("entity.computeuponmaturity"); // NOI18N
+        xCheckBox3.setUncheckValue(0);
+        xCheckBox3.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox3.setText("Compute upon maturity");
+
+        xCheckBox1.setCaption("");
+        xCheckBox1.setCheckValue(1);
+        xCheckBox1.setName("entity.computeduringapplication"); // NOI18N
+        xCheckBox1.setUncheckValue(0);
+        xCheckBox1.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox1.setText("Compute during application");
+
+        xCheckBox6.setCaption("");
+        xCheckBox6.setCheckValue(1);
+        xCheckBox6.setName("entity.updatedb"); // NOI18N
+        xCheckBox6.setUncheckValue(0);
+        xCheckBox6.setMargin(new java.awt.Insets(2, 0, 2, 2));
+        xCheckBox6.setText("Update Database?");
+
+        xFormPanel2.setCaptionWidth(100);
+
+        xTextField5.setCaption("Database Name");
+        xTextField5.setDepends(new String[] {"entity.updatedb"});
+        xTextField5.setName("entity.db.dbname"); // NOI18N
+        xTextField5.setPreferredSize(new java.awt.Dimension(150, 20));
+        xTextField5.setRequired(true);
+        xTextField5.setTextCase(com.rameses.rcp.constant.TextCase.LOWER);
+        xFormPanel2.add(xTextField5);
+
+        xTextField6.setCaption("Field Name");
+        xTextField6.setDepends(new String[] {"entity.updatedb"});
+        xTextField6.setName("entity.db.fieldname"); // NOI18N
+        xTextField6.setPreferredSize(new java.awt.Dimension(150, 20));
+        xTextField6.setRequired(true);
+        xTextField6.setTextCase(com.rameses.rcp.constant.TextCase.LOWER);
+        xFormPanel2.add(xTextField6);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -118,11 +139,26 @@ public class LoanAttributePage extends javax.swing.JPanel {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(xSubFormPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 411, Short.MAX_VALUE)
-                    .addComponent(xFormPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, 411, Short.MAX_VALUE)
-                    .addComponent(xFormPanel3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 411, Short.MAX_VALUE))
-                .addContainerGap())
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(xSubFormPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 468, Short.MAX_VALUE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(xCheckBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE)))
+                        .addContainerGap())
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                .addComponent(xCheckBox4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGroup(layout.createSequentialGroup()
+                                    .addComponent(xCheckBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                    .addComponent(xCheckBox3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addComponent(xFormPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(xCheckBox6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(xCheckBox5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(0, 0, Short.MAX_VALUE))))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -130,11 +166,21 @@ public class LoanAttributePage extends javax.swing.JPanel {
                 .addContainerGap()
                 .addComponent(xFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(xFormPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(xCheckBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(xCheckBox3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(xFormPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(xSubFormPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 223, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(xCheckBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(xCheckBox4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(xCheckBox6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(xFormPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(xCheckBox5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(xSubFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 100, Short.MAX_VALUE)
                 .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
@@ -143,10 +189,13 @@ public class LoanAttributePage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XCheckBox xCheckBox2;
     private com.rameses.rcp.control.XCheckBox xCheckBox3;
     private com.rameses.rcp.control.XCheckBox xCheckBox4;
+    private com.rameses.rcp.control.XCheckBox xCheckBox5;
+    private com.rameses.rcp.control.XCheckBox xCheckBox6;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
     private com.rameses.rcp.control.XFormPanel xFormPanel2;
-    private com.rameses.rcp.control.XFormPanel xFormPanel3;
     private com.rameses.rcp.control.XLookupField xLookupField1;
     private com.rameses.rcp.control.XSubFormPanel xSubFormPanel1;
+    private com.rameses.rcp.control.XTextField xTextField5;
+    private com.rameses.rcp.control.XTextField xTextField6;
     // End of variables declaration//GEN-END:variables
 }

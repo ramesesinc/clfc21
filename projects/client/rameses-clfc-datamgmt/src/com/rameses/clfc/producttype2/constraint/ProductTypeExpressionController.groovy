@@ -8,7 +8,10 @@ import java.rmi.server.UID;
 
 class ProductTypeExpressionController {
 
-    def entity, mode = 'read';
+    @Binding
+    def binding;
+    
+    def entity, mode = 'read', handler;
     def selectedField, vars, _expr;
     def datatypeList = ["boolean", "date", "decimal", "integer"];
     

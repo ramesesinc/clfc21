@@ -152,7 +152,8 @@ class AdvancePostingConditionController {
         }
         
         def xvars = copyList( vars );
-        xvars << getAdvancePostingVar();
+        xvars.addAll( getAdvancePostingVar() );
+        //xvars << getAdvancePostingVar();
                 
         def params = [
             mode    : mode,
@@ -165,12 +166,38 @@ class AdvancePostingConditionController {
         return op;
     }
     
+    def editExpr() {
+        if (!selectedExpr) return;
+        
+        def handler = { o->
+            def i = entity.expressions?.find{ it.objid == o.objid }
+            if (!i) return;
+            
+            i.putAll( o );
+            expressionListHandler?.reload();
+        }
+        
+        def xvars = copyList( vars );
+        xvars.addAll( getAdvancePostingVar() );
+        
+        def params = [
+            entity  : selectedExpr,
+            mode    : mode,
+            handler : handler,
+            vars    : xvars
+        ]
+        
+        def op = Inv.lookupOpener("loan:producttype:expression:open", params);
+        if (!op) return null;
+        return op;
+    }
+    
     void removeExpr() {
         if (!selectedExpr) return;
         
         if (entity.expressions) {
             entity.expressions.remove( selectedExpr );
-            expressionListHander?.reload();
+            expressionListHandler?.reload();
         }
     }
     
@@ -194,7 +221,8 @@ class AdvancePostingConditionController {
         def fields = [];
         if (vars) fields.addAll( vars );        
         fields.addAll( getFieldVarList() );
-        fields << getAdvancePostingVar();
+        fields.addAll( getAdvancePostingVar() );
+        //fields << getAdvancePostingVar();
                 
         def params = [
             onselect    : handler,
@@ -262,13 +290,28 @@ class AdvancePostingConditionController {
     }
     
     def getAdvancePostingVar() {
-        return [
+        def list = [];
+        def item = [
             caption     : entity.varname, 
             title       : entity.varname, 
             signature   : entity.varname, 
             handler     : entity.datatype,
             description : "(" + entity.datatype + ")"
         ];
+        
+        list << item;
+        
+        item = [
+            caption     : entity.varname + "_paid", 
+            title       : entity.varname + "_paid", 
+            signature   : entity.varname + "_paid", 
+            handler     : entity.datatype,
+            description : "(" + entity.datatype + ")"
+        ];
+        
+        list << item;
+        
+        return list;
     }
     
     def getFieldVarList() {
