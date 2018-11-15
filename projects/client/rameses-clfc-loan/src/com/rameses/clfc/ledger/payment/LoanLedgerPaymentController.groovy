@@ -128,7 +128,6 @@ class LoanLedgerPaymentListController
     }
 
     def paymentsHandler = [
-        getRows: { return -1; },
         fetchList: {
             if (!entity.payments) entity.payments = [];
             println 'size->' + entity.payments.size();
