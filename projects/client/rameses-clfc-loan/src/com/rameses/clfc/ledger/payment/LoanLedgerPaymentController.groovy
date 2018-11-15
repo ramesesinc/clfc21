@@ -27,9 +27,12 @@ class LoanLedgerPaymentListController
     void open() {
         entity.payments = svc.getList(entity);
         //if (paymentsHandler) paymentsHandler.rows = entity.payments.size();
+        println 'payment size->' + entity.payments.size();
         if (paymentsHandler) {
-            paymentsHandler.setPagingEnabled( false );
             paymentsHandler.reload();
+            println 'rows->' + paymentsHandler.getRows();
+            println 'row count->' + paymentsHandler.getRowCount();
+            println 'is paging enabled->' + paymentsHandler.isPagingEnabled();
         }
     }
     
@@ -37,6 +40,7 @@ class LoanLedgerPaymentListController
         def res = svc.refresh(entity);
         if (res) {
             entity.payments = res.list;
+            println 'payment size->' + entity.payments.size();
             //if (paymentsHandler) paymentsHandler.rows = entity.payments.size();
             entity.lastpageindex = res.lastpageindex;
             //entity.ledgercount = res.ledgercount;
@@ -45,7 +49,6 @@ class LoanLedgerPaymentListController
             //entity.lastpageindex = caller?.getLastPageIndex(entity);
             caller?.binding.refresh('entity.*');
         }
-        if (paymentsHandler) paymentsHandler.setPagingEnabled( false );
         paymentsHandler.reload();
     }
 
@@ -125,13 +128,10 @@ class LoanLedgerPaymentListController
     }
 
     def paymentsHandler = [
-        isPagingEnabled: { return false; },
-        getRows: {
-            if (!entity.payments) entity.payments = [];
-            return entity.payments.size();
-        },
+        getRows: { return -1; },
         fetchList: {
             if (!entity.payments) entity.payments = [];
+            println 'size->' + entity.payments.size();
             return entity.payments;
         },
         createItem: { return [objid: 'LLP' + new UID()] },
