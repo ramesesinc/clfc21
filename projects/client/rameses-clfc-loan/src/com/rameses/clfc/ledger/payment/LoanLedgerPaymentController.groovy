@@ -26,21 +26,12 @@ class LoanLedgerPaymentListController
 
     void open() {
         entity.payments = svc.getList(entity);
-        //if (paymentsHandler) paymentsHandler.rows = entity.payments.size();
-        println 'payment size->' + entity.payments.size();
-        if (paymentsHandler) {
-            paymentsHandler.reload();
-            println 'rows->' + paymentsHandler.getRows();
-            println 'row count->' + paymentsHandler.getRowCount();
-            println 'is paging enabled->' + paymentsHandler.isPagingEnabled();
-        }
     }
     
     void refresh() {
         def res = svc.refresh(entity);
         if (res) {
             entity.payments = res.list;
-            println 'payment size->' + entity.payments.size();
             //if (paymentsHandler) paymentsHandler.rows = entity.payments.size();
             entity.lastpageindex = res.lastpageindex;
             //entity.ledgercount = res.ledgercount;
@@ -126,11 +117,10 @@ class LoanLedgerPaymentListController
         svc.rebuild(entity, handler);
         return loadingOpener;
     }
-
+    
     def paymentsHandler = [
         fetchList: {
             if (!entity.payments) entity.payments = [];
-            println 'size->' + entity.payments.size();
             return entity.payments;
         },
         createItem: { return [objid: 'LLP' + new UID()] },

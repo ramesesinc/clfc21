@@ -71,10 +71,13 @@ class ChangeLoanAppDetailService
 				];
 				loanapp_borrower.create(lb); 
 			} else {
-				lb.borrowerid = app.borrower.objid;
-				lb.borrowername = app.borrower.name;
-				lb.principalid = lb.borrowerid;
-				loanapp_borrower.update(lb);
+				def xlb = [
+					objid: lb.lbid,
+					borrowerid: app.borrower.objid,
+					borrowername: app.borrower.name,
+					principalid: app.borrower.objid
+				];
+				loanapp_borrower.update(xlb);
 			}
 		}
 	
