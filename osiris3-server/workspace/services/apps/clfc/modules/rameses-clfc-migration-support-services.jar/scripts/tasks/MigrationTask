@@ -151,6 +151,9 @@ class MigrationTask
 	}
 
 	private def processCustomer( data ) {
+		def bhm = borrower_header.read([objid: data.objid]);
+
+		customer.read([objid: data.headerid])
 		def cust = customer.findCustomerByCustno([custno: String.valueOf(data.objid).trim()]);
 		if (!cust) {
 			/*
@@ -173,8 +176,10 @@ class MigrationTask
 			*/
 
 			def extinfo = borrowerresolver.read(data, 'ext-info');
+			def bheader = borrower_header
 			cust = [
-				objid 		: 'CUST' + new UID(),
+				//objid 		: 'CUST' + new UID(), (header)
+				objid 		: data.headerid,
 				state 		: 'ACTIVE', 
 				mode 		: 'CAPTURE',
 				dtcreated 	: dateSvc.serverDate,

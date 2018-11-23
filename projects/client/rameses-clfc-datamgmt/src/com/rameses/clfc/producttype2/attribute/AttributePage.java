@@ -42,8 +42,8 @@ public class AttributePage extends javax.swing.JPanel {
         xTextField4 = new com.rameses.rcp.control.XTextField();
         xTextField5 = new com.rameses.rcp.control.XTextField();
         xComboBox2 = new com.rameses.rcp.control.XComboBox();
-        xComboBox1 = new com.rameses.rcp.control.XComboBox();
         xComboBox3 = new com.rameses.rcp.control.XComboBox();
+        xComboBox1 = new com.rameses.rcp.control.XComboBox();
         xSubFormPanel2 = new com.rameses.rcp.control.XSubFormPanel();
 
         xTextField2.setText("xTextField2");
@@ -94,6 +94,13 @@ public class AttributePage extends javax.swing.JPanel {
         xComboBox2.setRequired(true);
         xFormPanel1.add(xComboBox2);
 
+        xComboBox3.setCaption("Data Type");
+        xComboBox3.setItems("datatypeList");
+        xComboBox3.setName("entity.datatype"); // NOI18N
+        xComboBox3.setPreferredSize(new java.awt.Dimension(120, 20));
+        xComboBox3.setRequired(true);
+        xFormPanel1.add(xComboBox3);
+
         xComboBox1.setCaption("Type");
         xComboBox1.setDynamic(true);
         xComboBox1.setExpression("${item.caption}");
@@ -103,15 +110,8 @@ public class AttributePage extends javax.swing.JPanel {
         xComboBox1.setPreferredSize(new java.awt.Dimension(120, 20));
         xFormPanel1.add(xComboBox1);
 
-        xComboBox3.setCaption("Data Type");
-        xComboBox3.setItems("datatypeList");
-        xComboBox3.setName("entity.datatype"); // NOI18N
-        xComboBox3.setPreferredSize(new java.awt.Dimension(120, 20));
-        xComboBox3.setRequired(true);
-        xFormPanel1.add(xComboBox3);
-
-        xSubFormPanel2.setDynamic(true);
         xSubFormPanel2.setHandler("opener");
+        xSubFormPanel2.setDynamic(true);
 
         javax.swing.GroupLayout xSubFormPanel2Layout = new javax.swing.GroupLayout(xSubFormPanel2);
         xSubFormPanel2.setLayout(xSubFormPanel2Layout);

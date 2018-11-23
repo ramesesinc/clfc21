@@ -1,9 +1,7 @@
 <workunit>
     <invokers>
         <invoker type="producttype:attribute:plugin" reftype="date" caption="date" />
-        <!--
         <invoker type="producttype:attribute:date" action="init" />
-        -->
     </invokers>
         
     <code class="com.rameses.clfc.producttype2.attribute.handler.BlankHandlerController" />
