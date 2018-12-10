@@ -1,0 +1,15 @@
+<schema>
+
+	<element tablename="loanapp_online"> 
+		<field name="objid" primary="true"/> 
+		<field name="dtfiled" required="true"/> 
+		<field name="loanno" required="true"/> 
+		<field name="loancount" required="true"/> 
+		<field name="version" required="true"/> 
+		<field name="clienttype" required="true"/> 
+		<field name="marketedby" /> 
+		<field name="dtreleased" /> 
+		<field name="prevappid" /> 
+	</element> 
+
+</schema>

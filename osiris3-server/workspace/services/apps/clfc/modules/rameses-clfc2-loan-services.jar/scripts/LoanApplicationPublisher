@@ -1,0 +1,62 @@
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+
+class LoanApplicationPublisher { 
+	
+	@Service('LoanClientNotificationService')
+	def notifySvc;
+
+	@DataContext('loanapplication')
+	def loanapp;
+
+	@DataContext('loanapplication_online')
+	def loanapp_online;
+
+	@DataContext('loanapplication_business')
+	def loanapp_business;
+
+	@DataContext('loanapplication_appliance')
+	def loanapp_appliance;
+
+	@DataContext('loanapplication_vehicle')
+	def loanapp_vehicle;
+
+	@DataContext('loanapplication_property')
+	def loanapp_property;
+
+	@DataContext('loanapplication_other')
+	def loanapp_other;
+
+	@DataContext('loanapplication_recommendation')
+	def loanapp_recom;
+
+	@DataContext('borrower')
+	def borrower;
+
+	@DataContext('borrowerindividual')
+	def borrowerindividual;
+
+	@ProxyMethod 
+	public def publish( params ) {
+		def app = loanapp.find([ objid: params.objid ]).first(); 
+		def o = loanapp_online.find([ objid: params.objid ]).first(); 
+		if ( o ) app.putAll( o ); 
+
+		app.businesslist = loanapp_business.find([ parentid: params.objid ]).list(); 
+		app.collateral = [:]; 
+		app.collateral.appliancelist = loanapp_appliance.find([ parentid: params.objid ]).list();  
+		app.collateral.vehiclelist = loanapp_vehicle.find([ parentid: params.objid ]).list(); 
+		app.collateral.propertylist = loanapp_property.find([ parentid: params.objid ]).list(); 
+		app.collateral.other = loanapp_other.find([ parentid: params.objid ]).first();
+		app.recommendation = loanapp_recom.find([ objid: params.objid ]).first();
+		app.borrower = borrower.find([ objid: app.borrower.objid ]).first(); 
+		o = borrowerindividual.find([ objid: app.borrower.objid ]).first(); 
+		if ( o ) app.borrower.putAll( o ); 
+
+		println '** app '
+		app.each{ k,v-> 
+			println '>> '+ k +' -> '+ v; 
+		}
+		//notifySvc.publish( app ); 
+	}
+} 
