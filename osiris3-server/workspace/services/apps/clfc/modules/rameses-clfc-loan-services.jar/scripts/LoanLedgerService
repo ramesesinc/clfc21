@@ -114,20 +114,6 @@ class LoanLedgerService extends ActiveListService {
 	public def getColumns( params ) {
 		def cols = [];
 
-		cols << [name: "state", caption: "Status"];
-		cols << [name: "borrower.name", caption: "Borrower"];
-		cols << [name: "appno", caption: "App. No."]
-		cols << [name: "route", caption: "Route"];
-		cols << [name: "dtreleased", caption: "Release Date", type: "date", outputFormat: "MMM-dd-yyyy"];
-		cols << [name: "dtmatured", caption: "Maturity Date", type: "date", outputFormat: "MMM-dd-yyyy"];
-
-		return cols;
-	}
-
-	@ProxyMethod
-	public def xgetColumns( params ) {
-		def cols = [];
-
 		cols << [name: 'appno', caption: 'App. No.', width:150];
 		cols << [name: 'state', caption: 'State'];
 		cols << [name: 'route.description', caption: 'Route'];
@@ -183,20 +169,6 @@ class LoanLedgerService extends ActiveListService {
 	}
 
 	@ProxyMethod
-	public def getSegregation() {
-		def list = [];
-		segregationtype.getRootNodes()?.each{ 
-			list << [caption: it.caption, typeid: it.rootid, type: "root"];
-		}
-		segregationtype.getChildNodes()?.each{
-			list << [caption: it.caption, typeid: it.typeid, type: "child"];
-		}
-
-
-		return list;
-	}
-
-	@ProxyMethod
 	public def getNodes( params ) {
 		//o.userid = env.USERID;
 		//o.usergroupfilter = "";
@@ -239,7 +211,7 @@ class LoanLedgerService extends ActiveListService {
 				type 	: o.objid,
 				caption : o.name
 			];
-			list.add(item); 
+			list.add(item);
 		}
 		return list;
 	}
@@ -722,7 +694,7 @@ class LoanLedgerService extends ActiveListService {
 
 		data.ledgerid = am?.ledgerid;
 
-		def ac = ledgeramnesty_baddebt.read([objid: am?.refid]);
+		def ac = ledgeramnesty_baddebt([objid: am?.refid]);
 		if (!ac) throw new Exception('Bad debt record does not exist or has already been deleted.');
 
 		data.balance = ac?.amount;
@@ -1140,31 +1112,6 @@ class LoanLedgerService extends ActiveListService {
 
 	@ProxyMethod
 	public def getTotalAccounts( params ) {
-		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
-		params.state = "OPEN";
-
-		def data = em.findTotalAccountsByState( params );
-		if (params.segregationid) {
-			data = em.findTotalAccountsByStateAndSegregationid( params );
-		}
-
-		return (data?.totalaccounts? data.totalaccounts : 0);
-		/*
-		def list = [];
-		if (params.segregationid) {
-			list = em.getListByStateAndSegregationid( params );
-		} else {
-			list = em.getListByState( params );
-		}
-		list?.unique{ it.borrower.objid }
-		def total = list?.size();
-		if (!total) total = 0;
-		return total;
-		*/
-	}
-
-	@ProxyMethod
-	public def xgetTotalAccounts( params ) {
 		def data = [:];
 		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
 
@@ -1204,26 +1151,6 @@ class LoanLedgerService extends ActiveListService {
 	}
 
 	void beforeList( params ) {
-		//println 'params ' + params;
-		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
-		if (!params.state) params.state = "OPEN";
-
-		if (params.state) {
-			params._listMethod = "getListByState";
-		}
-		if (params.state && params.segregationid) {
-			params._listMethod = "getListByStateAndSegregationid";
-		}
-		/*
-		if (params.state == 'OPEN') {
-
-		} else if (params.state == 'CLOSE') {
-
-		}
-		*/
-	}
-
-	void xbeforeList( params ) {
 		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
 		if (params.rootid || params.typeid) {
 			if (params.rootid) params.type = params.rootid;

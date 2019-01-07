@@ -6,7 +6,6 @@
 		<field name="billingid" required="true" />
 		<field name="txntype" required="true" />
 		<field name="txndate" required="true" />
-		<field name="name" required="true" />
 		<field name="dtfiled" required="true" />
 		<field name="author_objid" required="true" />
 		<field name="author_name" required="true" />

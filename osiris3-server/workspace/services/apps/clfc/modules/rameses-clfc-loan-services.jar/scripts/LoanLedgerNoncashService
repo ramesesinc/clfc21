@@ -17,12 +17,6 @@ class LoanLedgerNoncashService extends ActiveCrudListService
 	@ActiveDB("loan_ledger")
 	def ledger;
 
-	@ActiveDB("loanapp")
-	def loanapp;
-
-	@ActiveDB("borrower")
-	def borrower;
-
 	@Service("DateService")
 	def dateSvc;
 
@@ -40,11 +34,9 @@ class LoanLedgerNoncashService extends ActiveCrudListService
 		def cols = [];
 		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
 
-		cols << [name: 'txntype', caption: 'Type'];
 		cols << [name: 'refno', caption: 'Ref. No.'];
 		cols << [name: 'borrower.name', caption: 'Borrower'];
-		cols << [name: 'loanapp.appno', caption: 'App. No.'];
-		cols << [name: 'txndate', caption: 'Collection Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
 		cols << [name: 'amount', caption: 'Amount', type: 'decimal', format: '#,##0.00'];
 
 		if (params.state == 'COLLECTED') {
@@ -74,9 +66,7 @@ class LoanLedgerNoncashService extends ActiveCrudListService
 		return [
 			[caption: 'All'],
 			[caption: 'DRAFT', state: 'DRAFT'],
-			[caption: 'COLLECTED', state: 'COLLECTED'],
-			[caption: "VOID PENDING", state: "VOID_PENDING"],
-			[caption: "VOIDED", state: "VOIDED"]
+			[caption: 'COLLECTED', state: 'COLLECTED']
 		];
 	}
 
@@ -101,43 +91,6 @@ class LoanLedgerNoncashService extends ActiveCrudListService
 		if (data?.txnstate == 'DRAFT' && !data?.reftype) {
 			data.allowedit = true;
 		}
-
-		def l = ledger.read( [objid: data.parentid] );
-		def app = loanapp.read( [objid: l?.appid] );
-
-		data.appno = app?.appno;
-	}
-
-	@ProxyMethod
-	public def getInfo( params ) {
-		if (!params.ledgerid) throw new RuntimeException("Please specify ledgerid.");
-
-		def l = ledger.read( [objid: params.ledgerid] );
-		if (!l) throw new RuntimeException("Ledger record does not exist or has already been deleted.");
-
-		def app = loanapp.read( [objid: l.appid] );
-		if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted.");
-
-		def pb = borrower.read( [objid: app.borrower.objid] );
-		if (!pb) throw new RuntimeException("Borrower record does not exist or has already been deleted.");
-
-		def data = [
-			loanapp 	: [
-				objid 	: app.objid,
-				appno 	: app.appno,
-				amount 	: app.loanamount
-			],
-			borrower 	: pb
-		]
-		return data;
-	}
-
-	@ProxyMethod
-	public def saveCollectedNoncash( data ) {
-		data = create( data );
-		data = collect( data );
-		
-		return open( data );
 	}
 
 	@ProxyMethod
@@ -166,7 +119,7 @@ class LoanLedgerNoncashService extends ActiveCrudListService
 			state 		: 'DRAFT'
 		];
 
-		def col = onlinecollection.findCollectionByDateAndCollectorAndState( prm );
+		def col = onlinecollection.findCollectionByDateAndCollectorAndState(prm);
 		if (!col || col.state != 'DRAFT') {
 			col = [
 				objid		: 'OC' + new UID(),
@@ -175,7 +128,6 @@ class LoanLedgerNoncashService extends ActiveCrudListService
 				dtfiled 	: currdate,
 				author		: collectedby,
 				collector 	: collectedby,
-				remittanceid: "REM" + new UID()
 			];
 			onlinecollection.create(col);
 		}
@@ -219,6 +171,7 @@ class LoanLedgerNoncashService extends ActiveCrudListService
 		data.refno = refno;
 		data.txndate = currdate;
 		em.update(data, "noncash-collect");
+
 
 		return open(data);
 	}

@@ -398,7 +398,7 @@ class LoanCollectionShortageService extends ActiveCrudListService
 			grouptype 	: 'shortage'
 		]
 		def cb = collection_cb.findCashbreakdown(prm);
-			if (!cb) throw new Exception("No cash breakdown sheet has been created for this shortage.");
+		if (!cb) throw new Exception("No cash breakdown sheet has been created for this shortage.");
 
 		def cbsno = params.cbsno.toUpperCase();
 		if (cb.cbsno != params.cbsno) 
@@ -485,7 +485,7 @@ class LoanCollectionShortageService extends ActiveCrudListService
 	@ProxyMethod
 	public def updateCashBreakdown( params ) {
 		validateCashBreakdown(params);
-		if (!params.cashbreakdown) throw new Exception('Please specify cahs breakdown.');
+		if (!params.cashbreakdown) throw new Exception('Please specify cash breakdown.');
 
 		def data = em.read(params);
 		if (!data) throw new Exception('Shortage record does not exist or has already been deleted.');

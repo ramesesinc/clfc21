@@ -8,6 +8,18 @@ class LoanVoidRequestService extends ActiveListService
 	@Env
 	def env;
 
+	/*@ActiveDB(value="void_request")
+	def em;
+
+	@ActiveDB(value="void_payment")
+	def void_payment;*/
+
+	/*@ActiveDB(value="field_collection")
+	def field_collection;
+
+	@ActiveDB(value="online_collection")
+	def online_collection;*/
+
 	@ActiveDB("voidrequest")
 	def em;
 
@@ -166,7 +178,7 @@ class LoanVoidRequestService extends ActiveListService
 			payment = fieldcollection.read([objid: data.paymentid], "fc-payment");
 		} else if (data.txncode == 'ONLINE') {
 			payment = onlinecollection.read([objid: data.paymentid], "oc-detail");
-			//item.payoption = 'cash';
+			item.payoption = 'cash';
 		}
 		
 		if (!payment) throw new Exception("Payment record does not exist or has already been deleted.");
@@ -178,7 +190,7 @@ class LoanVoidRequestService extends ActiveListService
 		item.paidby = payment.paidby;
 		if (!item.payoption) item.payoption = payment.payoption;
 
-		voidpayment.create( item );
+		voidpayment.create(item);
 
 		if (item.payoption == 'check') {
 			item.bank = payment.bank;

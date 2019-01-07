@@ -1,0 +1,10 @@
+<schema>
+	<element tablename="borrowerindividual_children"> 
+		<field name="objid" primary="true" prefix="CHI"/> 
+		<field name="borrowerid" required="true"/> 
+		<field name="name" required="true"/> 
+		<field name="age" required="true"/> 
+		<field name="education"/> 
+		<field name="remarks"/> 
+	</element> 	
+</schema>

@@ -1,6 +1,6 @@
 <schema>
 
-	<element name="loanapp_recommendation" tablename="loanapp_recommendation">
+	<element tablename="loanapp_recommendation">
 		<field name="objid" primary="true"/>
 		<field name="ciremarks" required="true"/>
 		<field name="crecomremarks" required="true"/>

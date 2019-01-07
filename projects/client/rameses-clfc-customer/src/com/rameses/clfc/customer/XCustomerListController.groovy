@@ -5,7 +5,7 @@ import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 
-class CustomerListController extends BasicListController
+class XCustomerListController extends BasicListController
 {
     @Service('CustomerService')
     def service;

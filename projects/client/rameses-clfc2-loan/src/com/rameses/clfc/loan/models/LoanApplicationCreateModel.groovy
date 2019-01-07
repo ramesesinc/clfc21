@@ -69,7 +69,9 @@ public class LoanApplicationCreateModel {
             throw new Exception('Marketed By is required'); 
 
         if ( MsgBox.confirm('You are about to submit this application. Proceed?')) {
+            entity.loancount = appList? appList.size() : 0;
             entity.producttype = producttype; 
+            entity.loanaccount = selectedApp;
             def o = service.create( entity ); 
             if ( o ) entity.putAll( o ); 
 
@@ -106,7 +108,7 @@ public class LoanApplicationCreateModel {
         return Inv.lookupOpener('customer:search', [onselect: onselect, onempty: onempty]); 
     }
     
-    def appList;
+    def appList, selectedApp;
     def appListHandler = [
         fetchList: { o-> 
             appList = [];

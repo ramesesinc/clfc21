@@ -75,9 +75,89 @@ class LoanApplicationService {
 		return loan_product_type_db.where('1=1').list(); 
 	}
 
-
 	@ProxyMethod
 	public def create( data ) {
+		validate( data );
+
+		data.branch = [code: varSvc.branch_code, name: varSvc.branch_name];
+		if ( !data.branch?.code ) throw new Exception('branch code is required'); 
+
+
+		println 'data';
+		data?.each{ println it }
+
+		def rundate = dateSvc.getServerDate();
+		def apptype = data.apptype.toString().toUpperCase();		
+		if ( apptype == 'NEW' ) {
+			/*
+			data.version = data.loancount = 1;
+
+			def sdf = new java.text.SimpleDateFormat('yyyyMM');
+			def ymstr = sdf.format( rundate ); 
+			def prefix = 'L'+ data.branch.code + ymstr; 
+			def seqkey = 'loanapp'+ ymstr;
+
+			def appno = new StringBuilder(); 
+			appno.append( prefix ).append( seqSvc.getNextFormattedSeriesA( seqkey, 3 )); 
+			appno.append('-' + data.loancount ).append('N'); 
+			data.appno = appno.toString(); 
+			*/
+
+		} else {
+			/*
+			println 'account';
+			data.loanaccount?.each{ println it }
+			data.loancount += 1; 
+			data.version = data.loancount; 
+			data.appno = data.loanaccount.acctno +'-'+ data.loancount +'R'; 
+			*/
+		}
+		throw new RuntimeException("stop create");
+
+		data.state = 'PENDING'; 
+		data.loanno = data.appno; 
+		data.author = [objid: env.USERID, name: env.FULLNAME]; 
+		data.createdby = env.USER; 
+		data.dtcreated = rundate;
+		data.dtfiled = rundate; 
+
+		loanapp_db.create(data); 
+
+		data.borrower._allow_items_update = false;  
+		borrowerSvc.save( data.borrower ); 
+
+		def a = loanapp_online.find([objid: data.objid]).first();
+		if (!a) {
+			loanapp_online.create([ 
+				objid: data.objid, 
+				dtfiled: data.dtcreated, 
+				loanno: data.appno, 
+				loancount: data.loancount,
+				version: data.version, 
+				clienttype: data.clienttype, 
+				marketedby: data.marketedby, 
+				prevappid: data.prevappid 
+			]);
+		}
+
+		a = loanapp_borrower.find([parentid: data.objid, type: 'PRINCIPAL']).first();
+		if (!a) {
+			loanapp_borrower.create([ 
+				objid: 'LB' + new UID(), 
+				parentid: data.objid, 
+				borrowerid: data.borrower.objid, 
+				borrowername: data.borrower.name,
+				principalid: data.borrower.objid, 
+				type: 'PRINCIPAL'  
+			]);
+		}
+
+		return data;
+	}
+
+
+	@ProxyMethod
+	public def xcreate( data ) {
 		validate( data );
 
 		data.branch = [code: varSvc.branch_code, name: varSvc.branch_name];
@@ -99,12 +179,14 @@ class LoanApplicationService {
 			data.appno = appno.toString(); 
 
 		} else {
-			println 'data';
-			data?.each{ println it }
+			println 'account';
+			data.loanaccount?.each{ println it }
 			data.loancount += 1; 
 			data.version = data.loancount; 
 			data.appno = data.loanaccount.acctno +'-'+ data.loancount +'R'; 
 		}
+
+		throw new RuntimeException("stop create");
 
 
 		data.state = 'PENDING'; 
@@ -119,25 +201,31 @@ class LoanApplicationService {
 		data.borrower._allow_items_update = false;  
 		borrowerSvc.save( data.borrower ); 
 
-		loanapp_online.create([ 
-			objid: data.objid, 
-			dtfiled: data.dtcreated, 
-			loanno: data.appno, 
-			loancount: data.loancount,
-			version: data.version, 
-			clienttype: data.clienttype, 
-			marketedby: data.marketedby, 
-			prevappid: data.prevappid 
-		]);
+		def a = loanapp_online.find([objid: data.objid]).first();
+		if (!a) {
+			loanapp_online.create([ 
+				objid: data.objid, 
+				dtfiled: data.dtcreated, 
+				loanno: data.appno, 
+				loancount: data.loancount,
+				version: data.version, 
+				clienttype: data.clienttype, 
+				marketedby: data.marketedby, 
+				prevappid: data.prevappid 
+			]);
+		}
 
-		loanapp_borrower.create([ 
-			objid: 'LB' + new UID(), 
-			parentid: data.objid, 
-			borrowerid: data.borrower.objid, 
-			borrowername: data.borrower.name,
-			principalid: data.borrower.objid, 
-			type: 'PRINCIPAL'  
-		]);
+		a = loanapp_borrower.find([parentid: data.objid, type: 'PRINCIPAL']).first();
+		if (!a) {
+			loanapp_borrower.create([ 
+				objid: 'LB' + new UID(), 
+				parentid: data.objid, 
+				borrowerid: data.borrower.objid, 
+				borrowername: data.borrower.name,
+				principalid: data.borrower.objid, 
+				type: 'PRINCIPAL'  
+			]);
+		}
 
 		return data; 
 	} 

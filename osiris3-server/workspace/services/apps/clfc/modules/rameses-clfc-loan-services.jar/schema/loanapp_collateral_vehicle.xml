@@ -1,0 +1,29 @@
+<schema>
+	<element tablename="loanapp_collateral_vehicle">
+		<field name="objid" primary="true"/>
+		<field name="parentid" required="true"/>
+		<field name="kind" required="true"/>
+		<field name="make" required="true"/>
+		<field name="model" required="true"/>
+		<field name="bodytype" required="true"/>
+		<field name="usetype" required="true"/>
+		<field name="dtacquired" required="true"/>
+		<field name="acquiredfrom" required="true"/>
+		<field name="registeredname" required="true"/>
+		<field name="plateno" required="true"/>
+		<field name="chassisno" />
+		<field name="engineno" />
+		<field name="marketvalue"/>
+		<field name="remarks" required="true"/>
+		<field name="orcr_crno"/>
+		<field name="orcr_fuel"/>
+		<field name="orcr_denomination"/>
+		<field name="orcr_seriesno"/>
+		<field name="orcr_pistondisplacement"/>
+		<field name="orcr_noofcylinders"/>
+		<field name="orcr_netwt"/>
+		<field name="orcr_grosswt"/>
+		<field name="orcr_netcapacity"/>
+		<field name="orcr_shippingwt"/>
+	</element>	
+</schema>

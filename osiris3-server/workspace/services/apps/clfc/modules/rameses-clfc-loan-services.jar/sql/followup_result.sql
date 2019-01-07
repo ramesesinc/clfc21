@@ -13,16 +13,14 @@ ORDER BY f.dtcreated DESC
 
 [getLookupBorrowers]
 SELECT b.*, a.borrower_objid, a.borrower_name, a.objid AS loanapp_objid,
-	a.appno AS loanapp_appno, d.objid, 
-	case when (select objid from followup_result where refid=d.objid) is not null then "true" else "false" end as hasfollowresult
+	a.appno AS loanapp_appno, d.objid
 FROM (
 	SELECT b.billdate, i.objid AS itemid, s.txntype, 
 		s.collector_objid, s.collector_name
 	FROM fieldcollection b
 	INNER JOIN ledger_billing_item i ON b.objid = i.parentid
 	INNER JOIN specialcollection s ON i.objid = s.objid
-	INNER JOIN followupcollection f ON s.objid = f.collector_objid
-	WHERE s.collector_objid=$P{collectorid}
+	INNER JOIN followupcollection f ON s.objid = f.objid
 ) b 
 INNER JOIN ledger_billing_detail d ON b.itemid = d.parentid
 INNER JOIN loanapp a ON d.loanappid = a.objid
@@ -31,8 +29,7 @@ ORDER BY b.billdate DESC, a.borrower_name
 
 [getLookupBorrowersByDate]
 SELECT b.*, a.borrower_objid, a.borrower_name, a.objid AS loanapp_objid,
-	a.appno AS loanapp_appno, d.objid, 
-	case when (select objid from followup_result where refid=d.objid) is not null then "true" else "false" end as hasfollowresult
+	a.appno AS loanapp_appno, d.objid
 FROM (
 	SELECT b.billdate, i.objid AS itemid, s.txntype, 
 		s.collector_objid, s.collector_name
@@ -41,7 +38,6 @@ FROM (
 	INNER JOIN specialcollection s ON i.objid = s.objid
 	INNER JOIN followupcollection f ON s.objid = f.objid
 	WHERE b.billdate = $P{date}
-		AND s.collector_objid=$P{collectorid}
 ) b 
 INNER JOIN ledger_billing_detail d ON b.itemid = d.parentid
 INNER JOIN loanapp a ON d.loanappid = a.objid

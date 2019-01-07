@@ -11,7 +11,8 @@ class CustomerController
     @Binding
     def binding;
     
-    @Service('')
+    @Service('CustomerService')
+    def service;
     
     //feed by the caller
     def callerContext = [:];
@@ -85,7 +86,8 @@ class CustomerController
 
     def open() {
         mode = 'read'; 
-        entity = callerContext.service.open([objid: entity.objid]); 
+        entity = service.open([objid: entity.objid]);
+        //entity = callerContext.service.open([objid: entity.objid]); 
         if (!entity.address) entity.address = [:];
         return 'main';
     } 
@@ -107,7 +109,8 @@ class CustomerController
     }
     
     void saveCreate() { 
-        def data = callerContext.service.create(entity);  
+        def data = service.create(entity);
+        //def data = callerContext.service.create(entity);  
         if (data != null) entity.putAll(data);
         
         mode = 'read'; 
@@ -125,7 +128,8 @@ class CustomerController
     }    
 
     void saveUpdate() {
-        def data = callerContext.service.update(entity);
+        def data = service.update(entity);
+        //def data = callerContext.service.update(entity);
         if (data != null) entity.putAll(data);
         
         mode = 'read';
@@ -134,7 +138,8 @@ class CustomerController
     
     def createOpenerParams() {
         return [
-            callerContext: new CustomerControllerContext(this, callerContext.service), 
+            //callerContext: new CustomerControllerContext(this, callerContext.service), 
+            callerContext: new CustomerControllerContext(this, service),
             entity: entity 
         ]; 
     } 

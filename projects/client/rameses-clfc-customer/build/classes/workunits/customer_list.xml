@@ -1,20 +1,42 @@
-<workunit extends='wtemplates/ListController.xml'>
+<workunit extends="wtemplates/ListController.xml">
     <invokers>
         <invoker folderid='/home/online/master' caption='Customers' domain='LOAN' 
                  role='ACCT_OFFICER' />
-        
-        <invoker type="navActions" caption="" action="moveFirstPage" icon="images/navbar/first.png" immediate="true"/>
-        <invoker type="navActions" caption="" action="moveBackPage" icon="images/navbar/previous.png" immediate="true"/>
-        <invoker type="navActions" caption="" action="moveNextPage" icon="images/navbar/next.png" immediate="true"/>
-        <invoker type="navActions" caption="" action="moveLastPage" icon="images/navbar/last.png" immediate="true"/>
-        
-        <invoker type='formActions' action='close' caption='Close' mnemonic='c' shortcut='ctrl w'
-            immediate='true' />
-        <invoker type='formActions' action='create' caption='New' mnemonic='n' shortcut='ctrl n'
-            immediate='true' role='ENCODER' domain='ENTITY' />
-        <invoker type='formActions' action='open' caption='Open' mnemonic='o' shortcut='ctrl o' 
-            visibleWhen="#{selectedEntity!=null}" />
     </invokers>
-   
-    <code class="com.rameses.clfc.customer.CustomerListController"/> 
+    
+    <code>
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        import com.rameses.clfc.customer.CustomerSearchContext;
+
+        class CustomerListController extends ListController 
+        {
+            String serviceName = 'CustomerService';
+            String entityName  = 'customer';
+    
+            Map createOpenerParams() {
+                def params = [
+                    listModelHandler: this,
+                    entity          : selectedEntity,
+                    callerContext   : new CustomerSearchContext(this)
+                ];
+                return params;
+            }
+            /*
+            List fetchList(Map m) {
+                def list = super.fetchList(m);
+                list?.each{
+                    if (it.type) it.filetype = entityName + it.type.toLowerCase();
+                }
+                return list;
+            }
+            */
+
+            Map createPermission = [role: 'ENTITY_ENCODER', domain: 'ENTITY']; 
+            //Map readPermission = [domain:'DATAMGMT', role:'DATAMGMT_AUTHOR', permission:'currencytype.read']; 
+        } 
+    </code>
+    
 </workunit>

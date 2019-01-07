@@ -2,11 +2,8 @@ import com.rameses.common.*;
 import com.rameses.annotations.*;
 import com.rameses.services.extended.*;
 
-class LoanLedgerFollowupBorrowerLookupService extends ActiveListService {
-
-	@Env
-	def env;
-
+class LoanLedgerFollowupBorrowerLookupService extends ActiveListService
+{
 	@ActiveDB('followup_result')
 	def em;
 
@@ -16,22 +13,19 @@ class LoanLedgerFollowupBorrowerLookupService extends ActiveListService {
 	public def getColumns( params ) {
 		def cols = [];
 
-		//cols << [name: 'txntype', caption: 'Type'];
-		//cols << [name: 'billdate', caption: 'Follow-up Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
-		//cols << [name: 'collector.name', caption: 'Collector'];
+		cols << [name: 'txntype', caption: 'Type'];
+		cols << [name: 'billdate', caption: 'Follow-up Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'collector.name', caption: 'Collector'];
 		cols << [name: 'borrower.name', caption: 'Borrower'];
 		cols << [name: 'loanapp.appno', caption: 'App. No.'];
-		cols << [name: 'hasfollowresult', caption: 'Has Follow-up Result?'];
 
 		return cols;
 	}
 
 	void beforeList( params ) {
-		if (!params.collectorid) params.collectorid = env.USERID;
 		//println 'params ' + params;
 		if (params.date) {
 			params._listMethod = 'getLookupBorrowersByDate';
 		}
-		//println 'params-> ' + params;
 	}
 }
