@@ -1,0 +1,6 @@
+<workunit extends="com/rameses/seti2/templates/ReportView.xml">
+    <invokers>
+        <invoker type="report:view" action="view"/>
+        <invoker type="formActions" caption="Close" action="_close" />
+    </invokers>
+</workunit>  

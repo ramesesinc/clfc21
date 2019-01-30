@@ -14,7 +14,7 @@
 		<field name="plateno" required="true"/>
 		<field name="engineno" required="true"/>
 		<field name="marketvalue" required="true"/>
-		<field name="remarks" required="true"/>
+		<field name="remarks"/>
 		<field name="orcr_crno"/>
 		<field name="orcr_fuel"/>
 		<field name="orcr_denomination"/>

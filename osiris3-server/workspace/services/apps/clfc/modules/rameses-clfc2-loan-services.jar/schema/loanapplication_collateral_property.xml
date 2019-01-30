@@ -12,7 +12,7 @@
 		<field name="modeofacquisition" required="true"/> 
 		<field name="registeredname" required="true"/> 
 		<field name="marketvalue" required="true"/> 
-		<field name="remarks" required="true"/> 
+		<field name="remarks"/> 
 		<complex name="attachments" serializer="default" type="list" required="false"/> 
 	</element>
 </schema>

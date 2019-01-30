@@ -2,7 +2,7 @@
     <invokers>
         <invoker type="realproperty:create" action="create" caption="Real Property Information" 
             target="popup" resizable="false"/>
-        <invoker type="realproperty:open" caption="Real Property Information" 
+        <invoker type="realproperty:open" action="open" caption="Real Property Information" 
             target="popup" resizable="false"/>
     </invokers>
     

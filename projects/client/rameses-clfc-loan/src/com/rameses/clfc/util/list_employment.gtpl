@@ -10,12 +10,12 @@
         <tr>
             <td width="5">&#8226; </td>
             <td>Employer : </td>
-            <td>$it.employer</td>
+            <td>${ifNull(it.employer, '-')}</td>
         </tr>
         <tr>
             <td width="5">&nbsp;</td>
             <td>Remarks : </td>
-            <td><p>$it.remarks</p></td>
+            <td><p>${ifNull(it.remarks, '-')}</p></td>
         </tr>
 <%    }
 } %>

@@ -2,23 +2,23 @@
 <table>
 <tr>
     <td>Tradename : </td>
-    <td>$business.tradename</td>
+    <td>${ifNull(business.tradename, '-')}</td>
 </tr>                
 <tr>
     <td class="nowrap">Kind of Business : </td>
-    <td>$business.kind</td>
+    <td>${ifNull(business.kind, '-')}</td>
 </tr>
 <tr>
     <td>Stall Size(in mtrs.) : </td>
-    <td>$business.stallsize</td>
+    <td>${ifNull(business.stallsize, '-')}</td>
 </tr>
 <tr>
     <td>Address : </td>
-    <td>$business.address</td>
+    <td>${ifNull(business.address, '-')}</td>
 </tr>
 <tr>
     <td>Occupancy : </td>
-    <td>$business.occupancy?.type</td>
+    <td>${ifNull(business.occupancy?.type, '-')}</td>
 </tr>
 
 <% if ( business.occupancy?.type == 'RENTED' ) { %>
@@ -34,23 +34,23 @@
 
 <tr>
     <td>Business Started : </td>
-    <td>$business.dtstarted</td>
+    <td>${ifNull(business.dtstarted, '-')}</td>
 </tr>
 <tr>
     <td>Ownership : </td>
-    <td>$business.ownership</td>
+    <td>${ifNull(business.ownership, '-')}</td>
 </tr>
 <tr>
     <td>Capital Invested : </td>
-    <td>$business.capital</td>
+    <td>${ifNull(business.capital, '-')}</td>
 </tr>
 <tr>
     <td class="nowrap">Esimated Daily Sales : </td>
-    <td>$business.avgsales</td>
+    <td>${ifNull(business.avgsales, '-')}</td>
 </tr>
 <tr>
     <td>Business Hours : </td>
-    <td>$business.officehours</td>
+    <td>${ifNull(business.officehours, '-')}</td>
 </tr> 
 </table>
 <br/> 

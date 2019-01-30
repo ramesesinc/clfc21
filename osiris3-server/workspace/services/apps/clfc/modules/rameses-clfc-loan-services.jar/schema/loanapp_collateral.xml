@@ -9,7 +9,7 @@
 		<field name="modelno" /> 
 		<field name="serialno" /> 
 		<field name="marketvalue" /> 
-		<field name="remarks" required="true"/> 
+		<field name="remarks"/> 
 		<complex name="attachments" serializer="default" type="list" required="false"/> 
 	</element>
 
@@ -28,7 +28,7 @@
 		<field name="chassisno" />
 		<field name="engineno" />
 		<field name="marketvalue"/>
-		<field name="remarks" required="true"/>
+		<field name="remarks"/>
 		<field name="orcr_crno"/>
 		<field name="orcr_fuel"/>
 		<field name="orcr_denomination"/>
@@ -54,7 +54,7 @@
 		<field name="modeofacquisition" required="true"/> 
 		<field name="registeredname" required="true"/> 
 		<field name="marketvalue"/> 
-		<field name="remarks" required="true"/> 
+		<field name="remarks"/> 
 	</element>
 
 	<element name="other" tablename="loanapp_collateral_other">

@@ -32,7 +32,14 @@ class BorrowerEmploymentController
             return removeItemImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: borrowerContext.mode, caller:this]
+            def handler = { e->
+                def data = borrowerContext.borrower.employments?.find{ it.objid == e.objid }
+                if (data) {
+                    data.putAll( e );
+                    employmentHandler?.reload();
+                }
+            }
+            return [mode: borrowerContext.mode, caller:this, handler: handler];
         }
     ] as EditorListModel; 
     

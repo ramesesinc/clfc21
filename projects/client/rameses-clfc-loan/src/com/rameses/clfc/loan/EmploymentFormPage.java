@@ -9,7 +9,6 @@ package com.rameses.clfc.loan;
 import com.rameses.osiris2.themes.OKCancelPage;
 import com.rameses.rcp.ui.annotations.StyleSheet;
 import com.rameses.rcp.ui.annotations.Template;
-import java.math.BigDecimal;
 
 /**
  *

@@ -7,7 +7,7 @@ import java.rmi.server.UID;
 class BorrowerParentsController
 {
     //feed by the caller
-    def borrowerContext;    
+    def borrowerContext;
 
     def entity = [:]
     
@@ -18,9 +18,10 @@ class BorrowerParentsController
     }
     
     void initEntity() {
-        if( borrowerContext.borrower?.parent == null )
+        if( borrowerContext.borrower?.parent == null ){
             borrowerContext.borrower.parent = [:]
-                    
+        }
+
         entity = borrowerContext.borrower?.parent;
         entity.objid = borrowerContext.borrower?.objid;
     }

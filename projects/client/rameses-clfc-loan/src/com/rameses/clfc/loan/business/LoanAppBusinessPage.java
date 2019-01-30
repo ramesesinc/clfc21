@@ -15,7 +15,7 @@ import com.rameses.rcp.ui.annotations.Template;
  * @author  wflores
  */
 @StyleSheet
-@Template(FormPage.class) 
+@Template(FormPage.class)
 public class LoanAppBusinessPage extends javax.swing.JPanel {
     
     public LoanAppBusinessPage() {

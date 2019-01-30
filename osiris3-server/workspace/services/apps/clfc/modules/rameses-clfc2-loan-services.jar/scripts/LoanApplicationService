@@ -3,6 +3,12 @@ import java.rmi.server.UID;
 
 class LoanApplicationService {
 
+	@ActiveDB('loanapp')
+	def loanapp_adb;
+
+	@DataContext('datatxnlog')
+	def txnlog_db;
+
 	@DataContext('loanapplication')
 	def loanapp_db; 
 
@@ -11,6 +17,9 @@ class LoanApplicationService {
 
 	@DataContext('loanapplication_borrower')
 	def loanapp_borrower;
+
+	@DataContext('loanapplication_borroweraccount')
+	def loanapp_borroweraccount_db;
 
 	@DataContext('borrower')
 	def borrower_db;
@@ -23,6 +32,12 @@ class LoanApplicationService {
 
 	@DataContext('loan_product_type') 
 	def loan_product_type_db;
+
+	@DataContext('customer')
+	def customer_db;
+
+	@DataContext('loanapplication_charge')
+	def app_charge_db;
 
 	@Service('PersistenceService') 
 	def persistSvc; 
@@ -67,12 +82,41 @@ class LoanApplicationService {
 		def list = loantype_db.where('1=1').list();
 		if ( !list ) return list; 
 
-		return list.collect{ it.name }	
+		return  list.collect{ it.name }
 	}
 
 	@ProxyMethod
 	public def getProductTypes() {
 		return loan_product_type_db.where('1=1').list(); 
+	}
+
+	@ProxyMethod
+	public def getNoOfAccounts() {
+		def count = loanapp_db.where(" borrower_objid='CUST-55901760:1624b70ac35:-77f0' ").list()?.size()
+		return count;
+	}
+
+	private def createBorrowerAccount( data ) {
+		if (!data?.borrower) throw new RuntimeException('Please specify borrower');
+		def customer = customer_db.find([objid: data.borrower.objid]).first();
+		if (!customer) throw new RuntimeException('Customer record does not exist or has already been deleted.');
+
+		def borroweraccount = loanapp_borroweraccount_db.find([objid: customer.objid]).first();
+		if (!borroweraccount) {
+			def whereClause = " borrower_objid='" + customer.objid + "'";
+			def app = loanapp_db.where( whereClause ).first();
+			def noofaccounts = loanapp_db.where( whereClause ).list()?.size();
+			borroweraccount = [
+				objid: customer.objid,
+				name: customer.name,
+				loanno: data.loanno? data.loanno : app?.appno,
+				loancount: noofaccounts
+			];
+			loanapp_borroweraccount_db.create( borroweraccount );
+		} else {
+			def params =[objid: borroweraccount.objid, loanno: data.loanno];
+			loanapp_borroweraccount_db.update( params );
+		}
 	}
 
 	@ProxyMethod
@@ -82,39 +126,33 @@ class LoanApplicationService {
 		data.branch = [code: varSvc.branch_code, name: varSvc.branch_name];
 		if ( !data.branch?.code ) throw new Exception('branch code is required'); 
 
-
-		println 'data';
-		data?.each{ println it }
+		createBorrowerAccount( data );
+		def borroweraccount = loanapp_borroweraccount_db.find([objid: data.borrower.objid]).first();
+		if (!borroweraccount) throw new RuntimeException('Borrower Account record does not exist or has already been deleted.');
 
 		def rundate = dateSvc.getServerDate();
-		def apptype = data.apptype.toString().toUpperCase();		
+		def apptype = data.apptype.toString().toUpperCase();
+
+		def sdf = new java.text.SimpleDateFormat('yyyyMM');
+		def ymstr = sdf.format( rundate );
+		def prefix = 'L' + data.branch.code + ymstr;
+		def seqkey = 'loanapp' + ymstr;
+		def appno = new StringBuilder();
+		appno.append( prefix ).append( seqSvc.getNextFormattedSeriesA( seqkey, 3 ) );
+
+		data.version = loanapp_db.where(" borrower_objid='" + data.borrower.objid + "' ").list().size() + 1;
+		data.loancount = data.version;
+		appno.append( '-' + data.loancount );
+		
 		if ( apptype == 'NEW' ) {
-			/*
-			data.version = data.loancount = 1;
-
-			def sdf = new java.text.SimpleDateFormat('yyyyMM');
-			def ymstr = sdf.format( rundate ); 
-			def prefix = 'L'+ data.branch.code + ymstr; 
-			def seqkey = 'loanapp'+ ymstr;
-
-			def appno = new StringBuilder(); 
-			appno.append( prefix ).append( seqSvc.getNextFormattedSeriesA( seqkey, 3 )); 
-			appno.append('-' + data.loancount ).append('N'); 
-			data.appno = appno.toString(); 
-			*/
+			appno.append('N');
 
 		} else {
-			/*
-			println 'account';
-			data.loanaccount?.each{ println it }
-			data.loancount += 1; 
-			data.version = data.loancount; 
-			data.appno = data.loanaccount.acctno +'-'+ data.loancount +'R'; 
-			*/
+			appno.append('R');
 		}
-		throw new RuntimeException("stop create");
 
 		data.state = 'PENDING'; 
+		data.appno = appno.toString();
 		data.loanno = data.appno; 
 		data.author = [objid: env.USERID, name: env.FULLNAME]; 
 		data.createdby = env.USER; 
@@ -152,10 +190,27 @@ class LoanApplicationService {
 			]);
 		}
 
+		/*
+		a = loanapp_adb.findSearchIndex( data ); 
+		a.state = data.state; 
+		a.dtposted = rundate; 
+		a.postedby = env.NAME;
+		loanapp_adb.update(a, 'loanapp_search'); 
+		
+		a = [
+			objid: 		'LOG' + new UID(),
+			appid: 		data.objid, 
+			dtposted: 	rundate, 
+			postedby:  	env.NAME,
+			remarks: 	'CREATE' 
+		]; 
+		loanapp_adb.create(o, 'loanapp_log'); 
+		*/
+
 		return data;
 	}
 
-
+	/*
 	@ProxyMethod
 	public def xcreate( data ) {
 		validate( data );
@@ -229,6 +284,7 @@ class LoanApplicationService {
 
 		return data; 
 	} 
+	*/
 
 	private void validate( data ) {
 		checkBorrowerForExistingLoan([borrowerid: data.borrower.objid, objid: data?.objid]); 
@@ -251,8 +307,34 @@ class LoanApplicationService {
 		o = borrowerSvc.open([ objid: app.borrower?.objid ]); 
 		if ( o ) app.borrower = o; 
 
+		if (app.state?.toString().toLowerCase() == 'for_crecom') {
+			o = txnlog_db.find([ txnid: app.objid, action: 'send_back' ])
+							.orderBy(' txndate desc ')
+							.first();
+			if (o) app.sendbackremarks = o.remarks;
+			/*
+			o = loanapp_sendback.find([ refid: app.objid ])
+								.orderBy(' dtfiled desc ')
+								.first();
+			if (o) app.sendbackremarks = o.remarks;
+			*/
+		}
+		if (app.state?.toString().toLowerCase() == 'disapproved') {
+			o = txnlog_db.find([ txnid: app.objid, action: 'disapproved' ])
+							.orderBy(' txndate desc ')
+							.first();
+			if (o) app.disapproveremarks = o.remarks;
+		}
+
 		return app;   
 	} 
+
+	@ProxyMethod
+	public def getBorrowerAccount( params ) {
+		if (!params.borrowerid) throw new RuntimeException('Please specify borrowerid.');
+
+		return loanapp_borroweraccount_db.find([ objid: params.borrowerid ]).first();
+	}
 
 	@ProxyMethod
 	public def getOpenLoans( params ) {
@@ -271,7 +353,10 @@ class LoanApplicationService {
 
 		def adb = loanapp_borrower.find([ borrowerid: params.borrowerid, type: 'PRINCIPAL']); 
 		adb.orderBy(" app.dtcreated desc "); 
-		return adb.list(0, 30); 
+		def list = adb.list(0, 30); 
+		println 'applications';
+		list?.each{ println it }
+		return list;
 	} 
 
 	@ProxyMethod 
@@ -310,11 +395,16 @@ class LoanApplicationService {
 
 	@ProxyMethod 
 	public def submitForApproval( params ) { 
+		def data = loanAppSvc.submitForApproval( params );
+		self.uploadToMQ([ appid: params.objid ]);
+		return data;
+		/*
 		try {
 			return loanAppSvc.submitForApproval( params );  
 		} finally {
 			self.uploadToMQ([ appid: params.objid ]); 
 		}
+		*/
 	}
 
 	@Async 
@@ -354,6 +444,20 @@ class LoanApplicationService {
 
 	@ProxyMethod
 	public def release( params ) {
+		def app = loanapp_db.find([ objid: params.objid ]).first();
+		if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted");
+
+		def borrower_account = loanapp_borroweraccount_db.find([ objid: app.borrower.objid ]).first();
+		if (!borrower_account) throw new RuntimeException("Borrower Account record does not exist or has already been deleted");
+
+		app.appno = borrower_account.loanno;
+		if (!borrower_account.loancount) borrower_account.loancount = 0;
+		borrower_account.loancount++;
+		loanapp_borroweraccount_db.find([ objid: borrower_account.objid ]).update([ loancount: borrower_account.loancount ]);
+
+		if (borrower_account.loancount > 1) app.appno = app.appno.toString() + borrower_account.loancount.toString();
+		loanapp_db.find([ objid: app.objid ]).update([ appno: app.appno ]);
+
 		return loanAppSvc.release( params ); 
 	}
 

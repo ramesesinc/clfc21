@@ -2,17 +2,21 @@
     <invokers>
         <invoker type="loanapp-capture:open" caption="Loan Application" action="open" target="window"/>
         
+        <!--
         <invoker type="formActions" caption="Edit" action="edit" 
             immediate="true" visibleWhen="#{editButtonVisible == true}"/>
+        -->
             
         <invoker type="formActions" caption="Reports" action="viewReport" 
             immediate="true" visibleWhen="#{editableMode == false}"/>
-            
+        
+        <!--    
         <invoker type="formActions" caption="Cancel" action="cancel" 
             immediate="true" visibleWhen="#{editableMode == true}"/>
             
         <invoker type="formActions" caption="Save" action="save" 
             visibleWhen="#{editableMode == true}"/>
+        -->
     </invokers>
     
     <code class="com.rameses.clfc.loan.capture.CaptureLoanAppController"/>

@@ -8,7 +8,7 @@
 		<field name="modelno" required="true"/> 
 		<field name="serialno" required="true"/> 
 		<field name="marketvalue" required="true"/> 
-		<field name="remarks" required="true"/> 
+		<field name="remarks"/> 
 		<complex name="attachments" serializer="default" type="list" required="false"/> 
 	</element>
 </schema>	

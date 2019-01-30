@@ -1,9 +1,9 @@
 <workunit>
     <invokers>
-        <invoker type="business:create" caption="Business Information" target="popup" 
-            action="create" resizable="false"/>
-        <invoker type="business:open" caption="Business Information" target="popup" 
-            resizable="false"/>
+        <invoker type="business:create" action="create" caption="Business Information" 
+            target="popup" resizable="false"/>
+        <invoker type="business:open" action="open" caption="Business Information" 
+            target="popup" resizable="false"/>
     </invokers>
     
     <code class="com.rameses.clfc.loan.business.BusinessFormController"/>

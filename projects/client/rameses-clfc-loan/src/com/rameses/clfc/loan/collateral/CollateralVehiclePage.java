@@ -33,7 +33,6 @@ public class CollateralVehiclePage extends javax.swing.JPanel {
         jPanel2 = new javax.swing.JPanel();
         xButton2 = new com.rameses.rcp.control.XButton();
         xButton1 = new com.rameses.rcp.control.XButton();
-        xButton3 = new com.rameses.rcp.control.XButton();
         xDataTable1 = new com.rameses.rcp.control.XDataTable();
         jPanel3 = new javax.swing.JPanel();
         xLabel1 = new com.rameses.rcp.control.XLabel();
@@ -41,7 +40,7 @@ public class CollateralVehiclePage extends javax.swing.JPanel {
         xHtmlView1 = new com.rameses.rcp.control.XHtmlView();
 
         xSplitView1.setDividerLocation(200);
-        xSplitView1.setOrientation(com.rameses.rcp.constant.UIConstants.VERTICAL);
+        xSplitView1.setOrientation("VERTICAL");
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 10));
         jPanel1.setLayout(new java.awt.BorderLayout());
@@ -56,10 +55,6 @@ public class CollateralVehiclePage extends javax.swing.JPanel {
         xButton1.setName("addVehicle"); // NOI18N
         xButton1.setText("Add");
 
-        xButton3.setDisableWhen("#{mode=='read'}");
-        xButton3.setName("addCiReport"); // NOI18N
-        xButton3.setText("CI Report");
-
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -68,20 +63,18 @@ public class CollateralVehiclePage extends javax.swing.JPanel {
                 .addComponent(xButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(432, Short.MAX_VALUE))
+                .addContainerGap(517, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                 .addComponent(xButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.NORTH);
 
+        xDataTable1.setName("selectedVehicle"); // NOI18N
         xDataTable1.setAutoResize(false);
         xDataTable1.setColumns(new com.rameses.rcp.common.Column[]{
             new com.rameses.rcp.common.Column(new Object[]{
@@ -147,7 +140,6 @@ public class CollateralVehiclePage extends javax.swing.JPanel {
         });
         xDataTable1.setHandler("vehicleHandler");
         xDataTable1.setImmediate(true);
-        xDataTable1.setName("selectedVehicle"); // NOI18N
         jPanel1.add(xDataTable1, java.awt.BorderLayout.CENTER);
 
         xSplitView1.add(jPanel1);
@@ -188,7 +180,6 @@ public class CollateralVehiclePage extends javax.swing.JPanel {
     private javax.swing.JScrollPane jScrollPane1;
     private com.rameses.rcp.control.XButton xButton1;
     private com.rameses.rcp.control.XButton xButton2;
-    private com.rameses.rcp.control.XButton xButton3;
     private com.rameses.rcp.control.XDataTable xDataTable1;
     private com.rameses.rcp.control.border.XEtchedBorder xEtchedBorder1;
     private com.rameses.rcp.control.XHtmlView xHtmlView1;

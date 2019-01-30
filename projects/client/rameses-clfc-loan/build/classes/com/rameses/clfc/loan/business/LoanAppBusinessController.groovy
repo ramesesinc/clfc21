@@ -9,7 +9,7 @@ import com.rameses.clfc.util.*;
 class LoanAppBusinessController 
 {
     //feed by the caller
-    def loanapp, caller, menuitem;
+    def loanapp, caller, menuitem, handlers;
     
     def mode;
     def snapshot;
@@ -26,8 +26,10 @@ class LoanAppBusinessController
         
     void init() {
         mode = 'read';
-        menuitem.saveHandler = { save(); }
-        menuitem.dataChangeHandler = { dataChange(); }
+        handlers.saveHandler = { save(); }
+        handlers.dataChangeHandler = { dataChange(); }
+        //menuitem.saveHandler = { save(); }
+        //menuitem.dataChangeHandler = { dataChange(); }
         base64 = new com.rameses.util.Base64Cipher(); 
         
         def data = service.open([objid: loanapp.objid]);
@@ -77,7 +79,14 @@ class LoanAppBusinessController
             return removeBusinessImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: caller.mode, caller:this]
+            def handler = { b->
+                def data = businesses?.find{ it.objid == b.objid }
+                if (data) {
+                    data.putAll( b );
+                    businessHandler?.reload();
+                }
+            }
+            return [mode: mode, caller:this, handler: handler]
         }
     ] as EditorListModel;
     

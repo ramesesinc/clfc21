@@ -12,6 +12,6 @@
 		<field name="modeofacquisition" required="true"/> 
 		<field name="registeredname" required="true"/> 
 		<field name="marketvalue"/> 
-		<field name="remarks" required="true"/> 
+		<field name="remarks"/> 
 	</element>
 </schema>

@@ -1,7 +1,12 @@
 "entity.*|doOk" [mode != 'read'] {
     enabled:true;
 }
-
+"entity.ci.*" [mode != 'read' && state == 'FOR_INSPECTION'] {
+    enabled: true;
+}
+"entity.ci.*" [mode != 'read' && state != 'FOR_INSPECTION'] {
+    enabled: false;
+}
 "entity.*|doOk" [mode == 'read'] {
     enabled:false;
 }

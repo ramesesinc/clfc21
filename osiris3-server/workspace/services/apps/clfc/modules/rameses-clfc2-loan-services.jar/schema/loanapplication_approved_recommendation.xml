@@ -1,0 +1,8 @@
+<schema>
+	<element tablename="loanapp_approved_recommendation">
+		<field name="objid" primary="true"/>
+		<field name="appid" required="true"/>
+		<field name="amount" required="true"/>
+		<field name="remarks" required="true"/>
+	</element>
+</schema>

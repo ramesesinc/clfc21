@@ -32,7 +32,14 @@ class BorrowerSavingsAcctController
             return removeSavingAcctImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: borrowerContext.mode, caller:this]
+            def handler = { s->
+                def data = borrowerContext.borrower.savingaccts?.find{ it.objid == s.objid }
+                if (data) {
+                    data.putAll( s );
+                    savingsAcctHandler?.reload();
+                }
+            }
+            return [mode: borrowerContext.mode, caller:this, handler: handler];
         }
     ] as EditorListModel; 
     

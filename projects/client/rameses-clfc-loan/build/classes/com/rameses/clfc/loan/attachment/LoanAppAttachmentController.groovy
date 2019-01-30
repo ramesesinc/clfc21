@@ -7,7 +7,7 @@ import com.rameses.osiris2.client.*;
 class LoanAppAttachmentController { 
     
     //feed by the caller
-    def caller, loanapp, menuitem;
+    def caller, loanapp, menuitem, handlers;
     def attachments;
     
     def mode;
@@ -16,7 +16,8 @@ class LoanAppAttachmentController {
     
     void init() {
         mode = 'read';
-        menuitem.saveHandler = { save(); }  
+        handlers.saveHandler = { save(); }
+        //menuitem.saveHandler = { save(); }  
         base64 = new com.rameses.util.Base64Cipher();  
     }
     

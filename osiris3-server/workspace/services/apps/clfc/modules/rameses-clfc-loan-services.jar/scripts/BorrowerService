@@ -61,6 +61,7 @@ class BorrowerService {
 		updateSiblings( data ); 
 		updateOtherIncomes( data );
 		updateEmployments( data );
+		updateBankAccts( data );
 		return data; 
 	}
 
@@ -94,6 +95,7 @@ class BorrowerService {
 			updateSiblings( data ); 
 			updateOtherIncomes( data );
 			updateEmployments( data );
+			updateBankAccts( data );
 		}
 		return data; 		
 	}
@@ -175,7 +177,7 @@ class BorrowerService {
 			o.children = borrowerindividual_children.find([ borrowerid: o.objid ]).list();  
 			o.children.each{ 
 				it.employments = employment.find([ refid: it.objid ]).list(); 
-				it.otherincomes = sourceofincome.find([ refid: it.objid ]).list(); 
+				it.otherincomes = sourceofincome.find([ refid: it.objid ]).list();
 			} 
 
 			o.siblings = borrowerindividual_sibling.find([ borrowerid: o.objid ]).list()
@@ -194,8 +196,11 @@ class BorrowerService {
 
 	@ProxyMethod(local=true)
 	public String createFullName(lname, fname, mname) {
-		def s = lname + ', ' + fname; 
-		if (mname) s = s + ' ' + mname; 
+		def s = '';
+		if (lname && fname) {
+			s = lname + ', ' + fname; 
+			if (mname) s = s + ' ' + mname; 
+		}
 
 		return s;
 	} 
@@ -208,7 +213,7 @@ class BorrowerService {
 		}
 
 		data.children.each{ o-> 
-			o.objid = 'CHI'+ new UID();
+			if (!o.objid) o.objid = 'CHI'+ new UID();
 			o.borrowerid = data.objid; 
 			borrowerindividual_children.create( o ); 
 
@@ -219,7 +224,7 @@ class BorrowerService {
 
 			o.otherincomes.each{ oi-> 
 				oi.refid = o.objid; 
-				employment.create( oi ); 
+				sourceofincome.create( oi ); 
 			} 
 		}
 	} 

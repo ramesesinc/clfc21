@@ -8,7 +8,7 @@ import com.rameses.clfc.util.*;
 class LoanAppOtherLendingController
 {
     //feed by the caller
-    def loanapp, caller, menuitem;
+    def loanapp, caller, menuitem, handlers;
 
     def mode;
     def snapshot;
@@ -26,7 +26,8 @@ class LoanAppOtherLendingController
     
     void init() {
         mode = 'read';
-        menuitem.saveHandler = { save(); }  
+        handlers.saveHandler = { save(); }
+        //menuitem.saveHandler = { save(); }  
         base64 = new com.rameses.util.Base64Cipher(); 
         def data = service.open([objid: loanapp.objid]);
         loanapp.clear();
@@ -60,7 +61,14 @@ class LoanAppOtherLendingController
             return removeOtherLendingImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: caller.mode, caller:this];
+            def handler = { l->
+                def data = otherlendings?.find{ it.objid == l.objid }
+                if (data) {
+                    data.putAll( l );
+                    otherLendingHandler?.reload();
+                }
+            }
+            return [mode: mode, caller:this, handler: handler];
         }
     ] as EditorListModel
             

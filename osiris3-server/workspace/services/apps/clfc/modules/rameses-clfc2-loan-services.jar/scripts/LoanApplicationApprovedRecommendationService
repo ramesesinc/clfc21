@@ -1,0 +1,51 @@
+import com.rameses.annotations.*;
+
+class LoanApplicationApprovedRecommendationService
+{
+	@ActiveDB('loanapp')
+	def loanapp_adb;
+
+	@DataContext('loanapplication_approved_recommendation')
+	def approved_recom_db;
+
+	@ProxyMethod
+	public def getRecommendationInfo( params ) {
+		if (!params.appid) throw new RuntimeException('Please specify appid');
+
+		def approvedrecommendation;
+		def extinfo = loanapp_adb.read([ objid: params.appid ], 'extinfo');
+		if (extinfo) {
+			approvedrecommendation = extinfo.approvedrecommendation;
+		}
+		if (!approvedrecommendation) approvedrecommendation = [:]
+
+		def data = [
+			approvedrecommendation: approvedrecommendation,
+			recommendations: approved_recom_db.find([ appid: params.appid ]).list()
+		];
+		return data;
+	}
+
+	@ProxyMethod
+	public def selectRecommendation( params ) {
+		if (!params.appid) throw new RuntimeException('Please specify appid');
+		if (!params.recommendation) throw new RuntimeException('Please specify recommendation');
+
+		def extinfo = loanapp_adb.read([ objid: params.appid ], 'extinfo');
+		if (!extinfo) {
+			extinfo = [
+				objid: params.appid,
+				netamount: 0,
+				totalcharges: 0,
+				approvedrecommendation: params.recommendation
+			];
+			loanapp_adb.create( extinfo, 'extinfo' );
+		} else {
+			extinfo.approvedrecommendation = params.recommendation;
+			loanapp_adb.update( extinfo, 'extinfo' );
+		}
+
+		return getRecommendationInfo([ appid: params.appid ]);
+	}
+
+}

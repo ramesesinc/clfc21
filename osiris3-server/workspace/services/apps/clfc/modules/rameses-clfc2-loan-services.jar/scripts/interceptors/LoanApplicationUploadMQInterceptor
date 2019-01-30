@@ -48,7 +48,9 @@ class LoanApplicationUploadMQInterceptor {
 			'collateral_property', 
 			'collateral_other', 
 			'cireport', 
-			'recommendation', 
+			'recommendation',
+			'otherinfo',
+			'history', 
 			'end'
 		]; 
 

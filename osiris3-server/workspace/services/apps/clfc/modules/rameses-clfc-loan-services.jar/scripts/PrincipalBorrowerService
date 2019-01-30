@@ -45,7 +45,7 @@ class PrincipalBorrowerService
 	}
 
 	@ProxyMethod 
-	public def update ( params ) {
+	public def update( params ) {
 		if (!params.objid) throw new Exception('Please specify objid'); 
 
 		def data = loanAppService.findByObjid(params);

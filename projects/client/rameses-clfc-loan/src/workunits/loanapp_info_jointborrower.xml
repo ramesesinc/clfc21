@@ -2,9 +2,9 @@
     <invokers>
         <invoker type="loanapp-jointborrower:open" caption="Joint Borrower" action="init" key="jointborrower"/>
         
+        <invoker type="formActions" caption="Cancel" action="cancelEdit" visibleWhen="#{mode=='edit'}" immediate="true"/>
         <invoker type="formActions" caption="Edit" action="edit" visibleWhen="#{mode=='read'}"/> 
         <invoker type="formActions" caption="Save" action="save" visibleWhen="#{mode=='edit'}"/> 
-        <invoker type="formActions" caption="Cancel" action="cancelEdit" visibleWhen="#{mode=='edit'}" immediate="true"/>         
     </invokers>
     
     <code class="com.rameses.clfc.loan.jointborrower.LoanAppJointBorrowerController"/>

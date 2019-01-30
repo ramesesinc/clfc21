@@ -12,8 +12,12 @@ class RealPropertyFormController extends PopupMasterController
     def uomList = LoanUtil.propertyUomTypes;
     def modesOfAcquisition = LoanUtil.propertyModeOfAcquisitionTypes;
     
-    public void afterCreate(data) {
-        if (data.attachments == null) data.attachments = [];
+    def createEntity() {
+        return [attachments: [], ci: [:]];
     }
+    
+    void afterOpen( data ) {
+        if (!data.ci) data.ci = [:];
+        if (data.attachments == null) data.attachments = [];    }
     
 }

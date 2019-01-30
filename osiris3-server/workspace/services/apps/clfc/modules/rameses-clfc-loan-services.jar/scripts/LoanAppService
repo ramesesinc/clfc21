@@ -29,6 +29,9 @@ class LoanAppService
 	@Service('BorrowerService')
 	def borrowerService;
 
+	@Service('LoanLedgerService')
+	def loanLedgerSvc;
+
 	@Env 
 	def env;
 
@@ -239,12 +242,23 @@ class LoanAppService
 		if (!params.objid) throw new Exception('Please specify objid');
 
 		def data = loanapp.findByObjid(params);
-		if (data.state != 'FOR_CRECOM') 
+		/*
+		if (!(data.state.toString().matches('FOR_CRECOM))) {
+			throw new Exception('Loan status must be FOR_CRECOM or SEND_BACK before submitting for approval'); 
+		}
+		*/
+		if (data.state != 'FOR_CRECOM') {
 			throw new Exception('Loan status must be FOR_CRECOM before submitting for approval'); 
+		}
 
 		def o = recom_db.find([ objid: data.objid ]).first(); 
 		if ( !o?.ciremarks ) throw new Exception('Please provide a CI Recommendation'); 
 		if ( !o?.crecomremarks ) throw new Exception('Please provide a CRECOM Recommendation'); 
+		if ( !o?.marketeramount ) throw new RuntimeException('Please provide Market Amount');
+		if ( !o?.ciamount ) throw new RuntimeException('Please provide CI Amount');
+		if ( !o?.fcaamount ) throw new RuntimeException('Please provide FCA Amount');
+		if ( !o?.caoamount ) throw new RuntimeException('Please provide CAO Amount');
+		if ( !o?.bcohamount ) throw new RuntimeException('Please provide BCOH Amount');
 
 		data.dtposted = dateService.serverDate.toString(); 
 		data.postedby = env.USERID; 
@@ -273,11 +287,16 @@ class LoanAppService
 		if (!params.objid) throw new Exception('Please specify objid');
 
 		def data = loanapp.findByObjid(params);
-		if (data.state != 'FOR_APPROVAL') 
+		if (data.state != 'FOR_APPROVAL') {
 			throw new Exception('Loan status must be FOR_APPROVAL before sending back'); 
+		}
 
-		data.dtposted = dateService.serverDate.toString(); 
-		data.postedby = env.USERID; 
+		def rundate = dateService.serverDate.toString();
+
+		//data.dtposted = dateService.serverDate.toString(); 
+		//data.postedby = env.USERID; 
+		data.dtposted = (params.dtposted? params.dtposted : rundate);
+		data.postedby = (params.postedby? params.postedby : env.NAME);
 		data.state = 'FOR_CRECOM'; 		
 		loanapp.update(data); 
 
@@ -296,7 +315,7 @@ class LoanAppService
 		]; 
 		loanapp.create(o, 'loanapp_log'); 
 		return data; 
-	}	
+	}
 
 	@ProxyMethod
 	public def approve( params ) {
@@ -306,8 +325,12 @@ class LoanAppService
 		if (data.state != 'FOR_APPROVAL') 
 			throw new Exception('Loan status must be FOR_APPROVAL'); 
 
-		data.dtposted = dateService.serverDate.toString(); 
-		data.postedby = env.USERID; 
+		def rundate = dateService.serverDate.toString();
+
+		//data.dtposted = dateService.serverDate.toString(); 
+		//data.postedby = env.USERID; 
+		data.dtposted = (params.dtposted? params.dtposted : rundate);
+		data.postedby = (params.postedby? params.postedby : env.NAME);
 		data.state = 'APPROVED'; 		
 		loanapp.update(data); 
 
@@ -333,12 +356,16 @@ class LoanAppService
 		if (!params.objid) throw new Exception('Please specify objid');
 
 		def data = loanapp.findByObjid(params);
-		if (data.state != 'APPROVED') 
-			throw new Exception('Loan status must be APPROVED'); 
+		if (data.state != 'FOR_APPROVAL') 
+			throw new Exception('Loan status must be FOR_APPROVAL'); 
 
-		data.dtposted = dateService.serverDate.toString(); 
-		data.postedby = env.USERID; 
-		data.state = 'FOR_APPROVAL'; 		
+		def rundate = dateService.serverDate.toString(); 
+
+		//data.dtposted = dateService.serverDate.toString(); 
+		//data.postedby = env.USERID; 
+		data.dtposted = (params.dtposted? params.dtposted : rundate);
+		data.postedby = (params.postedby? params.postedby : env.NAME);
+		data.state = 'DISAPPROVED'; 		
 		loanapp.update(data); 
 
 		def o = loanapp.findSearchIndex(data); 
@@ -426,6 +453,13 @@ class LoanAppService
 		if (data.state != 'APPROVED') 
 			throw new Exception('Loan status must be APPROVED'); 
 
+		def extinfo = loanapp.read([ objid: params.objid ], 'extinfo');
+		if (!extinfo?.approvedrecommendation) throw new RuntimeException('Please select recommendation to proceed');
+
+		def amount = extinfo.approvedrecommendation?.amount;;
+
+		data.loanamount = amount;
+		data.approval.amount = amount;
 		data.dtposted = dateService.serverDate.toString(); 
 		data.postedby = env.USERID; 
 		data.state = 'FOR_REQUIREMENT'; 		
@@ -433,6 +467,7 @@ class LoanAppService
 
 		def o = loanapp.findSearchIndex(data); 
 		o.state = data.state; 
+		o.loanamount = amount;
 		o.dtposted = data.dtposted; 
 		o.postedby = data.postedby;
 		loanapp.update(o, 'loanapp_search'); 
@@ -516,7 +551,9 @@ class LoanAppService
 		if (data.state != 'FOR_RELEASE') 
 			throw new Exception('Loan status must be FOR_RELEASE'); 
 
-		data.dtposted = dateService.serverDate.toString(); 
+		def rundate = dateService.serverDate.toString(); 
+
+		data.dtposted = rundate;
 		data.postedby = env.USERID; 
 		data.state = 'RELEASED'; 		
 		loanapp.update(data); 
@@ -535,8 +572,46 @@ class LoanAppService
 			remarks: 	'RELEASED' 
 		]; 
 		loanapp.create(o, 'loanapp_log'); 
+
+		def dtreleased = rundate.toString().split(' ')[0];
+		def extinfo = loanapp.read([ objid: data.objid ], 'extinfo');
+		if (!extinfo) {
+			extinfo = [
+				objid: data.objid,
+				netamoount: 0,
+				totalcharges: 0,
+				dtreleased: dtreleased
+			];
+			loanapp.create( extinfo, 'extinfo' );
+		} else {
+			extinfo.dtreleased = dtreleased;
+			loanapp.update( extinfo, 'extinfo' );
+		}
+
+		def borrower_acc
+
+		createLedger( data );
+
 		return data; 
 	}	
+
+	def createLedger( params ) {
+		def prm = [
+			appid: params.objid,
+			producttype: params.producttype
+		]
+		def data = loanLedgerSvc.resolveEntity( prm );
+		if (!data.objid) data.objid = 'LEDGER' + new UID();
+		data.txnmode = params.appmode;
+		data.acctid = params.borrower.objid;
+		data.acctname = params.borrower.name;
+		data.paymentmethod = 'schedule';
+		if (!data.dtmatured) data.dtmatured = loanLedgerSvc.calculateMaturityDate( data.dtreleased, data.loantype, data.producttype);
+		//println 'data';
+		//data?.each{ println it }
+		loanLedgerSvc.create( data );
+		//throw new RuntimeException("stop create ledger");
+	}
 
 	@ProxyMethod
 	public def getBusinesses(params) {

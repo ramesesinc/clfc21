@@ -12,11 +12,13 @@ class CaptureLoanAppController extends LoanAppController
         return 'CLOAN-' + entity.appno;
     }
     
+    /*
     public boolean isEditButtonVisible() {
         if (mode != 'read') return false; 
         
         return (entity.appmode == 'CAPTURE' && entity.state == 'RELEASED'); 
     }
+    */
     
     public boolean isEditableMode() { 
         return (mode == 'edit'); 

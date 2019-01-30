@@ -62,32 +62,82 @@ class LoanAppCollateralService {
 		if (data.collateral.vehicles == null) data.collateral.vehicles = [];
 		if (data.collateral.properties == null) data.collateral.properties = [];
 
+		def rundate = dateSvc.serverDate;
+
 		collateral.removeAppliances([parentid: data.objid]); 
+		cireport_db.find([ parentid: data.objid, reftype: 'appliance' ]).delete();
 		for (o in data.collateral.appliances) {
 			o.objid = 'COLLA' + new UID();
 			o.parentid = data.objid;
 			collateral.create(o, 'appliance');
+
+			def ci = o.ci;
+			if (ci) {
+				ci.objid = o.objid;
+				ci.parentid = data.objid;
+				ci.refid = o.objid;
+				ci.reftype = 'appliance';
+				ci.dtfiled = rundate;
+				ci.filedby = [objid: env.USERID, name: env.NAME];
+				cireport_db.create( ci );
+			}
 		}
 
-		collateral.removeVehicles([parentid: data.objid]); 
+		collateral.removeVehicles([parentid: data.objid]);
+		cireport_db.find([ parentid: data.objid, reftype: 'vehicle' ]).delete();
 		for (o in data.collateral.vehicles) {
 			o.objid = 'COLLV' + new UID();
 			o.parentid = data.objid; 
 			collateral.create(o, 'vehicle');
+
+			def ci = o.ci;
+			if (ci) {
+				ci.objid = o.objid;
+				ci.parentid = data.objid;
+				ci.refid = o.objid;
+				ci.reftype = 'vehicle';
+				ci.dtfiled = rundate;
+				ci.filedby = [objid: env.USERID, name: env.NAME];
+				cireport_db.create( ci );
+			}
 		}
 
 		collateral.removeProperties([parentid: data.objid]); 
+		cireport_db.find([ parentid: data.objid, reftype: 'property' ]).delete();
 		for (o in data.collateral.properties) {
 			o.objid = 'COLLP' + new UID();
 			o.parentid = data.objid;
 			collateral.create(o, 'property');
+
+			def ci = o.ci;
+			if (ci) {
+				ci.objid = o.objid;
+				ci.parentid = data.objid;
+				ci.refid = o.objid;
+				ci.reftype = 'property';
+				ci.dtfiled = rundate;
+				ci.filedby = [objid: env.USERID, name: env.NAME];
+				cireport_db.create( ci );
+			}
 		}
 
 		collateral.removeOtherCollateral([objid: data.objid]);
 		if (data.collateral.other?.remarks) { 
 			data.collateral.other.objid = data.objid;
 			collateral.create(data.collateral.other, 'other');
+
+			def ci = data.collateral.other?.ci;
+			if (ci) {
+				ci.objid = data.objid;
+				ci.parentid = data.objid;
+				ci.refid = data.objid;
+				ci.reftype = 'other';
+				ci.dtfiled = rundate;
+				ci.filedby = [objid: env.USERID, name: env.NAME];
+				cireport_db.create( ci );
+			}
 		} 
+		/*
 
 		if ( data.collateral.ci ) {
 			def cis = []; 
@@ -121,12 +171,28 @@ class LoanAppCollateralService {
 				cireport_db.create( o );  
 			}
 		}
+		*/
 
 		loadCIReport( data ); 		
 		return data; 
 	} 
 
 	private void loadCIReport( data ) {
+		def cis = cireport_db.find([ parentid: data.objid ]).list();
+		data.collateral.appliances?.each{ o->
+			def ci = cis.find{ it.refid == o.objid }
+			if (ci) o.ci = ci;
+		}
+		data.collateral.vehicles?.each{ o->
+			def ci = cis.find{ it.refid == o.objid }
+			if (ci) o.ci = ci;
+		}
+		data.collateral.properties?.each{ o->
+			def ci = cis.find{ it.refid == o.objid }
+			if (ci) o.ci = ci;
+		}
+
+		/*
 		def ci = [:]; 
 		def cis = cireport_db.find([ parentid: data.objid ]).list(); 
 		ci.appliance = cis.find{ it.reftype == 'appliance' } 
@@ -134,5 +200,6 @@ class LoanAppCollateralService {
 		ci.property = cis.find{ it.reftype == 'property' } 
 		ci.other = cis.find{ it.reftype == 'other' } 
 		data.collateral.ci = ci; 
+		*/
 	}
 }

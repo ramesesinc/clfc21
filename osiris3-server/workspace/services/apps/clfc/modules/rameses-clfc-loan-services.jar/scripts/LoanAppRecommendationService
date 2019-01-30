@@ -28,6 +28,11 @@ class LoanAppRecommendationService extends ActiveCrudService {
 
 	@ProxyMethod 
 	public def updateCRECOM( param ) {
+		if (!param.marketeramount) throw new RuntimeException('Please specify marketer amount.');
+		if (!param.ciamount) throw new RuntimeException('Please specify ci amount.');
+		if (!param.fcaamount) throw new RuntimeException('Please specify fca amount.');
+		if (!param.caoamount) throw new RuntimeException('Please specify cao amount.');
+		if (!param.bcohamount) throw new RuntimeException('Please specify bcoh amount.');
 		recom_crecom_db.save( param ); 
 		return open( param ); 
 	}

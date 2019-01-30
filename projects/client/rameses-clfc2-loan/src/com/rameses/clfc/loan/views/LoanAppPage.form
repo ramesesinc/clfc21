@@ -151,10 +151,10 @@
               <SubComponents>
                 <Component class="com.rameses.rcp.control.XList" name="xlist">
                   <Properties>
+                    <Property name="name" type="java.lang.String" value="selectedMenu" noResource="true"/>
                     <Property name="dynamic" type="boolean" value="true"/>
                     <Property name="expression" type="java.lang.String" value="#{item.caption}"/>
                     <Property name="handler" type="java.lang.String" value="listHandler"/>
-                    <Property name="name" type="java.lang.String" value="selectedMenu" noResource="true"/>
                     <Property name="padding" type="java.awt.Insets" editor="org.netbeans.beaninfo.editors.InsetsEditor">
                       <Insets value="[3, 10, 3, 5]"/>
                     </Property>
@@ -182,14 +182,8 @@
           <SubComponents>
             <Container class="com.rameses.rcp.control.XSubFormPanel" name="xSubFormPanel1">
               <Properties>
-                <Property name="depends" type="[Ljava.lang.String;" editor="org.netbeans.beaninfo.editors.StringArrayEditor">
-                  <StringArray count="1">
-                    <StringItem index="0" value="selectedMenu"/>
-                  </StringArray>
-                </Property>
                 <Property name="dynamic" type="boolean" value="true"/>
-                <Property name="handler" type="java.lang.String" value="subFormHandler"/>
-                <Property name="name" type="java.lang.String" value="opener" noResource="true"/>
+                <Property name="handler" type="java.lang.String" value="opener"/>
               </Properties>
               <Constraints>
                 <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">

@@ -1,0 +1,17 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapp-assessment:open" caption="Assessment" action="init"/>
+        
+        <invoker type="formActions" action="assess" caption="Assess"
+            role="ASSESSOR" visibleWhen="#{state == 'FOR_PROCESSING'}"/>
+        <invoker type="formActions" action="addCharge" caption="Add Other Charges"
+            role="ASSESSOR" visibleWhen="#{state == 'FOR_PROCESSING'}"/>
+        <invoker type="formActions" action="removeCharge" caption="Remove Charges"
+            role="ASSESSOR" visibleWhen="#{selectedCharge != null &amp;&amp; state == 'FOR_PROCESSING'}" 
+            depends="selectedCharge"/>
+    </invokers>
+    <code class='com.rameses.clfc.loan.models.LoanApplicationAssessmentModel'/>
+    <pages>
+        <page template='com.rameses.clfc.loan.views.LoanApplicationAssessmentPage'/>
+    </pages>
+</workunit>

@@ -33,6 +33,9 @@ public class CollateralOtherPage extends javax.swing.JPanel {
         xTextArea1 = new com.rameses.rcp.control.XTextArea();
         jPanel2 = new javax.swing.JPanel();
         fileViewPanel1 = new com.rameses.filemgmt.components.FileViewPanel();
+        jPanel3 = new javax.swing.JPanel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        xTextArea2 = new com.rameses.rcp.control.XTextArea();
 
         setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 10));
         setLayout(new java.awt.BorderLayout());
@@ -61,6 +64,16 @@ public class CollateralOtherPage extends javax.swing.JPanel {
 
         jTabbedPane1.addTab("  Attachments   ", jPanel2);
 
+        jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        jPanel3.setLayout(new java.awt.BorderLayout());
+
+        xTextArea2.setName("entity.ci.evaluation"); // NOI18N
+        jScrollPane2.setViewportView(xTextArea2);
+
+        jPanel3.add(jScrollPane2, java.awt.BorderLayout.CENTER);
+
+        jTabbedPane1.addTab("   CI Report   ", jPanel3);
+
         add(jTabbedPane1, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
     
@@ -69,9 +82,12 @@ public class CollateralOtherPage extends javax.swing.JPanel {
     private com.rameses.filemgmt.components.FileViewPanel fileViewPanel1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTabbedPane jTabbedPane1;
     private com.rameses.rcp.control.XTextArea xTextArea1;
+    private com.rameses.rcp.control.XTextArea xTextArea2;
     // End of variables declaration//GEN-END:variables
     
 }

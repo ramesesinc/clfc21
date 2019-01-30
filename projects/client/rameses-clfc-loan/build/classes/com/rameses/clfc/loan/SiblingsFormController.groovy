@@ -18,6 +18,11 @@ class SiblingsFormController extends PopupMasterController
         return [ objid:'BS'+new UID() ]
     }
     
+    def open() {
+        entity = copyMap( entity );
+    }
+    
+    /*
     void open() {
         if(!entity.employments) entity.employments = [];
         employments = entity.employments;
@@ -34,17 +39,6 @@ class SiblingsFormController extends PopupMasterController
         employments.clear();
         employments.addAll(entity.employments);
         entity.employments = employments;
-        /*entity.employments.each{item->
-            def o = employments.find{ it.objid == item.objid }
-            if(!o) employments.add(item);
-            else o.putAll(item);
-        }*/
-        
-        /*entity.otherincomes.each{item->
-            def o = otherincomes.find{ it.objid == item.objid }
-            if(!o) otherincomes.add(item);
-            else o.putAll(item);
-        }*/
         otherincomes.clear();
         otherincomes.addAll(entity.otherincomes);
         entity.otherincomes = otherincomes;
@@ -56,6 +50,7 @@ class SiblingsFormController extends PopupMasterController
         entity.otherincomes = otherincomes;
         super.doCancel();
     }
+    */
 
     def employmentHandler = [
         fetchList: {o->
@@ -67,7 +62,14 @@ class SiblingsFormController extends PopupMasterController
             return removeEmploymentImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: mode]
+            def handler = { e->
+                def data = entity.employments?.find{ it.objid == e.objid }
+                if (data) {
+                    data.putAll( e );
+                    employmentHandler?.reload();
+                }
+            }
+            return [mode: mode, handler: handler];
         }
     ] as EditorListModel;
 
@@ -103,7 +105,14 @@ class SiblingsFormController extends PopupMasterController
             return removeOtherIncomeImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: mode]
+            def handler = { i->
+                def data = entity.otherincomes?.find{ it.objid == i.objid }
+                if (data) {
+                    data.putAll( i );
+                    otherIncomeHandler?.reload();
+                }
+            }
+            return [mode: mode, handler: handler];
         }
     ] as EditorListModel;
 

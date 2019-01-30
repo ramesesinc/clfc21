@@ -1,0 +1,64 @@
+<workunit>
+    <invokers>
+        <invoker type="workflowtask:showinfo" 
+                 tooltip="Task Info" 
+                 icon="images/taskinfo.png"
+                 target="popup" action="init"/>
+    </invokers>
+    <code>
+        <![CDATA[
+        
+        import com.rameses.rcp.common.*;
+        import com.rameses.rcp.annotations.*;
+        import com.rameses.osiris2.client.*;
+        import com.rameses.osiris2.common.*;
+        import com.rameses.common.*;
+        import com.rameses.rcp.constant.*;
+
+        class WorkflowInfo {
+        
+            @Service("WorkflowTaskService")
+            def workflowSvc;
+        
+            @Caller
+            def caller;
+        
+            @FormTitle
+            def formTitle = "Task History";
+        
+            def task;
+        
+            void init() {
+                task = caller.task;
+            }
+            
+            boolean hasCallerProperty( property ) { 
+                if ( caller == null ) return false; 
+                    return caller.metaClass.hasProperty(caller, property ); 
+            } 
+            boolean hasCallerMethod( property ) {
+                if ( caller == null ) return false; 
+                return caller.metaClass.respondsTo(caller, property ); 
+            } 
+            
+            def listHandler = [
+                fetchList: { o-> 
+                    def procname = null; 
+                    if ( caller && caller.metaClass.respondsTo(caller, 'getProcessName')) { 
+                        procname = caller.getProcessName(); 
+                    } 
+                    return workflowSvc.getTransactionHistory([ refid: task.refid, processname: procname ]); 
+                } 
+            ] as BasicListModel; 
+            
+            def doClose() {
+                return "_close";
+            }
+            
+        }
+        ]]>
+    </code>
+    <pages>
+        <page template="com.rameses.seti2.views.WorkflowInfoPage" />
+    </pages>    
+</workunit>

@@ -9,7 +9,7 @@ import com.rameses.clfc.util.*;
 class LoanAppCoMakerController 
 {
     //feed by the caller
-    def caller, loanapp, menuitem;
+    def caller, loanapp, menuitem, handlers;
     
     def mode;
     def snapshot;
@@ -24,9 +24,20 @@ class LoanAppCoMakerController
     def borrowers = [];
     def selectedCoMaker;
     
-    void init() { 
+    def hasProperty( property, bean ) {
+        if (bean == null) return false;
+        return (bean.metaClass.hasProperty(bean, property)? true : false);
+    }
+    
+    def hasMethod( property, bean ) {
+        if (bean == null) return false;
+        return (bean.metaClass.respondsTo(bean, property)? true : false);
+    }
+    
+    void init() {
         mode = 'read';
-        menuitem.saveHandler = { save(); }  
+        handlers.saveHandler = { save(); }
+        //menuitem.saveHandler = { save(); }  
         base64 = new com.rameses.util.Base64Cipher();  
         
         def data = service.open([objid: loanapp.objid]);
@@ -41,12 +52,12 @@ class LoanAppCoMakerController
         borrowers.each { 
             it.remove('_isnew'); 
         } 
-        mode = 'read'; 
+        mode = 'read';
         snapshot = null; 
     }
     void edit() {
         snapshot = (borrowers ? base64.encode( borrowers ) : null ); 
-        mode = 'edit'; 
+        mode = 'edit';
     }
     void cancelEdit() { 
         if (MsgBox.confirm('Are you sure you want to cancel any changes made?')) { 
@@ -92,7 +103,7 @@ class LoanAppCoMakerController
             params.loanapp.borrower = o;
             return params;
         }
-    ] as EditorListModel;
+    ] as BasicListModel;
         
     void removeCoMaker() {
         removeCoMakerImpl(selectedCoMaker);

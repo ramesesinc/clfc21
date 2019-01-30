@@ -176,7 +176,7 @@
         <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField1">
           <Properties>
             <Property name="name" type="java.lang.String" value="data.marketeramount" noResource="true"/>
-            <Property name="readonly" type="boolean" value="true"/>
+            <Property name="required" type="boolean" value="true"/>
           </Properties>
         </Component>
         <Component class="com.rameses.rcp.control.XLabel" name="xLabel2">
@@ -187,7 +187,7 @@
         <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField2">
           <Properties>
             <Property name="name" type="java.lang.String" value="data.ciamount" noResource="true"/>
-            <Property name="readonly" type="boolean" value="true"/>
+            <Property name="required" type="boolean" value="true"/>
           </Properties>
         </Component>
         <Component class="com.rameses.rcp.control.XLabel" name="xLabel3">
@@ -198,7 +198,7 @@
         <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField3">
           <Properties>
             <Property name="name" type="java.lang.String" value="data.fcaamount" noResource="true"/>
-            <Property name="readonly" type="boolean" value="true"/>
+            <Property name="required" type="boolean" value="true"/>
           </Properties>
         </Component>
         <Component class="com.rameses.rcp.control.XLabel" name="xLabel4">
@@ -209,7 +209,7 @@
         <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField4">
           <Properties>
             <Property name="name" type="java.lang.String" value="data.caoamount" noResource="true"/>
-            <Property name="readonly" type="boolean" value="true"/>
+            <Property name="required" type="boolean" value="true"/>
           </Properties>
         </Component>
         <Component class="com.rameses.rcp.control.XLabel" name="xLabel5">
@@ -220,7 +220,7 @@
         <Component class="com.rameses.rcp.control.XDecimalField" name="xDecimalField5">
           <Properties>
             <Property name="name" type="java.lang.String" value="data.bcohamount" noResource="true"/>
-            <Property name="readonly" type="boolean" value="true"/>
+            <Property name="required" type="boolean" value="true"/>
           </Properties>
         </Component>
       </SubComponents>

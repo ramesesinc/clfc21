@@ -38,14 +38,14 @@
 </tr>
 <tr>
     <td>Payment: </td>
-    <td>$otherlending.paymentamount</td>
+    <td>${ifNull(otherlending.paymentamount, '-')}</td>
 </tr>
 <tr>
     <td>Collateral(s): </td>
     <td> <p>${ifNull(otherlending.collateral, '-')}</p> </td>
 </tr>
 <tr>
-    <td>Remarks: </td>
-    <td> <p>${ifNull(otherlending.remarks, '-')}</p> </td>
+    <td>Other Info.: </td>
+    <td> <p>${ifNull(otherlending.otherinfo, '-')}</p> </td>
 </tr>
 </table>

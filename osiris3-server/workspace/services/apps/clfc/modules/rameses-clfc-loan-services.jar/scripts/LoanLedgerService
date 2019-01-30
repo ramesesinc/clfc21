@@ -225,6 +225,7 @@ class LoanLedgerService extends ActiveListService {
 		data.loanamount = app.loanamount;
 
 		def app_extinfo = loanapp.read([objid: app.objid], "extinfo");
+		println 'extinfo' + app_extinfo;
 		if (app_extinfo?.dtreleased) {
 			data.dtreleased = app_extinfo.dtreleased;
 		} else {
@@ -752,6 +753,7 @@ class LoanLedgerService extends ActiveListService {
 			data.absentpenalty = result.absentpenalty;//computeAbsentPenalty(data);			
 		}
 		data.overpaymentamount = data.overpayment;
+		if (!data.overpaymentamount) data.overpaymentamount = 0;
 		data.overduepenalty = 0.00;
 		data.totaldue = 0.00;
 		data.state = 'OPEN';

@@ -14,7 +14,7 @@
 		<field name="chassisno" />
 		<field name="engineno" />
 		<field name="marketvalue"/>
-		<field name="remarks" required="true"/>
+		<field name="remarks"/>
 		<field name="orcr_crno"/>
 		<field name="orcr_fuel"/>
 		<field name="orcr_denomination"/>

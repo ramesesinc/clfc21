@@ -64,6 +64,9 @@ public class VehicleFormPage extends javax.swing.JPanel {
         xTextArea1 = new com.rameses.rcp.control.XTextArea();
         jPanel2 = new javax.swing.JPanel();
         fileViewPanel1 = new com.rameses.filemgmt.components.FileViewPanel();
+        jPanel3 = new javax.swing.JPanel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        xTextArea2 = new com.rameses.rcp.control.XTextArea();
 
         jPanel1.setLayout(null);
 
@@ -241,11 +244,10 @@ public class VehicleFormPage extends javax.swing.JPanel {
 
         jScrollPane1.setPreferredSize(new java.awt.Dimension(0, 80));
 
+        xTextArea1.setName("entity.remarks"); // NOI18N
         xTextArea1.setCaption("Remarks");
         xTextArea1.setCaptionWidth(135);
         xTextArea1.setHint("Specify remarks here");
-        xTextArea1.setName("entity.remarks"); // NOI18N
-        xTextArea1.setRequired(true);
         xTextArea1.setTextCase(com.rameses.rcp.constant.TextCase.UPPER);
         jScrollPane1.setViewportView(xTextArea1);
 
@@ -279,6 +281,16 @@ public class VehicleFormPage extends javax.swing.JPanel {
 
         jTabbedPane1.addTab("  Attachments   ", jPanel2);
 
+        jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        jPanel3.setLayout(new java.awt.BorderLayout());
+
+        xTextArea2.setName("entity.ci.evaluation"); // NOI18N
+        jScrollPane2.setViewportView(xTextArea2);
+
+        jPanel3.add(jScrollPane2, java.awt.BorderLayout.CENTER);
+
+        jTabbedPane1.addTab("   CI Report   ", jPanel3);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -302,7 +314,9 @@ public class VehicleFormPage extends javax.swing.JPanel {
     private com.rameses.filemgmt.components.FileViewPanel fileViewPanel1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTabbedPane jTabbedPane1;
     private com.rameses.rcp.control.XCheckBox xCheckBox1;
     private com.rameses.rcp.control.XComboBox xComboBox1;
@@ -319,6 +333,7 @@ public class VehicleFormPage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XFormPanel xFormPanel2;
     private com.rameses.rcp.control.XFormPanel xFormPanel3;
     private com.rameses.rcp.control.XTextArea xTextArea1;
+    private com.rameses.rcp.control.XTextArea xTextArea2;
     private com.rameses.rcp.control.XTextField xTextField1;
     private com.rameses.rcp.control.XTextField xTextField10;
     private com.rameses.rcp.control.XTextField xTextField11;

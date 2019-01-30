@@ -5,12 +5,12 @@
     <tr>
         <td width="5">&nbsp;</td>
         <td width="120px">Name: </td>
-        <td>$child.name</td>
+        <td>${ifNull(child.name, '-')}</td>
     </tr>
     <tr>
         <td width="5">&nbsp;</td>
         <td>Age: </td>
-        <td>$child.age</td>
+        <td>${ifNull(child.age, '-')}</td>
     </tr>
     <tr>
         <td width="5">&nbsp;</td>

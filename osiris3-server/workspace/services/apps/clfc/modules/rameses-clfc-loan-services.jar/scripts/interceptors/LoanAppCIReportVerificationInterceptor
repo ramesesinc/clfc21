@@ -26,6 +26,19 @@ class LoanAppCIReportVerificationInterceptor {
 				throw new Exception('CI Report is required for business '+ o.tradename); 
 		}
 
+		appliance_db.find( parentparam ).list().each{ o->
+			verifyCollateralCIReport( o.objid, 'appliance' );
+		}
+
+		vehicle_db.find( parentparam ).list().each{ o->
+			verifyCollateralCIReport( o.objid, 'vehicle' ); 
+		}
+
+		property_db.find( parentparam ).list().each{ o->
+			verifyCollateralCIReport( o.objid, 'property' ); 
+		}
+
+		/*
 		def o = appliance_db.find( parentparam ).select('objid').first(); 
 		if ( o?.objid ) verifyCollateralCIReport( param.objid, 'appliance' ); 
 
@@ -34,10 +47,12 @@ class LoanAppCIReportVerificationInterceptor {
 
 		o = property_db.find( parentparam ).select('objid').first(); 
 		if ( o?.objid ) verifyCollateralCIReport( param.objid, 'property' ); 
+		*/
 	}
 
-	void verifyCollateralCIReport( parentid, reftype ) {
-		def o = cireport_db.find([ parentid: parentid, reftype: reftype ]).first(); 
+	void verifyCollateralCIReport( objid, reftype ) {
+		//def o = cireport_db.find([ parentid: parentid, reftype: reftype ]).first(); 
+		def o = cireport_db.find([ refid: objid, reftype: reftype ]).first();
 		if ( !o?.evaluation ) 
 			throw new Exception('CI Report is required for '+ reftype +' collateral'); 
 	}
