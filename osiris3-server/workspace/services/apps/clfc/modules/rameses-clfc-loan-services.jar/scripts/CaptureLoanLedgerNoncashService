@@ -14,12 +14,6 @@ class CaptureLoanLedgerNoncashService extends ActiveCrudService
 	@ActiveDB("loan_ledger")
 	def ledger;
 
-	@ActiveDB("loanapp")
-	def loanapp;
-
-	@ActiveDB("borrower")
-	def borrower;
-
 	@Service("DateService")
 	def dateSvc;
 
@@ -27,38 +21,6 @@ class CaptureLoanLedgerNoncashService extends ActiveCrudService
 		data.dtcreated = dateSvc.serverDate;
 		data.author = [objid: env.USERID, name: env.NAME];
 		data.txntype = 'CAPTURE';
-	}
-
-	@ProxyMethod
-	public def getInfo( params ) {
-		if (!params.ledgerid) throw new RuntimeException("Please specify ledgerid.");
-
-		def l = ledger.read( [objid: params.ledgerid] );
-		if (!l) throw new RuntimeException("Ledger record does not exist or has already been deleted.");
-
-		def app = loanapp.read( [objid: l.appid] );
-		if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted.");
-
-		def pb = borrower.read( [objid: app.borrower.objid] );
-		if (!pb) throw new RuntimeException("Borrower record does not exist or has already been deleted.");
-
-		def data = [
-			loanapp 	: [
-				objid 	: app.objid,
-				appno 	: app.appno,
-				amount 	: app.loanamount
-			],
-			borrower 	: pb
-		]
-		return data;
-	}
-
-	@ProxyMethod
-	public def saveCapturedNoncash( data ) {
-		data = create( data );
-		data = collect( data );
-		
-		return open( data );
 	}
 
 	@ProxyMethod
@@ -73,10 +35,7 @@ class CaptureLoanLedgerNoncashService extends ActiveCrudService
 		data.txnstate = 'COLLECTED';
 		em.changeState(data);
 
-		def user = [objid: env.USERID, name: env.NAME];
-
 		data.refid = 'LLP' + new UID();
-		def serverdate = dateSvc.serverDate;
 
 		def item = ledger.read([objid: data.refid], "payment");
 		if (!item) {
@@ -87,15 +46,15 @@ class CaptureLoanLedgerNoncashService extends ActiveCrudService
 				txndate 	: data.txndate,
 				amount 		: data.amount,
 				isonline	: 1,
-				dtmodified 	: serverdate,//dateSvc.serverDate,
-				modifiedby	: user//[objid: env.USERID, name: env.NAME]
+				dtmodified 	: dateSvc.serverDate,
+				modifiedby	: [objid: env.USERID, name: env.NAME]
 			];
 			ledger.create(item, "payment");
 		}
 		em.update(data, 'noncash-refid');
 
-		data.dtcollected = serverdate;//dateSvc.serverDate;
-		data.collectedby = user;//[objid: env.USERID, name: env.NAME];
+		data.dtcollected = dateSvc.serverDate;
+		data.collectedby = [objid: env.USERID, name: env.NAME];
 		em.update(data, 'noncash-collect');
 
 		return open(data);

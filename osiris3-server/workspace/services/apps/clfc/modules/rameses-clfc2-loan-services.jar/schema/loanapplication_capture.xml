@@ -1,0 +1,11 @@
+<schema>
+	<element tablename="loanapp_capture">
+		<field name="objid" primary="true"/>
+		<field name="version" required="true"/> 
+		<field name="loanno" required="true"/> 
+		<field name="clienttype" required="true"/> 
+		<field name="marketedby"/> 
+		<field name="dtreleased" required="true"/> 
+		<field name="dtfiled" required="true"/>
+	</element>
+</schema>

@@ -1,6 +1,8 @@
+/*
 "selectedMenu" [mode == 'read']{
     enableNavigation: true; 
 }
 "selectedMenu" [mode != 'read']{
     enableNavigation: false; 
 }
+*/

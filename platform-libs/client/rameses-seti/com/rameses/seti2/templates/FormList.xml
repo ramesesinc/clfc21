@@ -1,0 +1,6 @@
+<workunit>
+    <pages>
+        <page template="com.rameses.seti2.views.FormListPage"/>
+        <page name="queryForm" template="com.rameses.seti2.views.BlankQueryFormPanel"/>
+    </pages>
+</workunit> 

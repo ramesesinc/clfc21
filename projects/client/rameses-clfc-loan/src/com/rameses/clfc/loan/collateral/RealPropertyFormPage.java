@@ -38,7 +38,7 @@ public class RealPropertyFormPage extends javax.swing.JPanel {
         xComboBox1 = new com.rameses.rcp.control.XComboBox();
         xTextField1 = new com.rameses.rcp.control.XTextField();
         xFormPanel2 = new com.rameses.rcp.control.XFormPanel();
-        xIntegerField1 = new com.rameses.rcp.control.XIntegerField();
+        xDecimalField3 = new com.rameses.rcp.control.XDecimalField();
         xComboBox2 = new com.rameses.rcp.control.XComboBox();
         xFormPanel3 = new com.rameses.rcp.control.XFormPanel();
         xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
@@ -51,6 +51,9 @@ public class RealPropertyFormPage extends javax.swing.JPanel {
         xTextArea1 = new com.rameses.rcp.control.XTextArea();
         jPanel2 = new javax.swing.JPanel();
         fileViewPanel1 = new com.rameses.filemgmt.components.FileViewPanel();
+        jPanel3 = new javax.swing.JPanel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        xTextArea2 = new com.rameses.rcp.control.XTextArea();
 
         jPanel1.setLayout(null);
 
@@ -77,21 +80,21 @@ public class RealPropertyFormPage extends javax.swing.JPanel {
         jPanel1.add(xFormPanel1);
         xFormPanel1.setBounds(20, 20, 485, 50);
 
-        xFormPanel2.setOrientation(com.rameses.rcp.constant.UIConstants.HORIZONTAL);
+        xFormPanel2.setOrientation("HORIZONTAL");
         xFormPanel2.setPadding(new java.awt.Insets(2, 0, 0, 0));
 
-        xIntegerField1.setCaption("Area");
-        xIntegerField1.setCaptionWidth(140);
-        xIntegerField1.setName("entity.areavalue"); // NOI18N
-        xIntegerField1.setPreferredSize(new java.awt.Dimension(120, 20));
-        xIntegerField1.setRequired(true);
-        xFormPanel2.add(xIntegerField1);
+        xDecimalField3.setName("entity.areavalue"); // NOI18N
+        xDecimalField3.setCaption("Area");
+        xDecimalField3.setCaptionWidth(140);
+        xDecimalField3.setPreferredSize(new java.awt.Dimension(120, 20));
+        xDecimalField3.setRequired(true);
+        xFormPanel2.add(xDecimalField3);
 
+        xComboBox2.setName("entity.areauom"); // NOI18N
         xComboBox2.setCaption("Unit of Measure");
         xComboBox2.setExpression("#{item.value}");
         xComboBox2.setItemKey("value");
         xComboBox2.setItems("uomList");
-        xComboBox2.setName("entity.areauom"); // NOI18N
         xComboBox2.setRequired(true);
         xComboBox2.setShowCaption(false);
         xFormPanel2.add(xComboBox2);
@@ -101,8 +104,8 @@ public class RealPropertyFormPage extends javax.swing.JPanel {
 
         xFormPanel3.setPadding(new java.awt.Insets(0, 0, 0, 0));
 
-        xDecimalField1.setCaption("Zonal Value");
         xDecimalField1.setName("entity.zonalvalue"); // NOI18N
+        xDecimalField1.setCaption("Zonal Value");
         xDecimalField1.setCaptionWidth(140);
         xDecimalField1.setPreferredSize(new java.awt.Dimension(120, 20));
         xFormPanel3.add(xDecimalField1);
@@ -137,19 +140,18 @@ public class RealPropertyFormPage extends javax.swing.JPanel {
         xTextField4.setRequired(true);
         xFormPanel3.add(xTextField4);
 
-        xDecimalField2.setCaption("Market/Appraisal Value");
         xDecimalField2.setName("entity.marketvalue"); // NOI18N
+        xDecimalField2.setCaption("Market/Appraisal Value");
         xDecimalField2.setCaptionWidth(140);
         xDecimalField2.setPreferredSize(new java.awt.Dimension(120, 20));
         xFormPanel3.add(xDecimalField2);
 
         jScrollPane1.setPreferredSize(new java.awt.Dimension(0, 80));
 
+        xTextArea1.setName("entity.remarks"); // NOI18N
         xTextArea1.setCaption("Remarks");
         xTextArea1.setCaptionWidth(140);
         xTextArea1.setHint("Specify remarks here");
-        xTextArea1.setName("entity.remarks"); // NOI18N
-        xTextArea1.setRequired(true);
         xTextArea1.setTextCase(com.rameses.rcp.constant.TextCase.UPPER);
         jScrollPane1.setViewportView(xTextArea1);
 
@@ -183,6 +185,16 @@ public class RealPropertyFormPage extends javax.swing.JPanel {
 
         jTabbedPane1.addTab("  Attachments   ", jPanel2);
 
+        jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        jPanel3.setLayout(new java.awt.BorderLayout());
+
+        xTextArea2.setName("entity.ci.evaluation"); // NOI18N
+        jScrollPane2.setViewportView(xTextArea2);
+
+        jPanel3.add(jScrollPane2, java.awt.BorderLayout.CENTER);
+
+        jTabbedPane1.addTab("   CI Report   ", jPanel3);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -206,7 +218,9 @@ public class RealPropertyFormPage extends javax.swing.JPanel {
     private com.rameses.filemgmt.components.FileViewPanel fileViewPanel1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTabbedPane jTabbedPane1;
     private com.rameses.rcp.control.XComboBox xComboBox1;
     private com.rameses.rcp.control.XComboBox xComboBox2;
@@ -214,11 +228,12 @@ public class RealPropertyFormPage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XDateField xDateField1;
     private com.rameses.rcp.control.XDecimalField xDecimalField1;
     private com.rameses.rcp.control.XDecimalField xDecimalField2;
+    private com.rameses.rcp.control.XDecimalField xDecimalField3;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
     private com.rameses.rcp.control.XFormPanel xFormPanel2;
     private com.rameses.rcp.control.XFormPanel xFormPanel3;
-    private com.rameses.rcp.control.XIntegerField xIntegerField1;
     private com.rameses.rcp.control.XTextArea xTextArea1;
+    private com.rameses.rcp.control.XTextArea xTextArea2;
     private com.rameses.rcp.control.XTextField xTextField1;
     private com.rameses.rcp.control.XTextField xTextField3;
     private com.rameses.rcp.control.XTextField xTextField4;

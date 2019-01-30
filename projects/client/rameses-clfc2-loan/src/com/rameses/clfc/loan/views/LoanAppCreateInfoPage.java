@@ -39,12 +39,13 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
         jPanel2 = new javax.swing.JPanel();
         xFormPanel4 = new com.rameses.rcp.control.XFormPanel();
         xLabel5 = new com.rameses.rcp.control.XLabel();
+        xTextField1 = new com.rameses.rcp.control.XTextField();
         xComboBox4 = new com.rameses.rcp.control.XComboBox();
-        xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
         xComboBox6 = new com.rameses.rcp.control.XComboBox();
         xTextField3 = new com.rameses.rcp.control.XTextField();
         xFormPanel5 = new com.rameses.rcp.control.XFormPanel();
         xLabel4 = new com.rameses.rcp.control.XLabel();
+        xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
         xComboBox5 = new com.rameses.rcp.control.XComboBox();
         xNumberField1 = new com.rameses.rcp.control.XNumberField();
         xLookupField2 = new com.rameses.rcp.control.XLookupField();
@@ -56,7 +57,7 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
         xTitledBorder1.setTitle("Principal Borrower");
         jPanel1.setBorder(xTitledBorder1);
 
-        xFormPanel1.setCaptionVAlignment(com.rameses.rcp.constant.UIConstants.CENTER);
+        xFormPanel1.setCaptionVAlignment("CENTER");
         xFormPanel1.setCellspacing(1);
         xFormPanel1.setPadding(new java.awt.Insets(5, 3, 0, 5));
 
@@ -104,37 +105,39 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
         xTitledBorder2.setTitle("Loan Details");
         jPanel2.setBorder(xTitledBorder2);
 
-        xFormPanel4.setCaptionVAlignment(com.rameses.rcp.constant.UIConstants.CENTER);
+        xFormPanel4.setCaptionVAlignment("CENTER");
         xFormPanel4.setCaptionWidth(100);
         xFormPanel4.setCellspacing(1);
         xFormPanel4.setPadding(new java.awt.Insets(5, 3, 0, 20));
 
-        xLabel5.setCaption("App. Type");
-        xLabel5.setExpression("#{entity.apptype}");
-        xLabel5.setAntiAliasOn(true);
         xLabel5.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(180, 180, 180)));
+        xLabel5.setAntiAliasOn(true);
+        xLabel5.setCaption("App. Type");
         xLabel5.setCaptionWidth(100);
+        xLabel5.setExpression("#{entity.apptype}");
         xLabel5.setFontStyle("font-size:12;");
         xLabel5.setOpaque(true);
         xLabel5.setPreferredSize(new java.awt.Dimension(0, 23));
         xFormPanel4.add(xLabel5);
 
+        xTextField1.setName("entity.loanno"); // NOI18N
+        xTextField1.setCaption("Loan No.");
+        xTextField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        xTextField1.setPreferredSize(new java.awt.Dimension(0, 23));
+        xTextField1.setRequired(true);
+        xFormPanel4.add(xTextField1);
+
+        xComboBox4.setName("entity.loantype"); // NOI18N
         xComboBox4.setCaption("Loan Type");
         xComboBox4.setCaptionWidth(100);
         xComboBox4.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xComboBox4.setFontStyle("font-size:12");
         xComboBox4.setItems("loanTypes");
-        xComboBox4.setName("entity.loantype"); // NOI18N
         xComboBox4.setPreferredSize(new java.awt.Dimension(0, 23));
         xComboBox4.setRequired(true);
         xFormPanel4.add(xComboBox4);
 
-        xDecimalField1.setCaption("Loan Amount");
-        xDecimalField1.setName("entity.loanamount"); // NOI18N
-        xDecimalField1.setPreferredSize(new java.awt.Dimension(0, 23));
-        xDecimalField1.setRequired(true);
-        xFormPanel4.add(xDecimalField1);
-
+        xComboBox6.setName("entity.clienttype"); // NOI18N
         xComboBox6.setAllowNull(false);
         xComboBox6.setCaption("Client Type");
         xComboBox6.setCaptionWidth(100);
@@ -143,7 +146,6 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
         xComboBox6.setImmediate(true);
         xComboBox6.setItemKey("value");
         xComboBox6.setItems("clientTypes");
-        xComboBox6.setName("entity.clienttype"); // NOI18N
         xComboBox6.setPreferredSize(new java.awt.Dimension(0, 23));
         xComboBox6.setRequired(true);
         xComboBox6.addActionListener(new java.awt.event.ActionListener() {
@@ -153,8 +155,8 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
         });
         xFormPanel4.add(xComboBox6);
 
-        xTextField3.setCaption("Interviewed By");
         xTextField3.setName("entity.marketedby"); // NOI18N
+        xTextField3.setCaption("Interviewed By");
         xTextField3.setCaptionWidth(100);
         xTextField3.setDepends(new String[] {"entity.clienttype"});
         xTextField3.setDisableWhen("#{entity.clienttype != 'MARKETED'}");
@@ -162,7 +164,7 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
         xTextField3.setPreferredSize(new java.awt.Dimension(0, 23));
         xFormPanel4.add(xTextField3);
 
-        xFormPanel5.setCaptionVAlignment(com.rameses.rcp.constant.UIConstants.CENTER);
+        xFormPanel5.setCaptionVAlignment("CENTER");
         xFormPanel5.setCaptionWidth(100);
         xFormPanel5.setCellspacing(1);
         xFormPanel5.setPadding(new java.awt.Insets(5, 3, 0, 5));
@@ -178,6 +180,12 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
         xLabel4.setOpaque(true);
         xLabel4.setPreferredSize(new java.awt.Dimension(0, 23));
         xFormPanel5.add(xLabel4);
+
+        xDecimalField1.setName("entity.loanamount"); // NOI18N
+        xDecimalField1.setCaption("Loan Amount");
+        xDecimalField1.setPreferredSize(new java.awt.Dimension(0, 23));
+        xDecimalField1.setRequired(true);
+        xFormPanel5.add(xDecimalField1);
 
         xComboBox5.setCaption("Product Type");
         xComboBox5.setExpression("#{item.name}");
@@ -226,9 +234,9 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
         xEtchedBorder1.setHideRight(true);
         xEtchedBorder1.setHideTop(true);
         xLabel12.setBorder(xEtchedBorder1);
-        xLabel12.setFontStyle("font-weight:bold;");
         xLabel12.setForeground(new java.awt.Color(80, 80, 80));
         xLabel12.setText("Purpose of Loan");
+        xLabel12.setFontStyle("font-weight:bold;");
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -303,6 +311,7 @@ public class LoanAppCreateInfoPage extends javax.swing.JPanel {
     private com.rameses.rcp.control.XLookupField xLookupField2;
     private com.rameses.rcp.control.XNumberField xNumberField1;
     private com.rameses.rcp.control.XTextArea xTextArea3;
+    private com.rameses.rcp.control.XTextField xTextField1;
     private com.rameses.rcp.control.XTextField xTextField3;
     // End of variables declaration//GEN-END:variables
 }

@@ -1,0 +1,68 @@
+import com.rameses.annotations.*;
+
+class LoanApplicationUploadMQInterceptor {
+	
+	@Service('DateService') 
+	def dateSvc; 
+
+	@Service('LoanApplicationService') 
+	def loanAppSvc; 
+
+	@DataContext('mqpub') 
+	def mqpub_db;
+
+	@DataContext('mqpubitem') 
+	def mqpubitem_db;
+
+	@DataContext('mqpub_pending') 
+	def mqpubpending_db;
+
+	@DataContext('loanapplication') 
+	def loanapp_db;
+
+	@DataContext('loanapplication_business') 
+	def business_db;
+
+	@Env 
+	def env; 
+
+	@After(pattern="LoanApplicationService.uploadToMQ") 
+	public void uploadToMQ( evt ) {
+		def param = evt.args[0]; 
+		def o = loanapp_db.find([ objid: param.appid ]).select('objid,appno').first(); 
+		if ( !o ) return; 
+
+		def mqpub = [ 
+			state: 'PROCESSING', dtfiled: dateSvc.getServerDate(), 
+			filedby: [ objid: env.USERID, name: env.FULLNAME ], 
+			message: 'Application For Approval ('+ o.appno +')' 
+		]; 
+		mqpub = mqpub_db.create( mqpub ); 
+
+		def reftypes = [ 
+			'begin', 
+			'loanapp', 
+			'business', 
+			'collateral_appliance', 
+			'collateral_vehicle', 
+			'collateral_property', 
+			'collateral_other', 
+			'cireport', 
+			'recommendation',
+			'otherinfo',
+			'history', 
+			'end'
+		]; 
+
+		reftypes.eachWithIndex{ reftype,idx->  
+			def item = [:]; 
+			item.parentid = mqpub.objid; 
+			item.reftype = reftype;
+			item.refid = o.objid; 
+			item.indexno = idx; 
+			mqpubitem_db.create( item ); 
+		} 
+
+		mqpubpending_db.create([ objid: mqpub.objid, indexno: 0 ]); 
+	}	
+}

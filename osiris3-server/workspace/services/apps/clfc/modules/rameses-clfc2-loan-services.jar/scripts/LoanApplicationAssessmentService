@@ -1,0 +1,148 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.rules.common.*;
+
+import loan.facts.*;
+import loan.actions.*;
+
+class LoanApplicationAssessmentService
+{
+	@ActiveDB("loan_itemaccount")
+	def loan_itemaccount;
+
+	@ActiveDB("loanapp")
+	def app_adb;
+
+	@DataContext("loanapplication")
+	def app_db;
+
+	@DataContext("loanapplication_borroweraccount")
+	def borrower_account_db;
+
+	@DataContext("loanapplication_charge")
+	def app_charge_db;
+
+	@Service("RuleExecutorService")
+	def ruleSvc;
+
+	@Service("NumberService")
+	def numSvc;
+
+	@ProxyMethod
+	public testAssess() {
+		return assess([ appid: 'LOANAPP77b139c9:1687f393efa:-7c7d' ]);
+	}
+
+	@ProxyMethod
+	public def assess( params ) {
+		def assessment = getAssessmentInfo([objid: params.appid], [:]);
+
+		def extinfo = app_adb.read([ objid: params.appid ], 'extinfo');
+		if (!extinfo) {
+			extinfo = [
+				objid: params.appid,
+				netamount: assessment.netamount,
+				totalcharges: assessment.totalcharges
+			];
+			app_adb.create( extinfo, 'extinfo' );
+		} else {
+			extinfo.netamount = assessment.netamount;
+			extinfo.totalcharges = assessment.totalcharges
+			app_adb.update( extinfo );
+		}
+
+		app_charge_db.find([ appid: params.appid ]).delete();
+
+		assessment?.charges?.each{
+			it.appid = params.appid;
+			app_charge_db.create( it );
+		}
+
+		return getCharges([ appid: params.appid ]);
+	}
+
+	@ProxyMethod
+	public def removeCharge( params ) {
+		if (!params.appid) throw new RuntimeException("Please specify appid");
+		if (!params.chargeid) throw new RuntimeException("Please specify chargeid");
+
+		app_charge_db.find([ objid: params.chargeid ]).delete();
+		return getCharges([ appid: params.appid ]);
+	}
+
+	@ProxyMethod
+	public def addCharge( params ) {
+		if (!params.appid) throw new RuntimeException("Please specify appid");
+		if (!params.charge) throw new RuntimeException("Please specify charges");
+
+		def charge = params.charge;
+		def mcharge = app_charge_db.find([ appid: params.appid, acctid: charge.acctid ]).first();
+		if (!mcharge) {
+			if (!charge.appid) charge.appid = params.appid;
+			app_charge_db.create( charge );
+		} else {
+			def param = [
+				title: charge.title,
+				amount: charge.amount
+			];
+			app_charge_db.find([ objid: mcharge.objid ]).update( param );
+		}
+		return getCharges([ appid: params.appid ]);
+	}
+
+	@ProxyMethod
+	public def getCharges( params ) {
+		if (!params.appid) throw new RuntimeException('Please specify appid');
+
+		return app_charge_db.find([ appid: params.appid ]).list();
+	}
+
+	@ProxyMethod
+	public def getAssessmentInfo( params, prevloan ) {
+
+		def request = [charges: []];
+
+		def facts = [];
+		facts << buildAppFact(params?.objid, prevloan?.objid);
+		if (prevloan) facts << buildPrevAppFact(prevloan);
+
+		def actions = new RuleAction(); 
+		actions.addCommand( "computeCharge", new  ComputeCharge(NS: numSvc, IA: loan_itemaccount, request: request) );
+		actions.addCommand( "computeTotalCharges", new ComputeTotalCharges(NS: numSvc) );
+		actions.addCommand( "computeNetAmount", new ComputeNetAmount(NS: numSvc) );
+
+		ruleSvc.execute("loanapplication", facts, actions, null);
+
+
+		def app = facts?.find{ (it instanceof LoanApp) == true }?.toMap(); 
+
+		return [charges: app.charges, totalcharges: app.totalcharges, netamount: app.netamount];
+	}
+
+	private def buildAppFact( objid, prevloanid ) {
+		def app = app_db.find([ objid: objid ]).first();
+		if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted");
+
+		def borrower_account = borrower_account_db.find([ objid: app.borrower.objid ]).first();
+		if (!borrower_account) throw new RuntimeException("Borrower Account record does not exist or has already been deleted");
+
+		def params = [
+			appid 		: app.objid,
+			apptype		: app.apptype,
+			principal 	: app.loanamount,
+			loantype 	: app.loantype,
+			loancount 	: borrower_account.loancount,
+			prevloanid 	: prevloanid
+		];
+		
+		return new LoanApp(params);
+	}
+
+	private def buildPrevAppFact( prevloan ) {
+		def params = [
+			appid 	: prevloan.objid,
+			amount 	: prevloan.amount
+		];
+		return new PrevLoanApp(params);
+	}
+}

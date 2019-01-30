@@ -13,7 +13,7 @@ class LoanAppJointBorrowerController {
     def service; 
     
     //feed by the caller
-    def caller, loanapp, menuitem;
+    def caller, loanapp, menuitem, handlers;
     
     private def beforeSaveHandlers = [:];
     private def dataChangeHandlers = [:];
@@ -27,7 +27,8 @@ class LoanAppJointBorrowerController {
     
     void init() {
         mode = 'read';
-        menuitem.saveHandler = { save(); }  
+        handlers.saveHandler = { save(); }
+        //menuitem.saveHandler = { save(); }  
         base64 = new com.rameses.util.Base64Cipher();  
         
         def data = service.open([objid: loanapp.objid]);

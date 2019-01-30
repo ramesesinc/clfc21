@@ -9,7 +9,7 @@ import com.rameses.clfc.util.*;
 class LoanAppDetailController 
 {
     //feed by the caller
-    def loanapp, caller, menuitem;
+    def loanapp, caller, menuitem, handlers;
     
     @Service('LoanAppService') 
     def service;
@@ -25,9 +25,12 @@ class LoanAppDetailController
     def base64;
 
     void init() {
-        mode = "read";         
-        menuitem.saveHandler = { save(); }
-        menuitem.dataChangeHandler = { dataChange(); }
+        mode = caller?.mode;
+        if (!mode) mode = 'read';
+        handlers.saveHandler = { save(); }
+        handlers.dataChangeHandler = { dataChange(); }
+        //menuitem.saveHandler = { save(); }
+        //menuitem.dataChangeHandler = { dataChange(); }
         base64 = new com.rameses.util.Base64Cipher(); 
         data = service.open([objid: loanapp.objid]);
         loanapp.clear();

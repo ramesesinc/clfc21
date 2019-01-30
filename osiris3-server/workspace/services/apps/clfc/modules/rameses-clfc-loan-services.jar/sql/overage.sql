@@ -61,7 +61,7 @@ WHERE state IN ('DRAFT', 'FOR_APPROVAL')
 
 [findUnnotedOverageByRemittanceid]
 SELECT * FROM overage
-WHERE state IN ('DRAFT', 'FOR_NOTING')
+WHERE state IN ('DRAFT', 'FOR_SIGNATORY')
 	AND remittanceid = $P{remittanceid}
 
 [findOverageByRefno]

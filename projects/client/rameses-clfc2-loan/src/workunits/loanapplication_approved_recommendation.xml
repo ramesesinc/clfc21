@@ -1,0 +1,12 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapp-approved-recommendation:open" caption="Approved Recommendations" action="init"/>
+        
+        <invoker type="formActions" action="select" caption="Select" role="CAO_OFFICER"
+            visibleWhen="#{state == 'APPROVED'}"/>
+    </invokers>
+    <code class='com.rameses.clfc.loan.models.LoanApplicationApprovedRecommendationModel'/>
+    <pages>
+        <page template='com.rameses.clfc.loan.views.LoanApplicationApprovedRecommendationPage'/>
+    </pages>
+</workunit>

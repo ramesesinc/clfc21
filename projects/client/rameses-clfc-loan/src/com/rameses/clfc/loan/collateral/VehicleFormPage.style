@@ -7,6 +7,12 @@
 "entity.orcr.*" [orcr == true && mode != 'read'] {
     enabled:true;
 }
+"entity.ci.*" [mode != 'read' && state == 'FOR_INSPECTION'] {
+    enabled: true;
+}
+"entity.ci.*" [mode != 'read' && state != 'FOR_INSPECTION'] {
+    enabled: false;
+}
 "entity.orcr.*" [orcr == false] {
     enabled:false;
 }

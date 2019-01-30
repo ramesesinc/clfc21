@@ -32,7 +32,14 @@ class CollateralPropertyController
             return removeChildImpl(o); 
         },
         getOpenerParams: {o->
-            return [mode: mode, caller:this];
+            def handler = { c->
+                def data = collateral.properties?.find{ it.objid == c.objid }
+                if (data) {
+                    data.putAll( c );
+                    propertyHandler?.reload();
+                }
+            }
+            return [mode: mode, state: caller?.state, caller:this, handler: handler];
         }
     ] as EditorListModel;
     
@@ -42,7 +49,7 @@ class CollateralPropertyController
             collateral.properties.add(property);
             propertyHandler.reload();
         }
-        return InvokerUtil.lookupOpener("realproperty:create", [handler:handler]);
+        return InvokerUtil.lookupOpener("realproperty:create", [state: caller?.state, handler:handler]);
     }
     
     void removeChild() {
@@ -63,10 +70,10 @@ class CollateralPropertyController
         def m = [:]; 
         if ( selectedProperty ) m.putAll( selectedProperty ); 
         
-        m.ci = collateral.ci; 
         return htmlbuilder.buildProperty( m );
     }
     
+    /*
     def addCiReport() {
         if ( collateral.ci == null ) collateral.ci = [:]; 
         
@@ -75,5 +82,6 @@ class CollateralPropertyController
         params.entity = collateral.ci.property; 
         if ( params.entity == null ) params.entity = [:]; 
         return InvokerUtil.lookupOpener("cireport:edit", params);
-    }     
+    } 
+    */    
 }

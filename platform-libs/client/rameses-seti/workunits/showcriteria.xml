@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="crud:showcriteria" caption="Filter" action="init" target="popup"/>
+    </invokers>
+    
+    <code class="com.rameses.seti2.models.FilterCriteriaModel"/>
+
+    <pages>
+        <page template="com.rameses.seti2.views.FilterCriteriaPage"/>
+    </pages>    
+</workunit> 

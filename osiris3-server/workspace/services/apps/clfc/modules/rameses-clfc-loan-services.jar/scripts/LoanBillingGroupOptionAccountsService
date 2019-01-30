@@ -3,23 +3,16 @@ import com.rameses.common.*;
 import com.rameses.annotations.*;
 import com.rameses.services.extended.*;
 
-class LoanBillingGroupOptionAccountsService extends ActiveListService {
-
+class LoanBillingGroupOptionAccountsService extends ActiveListService
+{
 	@ActiveDB('specialcollection_billinggroup')
 	def em;
-
-	@ActiveDB("ledgeramnesty")
-	def ledgeramnesty;
-
-	@Service("DateService")
-	def dateSvc;
 
 	@ProxyMethod
 	public def getColumns( params ) {
 		def cols = [];
 
 		if (params.type == 'CONFERENCE') cols << [name: 'dtconferenced', caption: 'Conference Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
-		if (!params.type && !params.listtype) cols << [name: "state", caption: "Status"];
 		cols << [name: 'borrower.name', caption: 'Borrower'];
 		cols << [name: 'loanapp.appno', caption: 'App. No.'];
 		cols << [name: 'loanapp.amount', caption: 'Loan Amount', type: 'decimal', format: '#,##0.00'];
@@ -33,19 +26,11 @@ class LoanBillingGroupOptionAccountsService extends ActiveListService {
 	@ProxyMethod
 	public def getStates( params ) {
 		def list = [];
-
-
 		if (params.type == 'CONFERENCE') {
-			list << [caption: 'For Follow-up', state: 'FOR_FOLLOWUP'];
-			list << [caption: 'Follow-up', state: 'FOLLOWUP'];
-
-		} else if (!params.type) {
-			list << [caption: "All"];
-			list << [caption: "Conferenced", type: "CONFERENCED"];
-			list << [caption: "FIXED", type: "FIXED"];
-			list << [caption: "SMC", type: "SMC"];
-			list << [caption: "Bad Debt", type: "BAD_DEBT"];
-
+			list = [
+				[caption: 'For Follow-up', state: 'FOR_FOLLOWUP'],
+				[caption: 'Follow-up', state: 'FOLLOWUP']
+			];
 		}
 		return list;
 	}
@@ -54,76 +39,19 @@ class LoanBillingGroupOptionAccountsService extends ActiveListService {
 		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
 		def state = params.state;
 		def type = params.type;
-
 		def lm;
-		if (type) {
-			switch (type) {
-				case "CONFERENCE":
-					if (state == 'FOR_FOLLOWUP') {
-						lm = 'getConferenceForFollowup';
-					} else if (state == 'FOLLOWUP') {
-						lm = 'getConferenceFollowup';
-					}
-					break;
-				case "SPECIALBILLING":
-					lm = 'getSpecialBilling';
-					break;
-				case "DELINQUENT":
-					lm = 'getDelinquent';
-					break;
+		if (type == 'CONFERENCE') {
+			if (state == 'FOR_FOLLOWUP') {
+				lm = 'getConferenceForFollowup';
+			} else if (state == 'FOLLOWUP') {
+				lm = 'getConferenceFollowup';
 			}
-		} else if (!type) {
-			lm = "getAccountsForBillingGroup";
-			switch (params.listtype) {
-				case "CONFERENCED"	: lm = "getAccountsConferenced"; break;
-				case "SMC"			: lm = "getAccountsSMC"; break;
-				case "FIXED"		: lm = "getAccountsFixed"; break;
-				case "BAD_DEBT"		: lm = "getAccountsBadDebt"; break;
-			}
+		} else if (type == 'SPECIALBILLING') {
+			lm = 'getSpecialBilling';
+		} else if (type == 'DELINQUENT') {
+			lm = 'getDelinquent';
 		}
 		if (lm) params._listMethod = lm;
-	}
-
-	void afterList( params, list ) {
-		if (!params.type && !params.listtype) {
-			def date = dateSvc.getServerDateAsString().split(" ")[0];
-			list?.each{ o->
-				o.state = "";
-
-				def xparams = [ledgerid: o.ledger.objid, date: date];
-				def ac = ledgeramnesty.findActiveByDateAndLedgerid( xparams );
-
-				xparams = [ledgerid: o.ledger.objid, state: "RETURNED"];
-				def am = ledgeramnesty.findLatestAmnestyByLedgeridAndState( xparams );
-
-				if (ac && am) {
-					def conferenceddate = java.sql.Date.valueOf( am.dtreturned.toString().split(" ")[0] );
-					def activedate = java.sql.Date.valueOf( ac.dtstarted.toString() );
-					if (activedate <= conferenceddate) {
-						switch (ac?.type) {
-							case "SMC"		: o.state = "SMC"; break;
-							case "FIX"		: o.state = "FIXED"; break;
-							case "BAD_DEBT"	: o.state = "BAD DEBT"; break;
-						}
-						o.state += ", Conferenced";
-					} else {
-						o.state = "Conferenced, ";
-						switch (ac?.type) {
-							case "SMC"		: o.state += "SMC"; break;
-							case "FIX"		: o.state += "FIXED"; break;
-							case "BAD_DEBT"	: o.state += "BAD DEBT"; break;
-						}
-					}
-				} else {
-					switch (ac?.type) {
-						case "SMC"		: o.state = "SMC"; break;
-						case "FIX"		: o.state = "FIXED"; break;
-						case "BAD_DEBT"	: o.state = "BAD DEBT"; break;
-					}
-					if (am) o.state = "Conferenced";
-				}
-			}
-		}
 	}
 
 }

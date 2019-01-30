@@ -3,7 +3,7 @@
     <tbody>
         <tr>
             <td>Name: </td>
-            <td>$borrower.name</td>
+            <td>${ifNull(borrower.name, '-')}</td>
         </tr>
         <tr>
             <td>Address: </td>

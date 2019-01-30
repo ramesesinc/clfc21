@@ -59,7 +59,14 @@ class CustomerSearchController extends BasicLookupModel
         customerlistHandler.moveNextPage(); 
     } 
     
-    void moveLastPage() {}     
+    void moveLastPage() {} 
+
+    Map createOpenerParams() {
+        return [
+            listModelHandler: this,
+            callerContext   : createContextHandler()
+        ];
+    }    
    
     def createContextHandler() {
         def ctx = new CustomerSearchContext(this);
@@ -70,7 +77,23 @@ class CustomerSearchController extends BasicLookupModel
         return ctx;
     }
     
-    def create() {   
+    def create() {
+        def op = Inv.lookupOpener('customer:create', createOpenerParams());
+        if (!op) return null;
+        return op;
+    }
+    
+    def view() {
+        if (!selectedCustomer) return null;
+        def params = createOpenerParams();
+        params.entity = selectedCustomer;
+        
+        def op = Inv.lookupOpener('customer:open', params);
+        if (!op) return null;
+        return op;
+    }
+    
+    def xcreate() {   
         def ctype = null;
         def params = [:];
         params.handler = { o-> ctype = o; }
@@ -78,18 +101,22 @@ class CustomerSearchController extends BasicLookupModel
         if (!ctype) return null; 
         
         params.clear();
-        def op = Inv.lookupOpener('entity'+ ctype +':create', params);
-        op.target = 'popup';
+        //def op = Inv.lookupOpener('entity'+ ctype +':create', params);
+        //op.target = 'popup';
+        def op = Inv.lookupOpener('customer:' + ctype + ':create', params);
+        if (!op) return null;
         return op;
     }
     
-    def view() { 
+    def xview() { 
         if ( !selectedCustomer ) return null;
         
         def ctype = selectedCustomer.type.toString().toLowerCase();
         def params = [ entity: selectedCustomer ];
-        def op = Inv.lookupOpener('entity'+ ctype +':open', params ); 
-        op.target = 'popup'; 
+        //def op = Inv.lookupOpener('entity'+ ctype +':open', params ); 
+        //op.target = 'popup'; 
+        def op = Inv.lookupOpener('customer:' + ctype + ':open', params);
+        if (!op) return null;
         return op;
     }    
 } 

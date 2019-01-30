@@ -8,7 +8,7 @@ import com.rameses.osiris2.common.*;
 class LoanCollateralController
 {
     //feed by the caller
-    def loanapp, caller, menuitem;
+    def loanapp, caller, menuitem, handlers;
     
     def mode;
     def snapshot;
@@ -22,7 +22,8 @@ class LoanCollateralController
     
     void init() {
         mode = 'read';
-        menuitem.saveHandler = { save(); }  
+        handlers.saveHandler = { save(); }
+        //menuitem.saveHandler = { save(); }  
         base64 = new com.rameses.util.Base64Cipher();     
         def data = service.open([objid: loanapp.objid]); 
         loanapp.clear();
@@ -36,8 +37,12 @@ class LoanCollateralController
             service: service, 
             loanappid: loanapp.objid,
             collateral: collateral,
-            caller: this 
+            caller: this
         ]; 
+    }
+    
+    def getState() {
+        return caller?.entity?.state;
     }
     
     def tabHandler = [

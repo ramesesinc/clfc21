@@ -17,6 +17,7 @@ public class LoanAppController {
     def source = [:];
     def entity = [:];
     def mode = 'read';
+    def handlers = [:];
     
     @FormId
     def getFormId() { 
@@ -27,7 +28,7 @@ public class LoanAppController {
     def getFormTitle() { 
         return getFormId(); 
     } 
-    
+        
     void open() {
         source = entity;
         def data = service.open([objid: source?.objid]);
@@ -46,22 +47,39 @@ public class LoanAppController {
         return buffer.toString();
     }
     
-    def getMenuItems() {
+    def getMenuItems() {        
         def items = [];
-        items << [name:'principalborrower', caption:'Principal Borrower'];
+        def type = entity?.borrower?.entitytype?.toString().toLowerCase();
+        items << [name:'borrower', caption:'Principal Borrower'];
+        if ( type == 'individual') { 
+            items << [name:'jointborrower', caption:'Joint Borrower'];
+            items << [name:'comaker', caption:'Co-Maker'];
+        }
+        
         items << [name:'loandetail', caption:'Loan Details'];
 
-        //def type = entity?.borrower?.entitytype.toString();
-        //if ( 'INDIVIDUAL'.equalsIgnoreCase( type )) { 
+        if ( type == 'individual') { 
             items << [name:'business', caption:'Business'];
             items << [name:'collateral', caption:'Collateral'];
             items << [name:'otherlending', caption:'Other Lending'];
-            items << [name:'jointborrower', caption:'Joint Borrower'];
-            items << [name:'comaker', caption:'Co-Maker'];
             items << [name:'attachment', caption:'Attachments'];
-        //}
+        }
+        items << [name:'cireport', caption:'CI Reports'];
+        items << [name:'recommendation', caption:'Recommendations'];
+        items << [name:'comment', caption:'Logs'];
+        
+        /*
+        items << [name:'borrower', caption:'Principal Borrower'];
+        items << [name:'loandetail', caption:'Loan Details'];
+        items << [name:'business', caption:'Business'];
+        items << [name:'collateral', caption:'Collateral'];
+        items << [name:'otherlending', caption:'Other Lending'];
+        items << [name:'jointborrower', caption:'Joint Borrower'];
+        items << [name:'comaker', caption:'Co-Maker'];
+        //items << [name:'attachment', caption:'Attachments'];
         items << [name:'comment', caption:'Comments'];
         items << [name:'recommendation', caption:'Recommendations'];
+        */
             /*
             [name:'fla', caption:'FLA'],
             [name:'prevfla', caption:'Previous FLA'],
@@ -81,7 +99,9 @@ public class LoanAppController {
         beforeSelect: {o-> 
             return (mode == 'read');
         }, 
-        onselect: {o->
+        onselect: { o->
+            binding?.refresh('opener');
+            /*
             def data = service.open([objid: loanappid, name:o?.name]);
             entity.clear();
             entity.putAll(data);
@@ -89,16 +109,67 @@ public class LoanAppController {
             if (o.opener != null && o.dataChangeHandler != null) {
                 o.dataChangeHandler();
             }
-            subFormHandler.reload();
+            binding?.refresh('opener');
+            */
+            //subFormHandler.reload();
         } 
     ] as ListPaneModel;
     
+    def copyMap( src ) {
+        def data = [:];
+        src?.each{ k, v->
+            if (v instanceof Map) {
+                data[k] = copyMap( v );
+            } else if (v instanceof List) {
+                data[k] = copyList( v );
+            } else {
+                data[k] = v;
+            }
+        }
+        return data;
+    }
     
-    def subFormHandler = [
+    def copyList( src ) {
+        def list = [];
+        src?.each{
+            if (it instanceof Map) {
+                list << copyMap( it );
+            } else if (it instanceof List) {
+                list << copyList( it );
+            } else {
+                list << it;
+            }
+        }
+        return list;
+    }    
+    
+    def getOpener() {
+        if (selectedMenu == null) {
+            return new Opener(outcome:'blankpage'); 
+        }
+
+        def invtype = 'loanapp-' + selectedMenu?.name;
+        def params = [
+            caller: this,
+            loanapp: copyMap(entity),
+            menuitem: copyMap(selectedMenu),
+            handlers: handlers
+        ];
+        if (selectedMenu?.name == 'borrower' && entity?.borrower?.entitytype) {
+            invtype += entity.borrower.entitytype.toLowerCase();
+        }
+
+        def op = Inv.lookupOpener( invtype + ':open', params);
+        if (!op) new Opener(outcome:'blankpage');
+        return op;
+    }
+    
+    /*
+    def xsubFormHandler = [
         getOpener: {
             if (selectedMenu == null) {
                 return new Opener(outcome:'blankpage'); 
-            }            
+            }
             
             def op = selectedMenu.opener;
             //println 'subform borrower ' + entity?.borrower;
@@ -116,9 +187,10 @@ public class LoanAppController {
                     selectedMenu.opener = op;
                 }
             }
-            return op; 
+            return op;
         } 
     ] as SubFormPanelModel;
+    */
 
     boolean getIsForEdit() {
         if(entity.state.matches('INCOMPLETE|PENDING|FOR_INSPECTION') && mode == 'read' && entity.appmode != 'CAPTURE') return true;
@@ -132,22 +204,24 @@ public class LoanAppController {
     
     void edit() {
         mode = 'edit';
+        binding?.refresh('opener');
         //println 'edit';
-        subFormHandler.refresh();
+        //subFormHandler.refresh();
     }
     
     void save() {
-        selectedMenu.saveHandler(); 
+        //selectedMenu.saveHandler(); 
+        if (handlers.saveHandler) handlers.saveHandler();
         mode = 'read'; 
-        binding.refresh('title');
-        subFormHandler.refresh();
+        binding?.refresh('title|opener');
+        //subFormHandler.refresh();
     }
     
     void cancel() {
         if (!MsgBox.confirm('Are you sure you want to cancel all the changes made?')) return;
         
         mode = 'read'; 
-        selectedMenu.opener = null;
+        //selectedMenu.opener = null;
     }
     
     boolean getIsPending() {
@@ -184,10 +258,12 @@ public class LoanAppController {
             o.objid = loanappid;
             entity.state = service.submitForCrecom(o).state;
             binding.refresh('title|formActions|opener');
+            /*
             if(selectedMenu.opener.properties.key.matches('recommendation')) {
                 selectedMenu.opener = null;
                 subFormHandler.refresh();
             }
+            */
         } 
         return InvokerUtil.lookupOpener("application-forcrecom:create", [handler:handler]);
     }

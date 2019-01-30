@@ -69,7 +69,8 @@ public class LoanApplicationCreateModel {
             throw new Exception('Marketed By is required'); 
 
         if ( MsgBox.confirm('You are about to submit this application. Proceed?')) {
-            entity.producttype = producttype; 
+            //entity.loancount = appList? appList.size() : 0;
+            entity.producttype = producttype;
             def o = service.create( entity ); 
             if ( o ) entity.putAll( o ); 
 
@@ -106,7 +107,7 @@ public class LoanApplicationCreateModel {
         return Inv.lookupOpener('customer:search', [onselect: onselect, onempty: onempty]); 
     }
     
-    def appList;
+    def appList, selectedApp;
     def appListHandler = [
         fetchList: { o-> 
             appList = [];
@@ -116,7 +117,7 @@ public class LoanApplicationCreateModel {
             appList = service.getLoanApps([ borrowerid: borrowerid ]); 
             return appList; 
         }
-    ] as BasicListModel; 
+    ] as BasicListModel;
     
     boolean isCanNewApp() {
         if ( mode != 'init' || !borrower?.objid ) return false; 
@@ -141,6 +142,13 @@ public class LoanApplicationCreateModel {
     def doRenewApp() {
         buildEntity();
         entity.apptype = 'RENEW';
+        def ba = service.getBorrowerAccount([ borrowerid: entity.borrower.objid ]);
+        if (ba) {
+            entity.loanno = ba.loanno;
+        } else {
+            entity.loanno = selectedApp?.app?.appno;
+        }
+        //entity.loantype = selectedApp?.app?.loantype;
         mode = 'info'; 
         return mode;
     }

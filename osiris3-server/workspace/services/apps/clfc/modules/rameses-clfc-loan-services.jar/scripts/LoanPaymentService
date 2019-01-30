@@ -726,7 +726,7 @@ class LoanPaymentService
 		}
 		def xtxndate = txndate;
 		//println 'date: ' + xtxndate;
-		println 'txndate ' + txndate // + ' params ' + params;
+		//println 'txndate ' + txndate + ' params ' + params;
 
 		//if (params.isproceedcollection == true) 
 		//	return postProceedPayment(params);

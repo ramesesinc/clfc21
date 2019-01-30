@@ -32,7 +32,14 @@ class BorrowerSourceOfIncomeController
             return removeOtherIncomeImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: borrowerContext.mode, caller:this]
+            def handler = { i->
+                def data = borrowerContext.borrower.otherincomes?.find{ it.objid == i.objid }
+                if (data) {
+                    data.putAll( i );
+                    otherIncomeHandler?.reload();
+                }
+            }
+            return [mode: borrowerContext.mode, caller:this, handler: handler];
         }
     ] as EditorListModel;
     

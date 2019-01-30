@@ -47,7 +47,7 @@ public class LoanAppRecommendationCRECOMPage extends javax.swing.JPanel {
         setLayout(new java.awt.BorderLayout());
 
         xPanel4.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 0, 5, 5));
-        xPanel4.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        xPanel4.setLayout(new java.awt.FlowLayout(0, 0, 0));
 
         xLabel7.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 20));
         xLabel7.setFontStyle("font-weight:bold; font-size:12;");
@@ -78,27 +78,27 @@ public class LoanAppRecommendationCRECOMPage extends javax.swing.JPanel {
         xLabel1.setText("Marketer:");
 
         xDecimalField1.setName("data.marketeramount"); // NOI18N
-        xDecimalField1.setReadonly(true);
+        xDecimalField1.setRequired(true);
 
         xLabel2.setText("CI:");
 
         xDecimalField2.setName("data.ciamount"); // NOI18N
-        xDecimalField2.setReadonly(true);
+        xDecimalField2.setRequired(true);
 
         xLabel3.setText("FCA:");
 
         xDecimalField3.setName("data.fcaamount"); // NOI18N
-        xDecimalField3.setReadonly(true);
+        xDecimalField3.setRequired(true);
 
         xLabel4.setText("CAO:");
 
         xDecimalField4.setName("data.caoamount"); // NOI18N
-        xDecimalField4.setReadonly(true);
+        xDecimalField4.setRequired(true);
 
         xLabel5.setText("BCOH:");
 
         xDecimalField5.setName("data.bcohamount"); // NOI18N
-        xDecimalField5.setReadonly(true);
+        xDecimalField5.setRequired(true);
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);

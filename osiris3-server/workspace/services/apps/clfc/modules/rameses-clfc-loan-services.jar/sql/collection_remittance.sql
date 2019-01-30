@@ -13,12 +13,6 @@ WHERE r.collection_objid = $P{collectionid}
 	AND r.group_objid = $P{groupid}
 	AND r.group_type = $P{grouptype}
 
-[findCollectionRemittanceById]
-SELECT r.*, IFNULL((SELECT SUM(amount) FROM collection_remittance_detail WHERE parentid = r.objid), 0) AS totalcollection,
-	IFNULL((SELECT SUM(amount) FROM collection_remittance_other WHERE parentid = r.objid), 0) AS others
-FROM collection_remittance r
-WHERE r.objid=$P{objid} 
-
 [findRemittanceDetailByRefid]
 SELECT * 
 FROM collection_remittance_detail

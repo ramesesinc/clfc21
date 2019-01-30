@@ -28,21 +28,6 @@ ORDER BY txndate
 
 [getPayments]
 SELECT d.*, CASE WHEN p.objid IS NULL THEN 0 ELSE 1 END AS isproceedcollection,
-	p.proceedid, rd.objid AS remittancedetailid,
-	CASE
-		WHEN p.objid IS NOT NULL THEN 'proceed'
-		WHEN n.objid IS NOT NULL THEN 'non-cash'
-		ELSE d.payoption
-	END AS paymenttype
-FROM onlinecollection_detail d 
-LEFT JOIN collection_proceed p ON d.objid = p.refid
-LEFT JOIN collection_noncash n on d.objid = n.refid
-LEFT JOIN collection_remittance_detail rd ON d.objid = rd.refid
-WHERE d.parentid = $P{objid}
-ORDER BY d.route_description, d.borrower_name, d.dtpaid
-
-[xgetPayments]
-SELECT d.*, CASE WHEN p.objid IS NULL THEN 0 ELSE 1 END AS isproceedcollection,
 	p.proceedid, rd.objid AS remittancedetailid
 FROM onlinecollection_detail d 
 LEFT JOIN collection_proceed p ON d.objid = p.refid

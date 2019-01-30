@@ -1,0 +1,247 @@
+import com.rameses.annotations.*; 
+import com.rameses.util.Base64Cipher;
+
+class MQPubTask {
+
+	@ActiveDB('datatxnlog')
+	def txnlog_db;
+	
+	@DataContext('mqpub') 
+	def mqpub_db;
+
+	@DataContext('mqpubitem') 
+	def mqpubitem_db;
+
+	@DataContext('mqpub_pending') 
+	def mqpubpending_db;
+
+	@Service('LoanApplicationService') 
+	def loanAppSvc; 
+
+	@DataContext('loanapplication')
+	def app_db;
+
+	@DataContext('loanapplication_capture')
+	def app_capture_db;
+
+	@DataContext('ledgerapplication')
+	def ledger_db;
+
+	@DataContext('loanapplication_business') 
+	def business_db;
+
+	@DataContext('loanapplication_collateral_appliance') 
+	def appliance_db;
+
+	@DataContext('loanapplication_collateral_vehicle') 
+	def vehicle_db;
+
+	@DataContext('loanapplication_collateral_property') 
+	def property_db;
+
+	@DataContext('loanapplication_collateral_other') 
+	def other_db;
+
+	@DataContext('loanapplication_otherlending')
+	def otherlending_db;
+
+	@DataContext('loanapp_cireport') 
+	def cireport_db;
+
+	@DataContext('loanapp_recommendation') 
+	def recom_db;
+
+	@DataContext('loanapplication_approved_recommendation')
+	def approved_recom_db;
+
+	@Service(value='MQRemoteService', connection="mq_remote")
+	def remoteSvc;
+
+	@Service('Var')
+	def varSvc;
+
+	@Schedule(interval=1)
+	public void upload( task ) { 
+		def o = mqpub_db.findPending();
+		if ( !o ) return; 
+
+		def mqpub = mqpub_db.find([ objid: o.parentid ]).first();
+
+		def content = getContent( o ); 
+		if ( content == null ) content = [:]; 
+
+		if ( o.indexno == 0 ) { 
+			remoteSvc.create( mqpub ); 
+		} 
+
+		o.content = content; 
+		remoteSvc.createItem( o ); 
+
+		if ( o.reftype == 'end' ) { 
+			def pp = [ objid: o.parentid ]; 
+			mqpubpending_db.find( pp ).delete();
+			mqpub_db.find( pp ).update([ state: 'COMPLETED' ]); 
+		} else { 
+			mqpubpending_db.find([ objid: o.parentid ]).update([ indexno: o.indexno+1 ]); 	
+		}
+	} 
+
+	def getContent( param ) {
+		if ( param.reftype.toString().matches('begin|end')) {
+			return [:]; 
+		} else if ( param.reftype == 'loanapp' ) {
+			return loanAppSvc.open([ objid: param.refid ]);  
+		} else if (param.reftype == 'business') {
+			return business_db.find([ parentid: param.refid ]).list();  
+		} else if (param.reftype == 'collateral_appliance') {
+			def list = appliance_db.find([ parentid: param.refid ]).list();  
+			list.each{
+				def ci = cireport_db.find([ refid: it.objid ]).first();
+				if (ci) it.ci = ci;
+			}
+			return list;
+		} else if (param.reftype == 'collateral_vehicle') {
+			def list = vehicle_db.find([ parentid: param.refid ]).list();  
+			list.each{
+				def ci = cireport_db.find([ refid: it.objid ]).first();
+				if (ci) it.ci = ci;
+			}
+			return list;
+		} else if (param.reftype == 'collateral_property') {
+			def list = property_db.find([ parentid: param.refid ]).list();  
+			list.each{
+				def ci = cireport_db.find([ refid: it.objid ]).first();
+				if (ci) it.ci = ci;
+			}
+			return list;
+		} else if (param.reftype == 'collateral_other') {
+			def data = other_db.find([ objid: param.refid ]).first();
+			if (data) {
+				def ci = cireport_db.find([ refid: data.objid ]).first();
+				if (ci) data.ci = ci;
+			}
+			return data;
+		} else if (param.reftype == 'recommendation') {
+			return recom_db.find([ objid: param.refid ]).list();  
+		} else if (param.refype == 'otherinfo') {
+			return otherlending_db.fin([ objid: param.refid ]).list();
+		} else if (param.reftype == 'history') {
+			return getLoanHistory( param );
+		} 
+		/*
+		else if (param.reftype == 'cireport') {
+			return cireport_db.find([ parentid: param.refid ]).list();  
+		} 
+		*/
+	}
+	def getLoanHistory( param ) {
+		def list = [];
+		def app = app_db.find([ objid: param.refid ]).first();
+		if (app) {
+			def history = app_db.orderBy(" appno desc ")
+								.where(" borrower_objid='" + app.borrower.objid + "' and objid <> '" + app.objid + "' ")
+								.list(0, 3);
+			history.each{
+				def item = [
+					objid: it.objid,
+					appno: it.appno,
+					apptype: it.apptype,
+					state: it.state,
+					amount: it.loanamount,
+					remarks: it.purpose
+				];
+				def appc = app_capture_db.find([ objid: it.objid ]).first();
+				if (appc) item.dtreleased = appc.dtreleased;
+
+				def ledger = ledger_db.find([ appid: it.objid ]).first();
+				if (ledger) item.dtmatured = ledger.dtmatured;
+
+				list << item;
+			}
+		}
+		return list;
+	}
+
+	@Schedule(interval=10)
+	public void download( task ) {
+		def fordownload_data = remoteSvc.getForDownload([ branchid: varSvc.branch_code ]);
+		if (!fordownload_data) return;
+
+		def data = (new Base64Cipher()).decode( fordownload_data.data );
+		def state = data.state.toString();
+
+		def log = [
+			objid 	: 'TLOG' + new java.rmi.server.UID(), 
+			txnid   : fordownload_data.refid, 
+			txndate : fordownload_data.dtfiled,
+			user    : [objid: fordownload_data.filedby.objid, username: fordownload_data.filedby.name],
+			action  : state
+		];
+		if (data.remarks) log.remarks = data.remarks;
+
+		if (state.toLowerCase() == 'send_back') {
+			loanAppSvc.sendBack([ 
+				objid: fordownload_data.refid, 
+				dtposted: fordownload_data.dtfiled,
+				postedby: fordownload_data.filedby.name
+			]);
+			/*
+
+			def fordownload_sendback = data.sendback;
+			def app_sendback = sendback_db.find([ objid: fordownload_sendback.objid ]).first();
+			if (!app_sendback) {
+				app_sendback = [
+					objid: fordownload_sendback.objid,
+					dtfiled: fordownload_sendback.dtfiled,
+					filedby: fordownload_sendback.filedby,
+					refid: fordownload_data.refid,
+					remarks: fordownload_sendback.remarks
+				];
+				sendback_db.create( app_sendback );
+			}
+			*/
+		} else if (state.toLowerCase() == 'approved') {
+			data.remarks = 'Approve recommendations';
+			log.remarks = 'APPROVED';
+			approved_recom_db.find([ appid: fordownload_data.refid ]).delete();
+
+			data?.recommendations?.each{ 
+				def recom = [
+					objid: it.objid,
+					appid: fordownload_data.refid,
+					amount: it.amount,
+					remarks: it.remarks
+				];
+				approved_recom_db.create( recom );
+			}
+
+			loanAppSvc.approve([ 
+				objid: fordownload_data.refid, 
+				dtposted: fordownload_data.dtfiled,
+				postedby: fordownload_data.filedby.name
+			]);
+		} else if (state.toLowerCase() == 'disapproved') {
+			loanAppSvc.disapprove([ 
+				objid: fordownload_data.refid, 
+				dtposted: fordownload_data.dtfiled,
+				postedby: fordownload_data.filedby.name
+			]);
+		}
+
+		txnlog_db.create( log );
+
+		/*
+		txnlog_db.create([
+			objid 	: 'TLOG' + new UID(), 
+			txnid   : fordownload_data.refid, 
+			txndate : fordownload_data.dtfiled,
+			user    : [objid: app.author.objid, username: app.createdby], 
+			action	: state, 
+			remarks : 'NEW LOAN APPLICATION #'+app.appno 
+		]); 
+		*/
+
+		remoteSvc.notifyDownloaded([ feedbackid: fordownload_data.objid ]);
+	}
+
+}

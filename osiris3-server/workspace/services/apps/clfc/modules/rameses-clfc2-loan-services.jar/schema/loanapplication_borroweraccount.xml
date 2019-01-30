@@ -1,0 +1,8 @@
+<schema>
+	<element tablename='borroweraccount'>
+		<field name='objid' primary='true' />
+		<field name='name' required='true' />
+		<field name='loanno' required='true' />
+		<field name='loancount' required='true' />
+	</element>
+</schema>

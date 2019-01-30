@@ -14,14 +14,8 @@ class LoanLedgerProceedsService extends ActiveCrudListService
 	@ActiveDB("loan_ledger")
 	def ledger;
 
-	@ActiveDB("loanapp")
-	def loanapp;
-
 	@ActiveDB("onlinecollection")
 	def onlinecollection;
-
-	@ActiveDB("borrower")
-	def borrower;
 
 	@Service("DateService")
 	def dateSvc;
@@ -40,13 +34,8 @@ class LoanLedgerProceedsService extends ActiveCrudListService
 		def cols = [];
 		if (!params.txnstate) cols << [name: 'txnstate', caption: 'Status'];
 
-		cols << [name: 'txntype', caption: 'Type'];
-		cols << [name: 'refno', caption: 'Ref. No.'];
 		cols << [name: 'borrower.name', caption: 'Borrower'];
-		cols << [name: 'loanapp.appno', caption: 'App. No.'];
 		cols << [name: 'description', caption: 'Description'];
-		cols << [name: "txndate", caption: "Collection Date", type: "date", outputFormat: "MMM-dd-yyyy"];
-		cols << [name: "amount", caption: "Amount", type: "decimal", format: "#,##0.00"];
 		
 		if (params.txnstate == 'SOLD') {
 			cols << [name: 'refno', caption: 'RefNo'];
@@ -63,8 +52,6 @@ class LoanLedgerProceedsService extends ActiveCrudListService
 			[caption: 'DRAFT', state: 'DRAFT'],
 			[caption: 'FOR SELLING', state: 'FOR_SELLING'],
 			[caption: 'SOLD', state: 'SOLD'],
-			[caption: "VOID PENDING", state: "VOID_PENDING"],
-			[caption: "VOIDED", state: "VOIDED"]
 		]
 	}
 
@@ -91,29 +78,6 @@ class LoanLedgerProceedsService extends ActiveCrudListService
 		data.dtcreated = dateSvc.serverDate;
 		data.author = [objid: env.USERID, name: env.NAME];
 		data.txntype = 'ONLINE';
-	}
-
-	@ProxyMethod
-	public def getInfo( params ) {
-		if (!params.ledgerid) throw new RuntimeException("Please specify ledgerid.");
-
-		def l = ledger.read( [objid: params.ledgerid] );
-		if (!l) throw new RuntimeException("Ledger record does not exist or has already been deleted.");
-
-		def app = loanapp.read( [objid: l.appid] );
-		if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted.");
-
-		def pb = borrower.read( [objid: app.borrower.objid] );
-		if (!pb) throw new RuntimeException("Borrower record does not exist or has already been deleted.");
-
-		return [borrower: pb];
-	}
-
-	@ProxyMethod
-	public def saveCollectedProceed( data ) {
-		data = create( data );
-		data = sold( data );
-		return open( data );
 	}
 
 	@ProxyMethod
@@ -149,7 +113,6 @@ class LoanLedgerProceedsService extends ActiveCrudListService
 				dtfiled 	: currdate,
 				author		: soldby,
 				collector 	: soldby,
-				remittanceid: "REM" + new UID()
 			];
 			onlinecollection.create(col);
 		}
@@ -163,12 +126,10 @@ class LoanLedgerProceedsService extends ActiveCrudListService
 		def item = em.findByIdWithInfo(data);
 		if (!item) throw new Exception("Proceed record does not exist or has already been deleted.");
 
-		def refno
+		def refno = billingSvc.getRefno([routecode: item?.route?.code]);
 
 		def detail = onlinecollection.findDetailByProceedidAndCollectionid([proceedid: data.objid, collectionid: col.objid]);
 		if (!detail) {
-			refno = billingSvc.getRefno([routecode: item?.route?.code]);
-			
 			detail = [
 				objid 		: 'OCD' + new UID(),
 				parentid 	: col.objid,
@@ -191,8 +152,6 @@ class LoanLedgerProceedsService extends ActiveCrudListService
 				proceedid 	: data.objid
 			];
 			em.create(i, "collection-proceed");
-		} else {
-			refo = detail.refno;
 		}
 
 		data.dtsold = currdate;

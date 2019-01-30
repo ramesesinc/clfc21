@@ -31,7 +31,7 @@ class PrincipalBorrowerService
 		if (!params.objid) throw new Exception('Please specify objid'); 
 
 		def data = loanAppService.findByObjid(params);
-		if (!data) throw new Exception('\''+params.objid+'\' loan application record not found'); 
+		if (!data) throw new Exception("'"+ params.objid +"' loan application record not found"); 
 
 		data.borrower = openBorrower([objid: data.borrower.objid]);
 		if (!data.borrower.entitytype) data.borrower.entitytype = data.borrower.type;
@@ -45,7 +45,7 @@ class PrincipalBorrowerService
 	}
 
 	@ProxyMethod 
-	public def update ( params ) {
+	public def update( params ) {
 		if (!params.objid) throw new Exception('Please specify objid'); 
 
 		def data = loanAppService.findByObjid(params);

@@ -2,7 +2,7 @@
 <table>
     <tr>
         <td class="nowrap">Bank Name : </td>
-        <td>$bankacct.bankname</td>
+        <td>${ifNull(bankacct.bankname, '-')}</td>
     </tr>
     <tr>
         <td>Remarks : </td>

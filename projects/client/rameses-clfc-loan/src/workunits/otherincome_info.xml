@@ -2,25 +2,12 @@
     <invokers>
         <invoker type="otherincome:create" action="create" caption="Other Sources of Income" 
             target="popup" resizable="false"/>
-        <invoker type="otherincome:open" caption="Other Sources of Income" 
+        <invoker type="otherincome:open" action="open" caption="Other Sources of Income" 
             target="popup" resizable="false"/>
     </invokers>
-    <code>
-        <![CDATA[
-            import com.rameses.rcp.common.*;
-            import com.rameses.rcp.annotations.*;
-            import com.rameses.osiris2.client.*;
-            import java.rmi.server.UID;
-            import com.rameses.clfc.loan.controller.*;
-            
-            class OtherSourcesOfIncomeFormController extends PopupMasterController
-            {
-                def createEntity() {
-                    return [ objid:'OI'+new UID() ]
-                }
-            }
-        ]]>
-    </code>
+    
+    <code class="com.rameses.clfc.loan.OtherSourcesOfIncomeFormController" />
+    
     <pages>
         <page template="com.rameses.clfc.loan.OtherSourcesOfIncomeFormPage"/>
     </pages>

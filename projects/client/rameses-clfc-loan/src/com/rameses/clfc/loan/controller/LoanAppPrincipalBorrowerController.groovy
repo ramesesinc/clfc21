@@ -10,7 +10,7 @@ import com.rameses.clfc.borrower.BorrowerContext;
 class LoanAppPrincipalBorrowerController   
 {
     //feed by the caller
-    def caller, loanapp, menuitem; 
+    def caller, loanapp, menuitem, handlers; 
     
     @Service('PrincipalBorrowerService') 
     def service;
@@ -22,13 +22,15 @@ class LoanAppPrincipalBorrowerController
     def snapshot;
     def base64;
 
-    void init() { 
-        mode = "read"; 
+    void init() {
+        mode = 'read';
         if (loanapp.objid == null) return;
 
-        base64 = new com.rameses.util.Base64Cipher();         
-        menuitem.saveHandler = { save(); }
-        menuitem.dataChangeHandler = { dataChange(); }
+        base64 = new com.rameses.util.Base64Cipher();   
+        handlers.saveHander = { save(); }
+        handlers.dataChangeHandler = { dataChange(); }
+        //menuitem.saveHandler = { save(); }
+        //menuitem.dataChangeHandler = { dataChange(); }
         dataChange();
     }
 
@@ -36,7 +38,7 @@ class LoanAppPrincipalBorrowerController
         def ctx = new com.rameses.clfc.borrower.BorrowerContext(caller, this, service, loanapp);
         ctx.beforeSaveHandlers = beforeSaveHandlers;
         ctx.dataChangeHandlers = dataChangeHandlers;
-        return [borrowerContext: ctx]; 
+        return [borrowerContext: ctx, mode: mode]; 
     }
     
     def tabHandler = [

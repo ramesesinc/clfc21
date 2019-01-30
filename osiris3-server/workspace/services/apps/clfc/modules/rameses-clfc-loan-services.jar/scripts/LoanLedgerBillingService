@@ -1271,7 +1271,7 @@ class LoanLedgerBillingService extends ActiveListService
 
 		def regex = 'CANCELLED|CLOSED';
 		if (currentdate.compareTo(billdate) <= 0 && (!params.state || !params.state.matches(regex))) {
-			data.forsubbilling = true;	
+			data.forsubbilling = true;
 			data.resetable = true;
 			data.allowfollowupcollection = true;
 			data.allowspecialcollection = true;

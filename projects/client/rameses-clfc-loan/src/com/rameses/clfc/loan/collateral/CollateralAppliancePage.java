@@ -33,7 +33,6 @@ public class CollateralAppliancePage extends javax.swing.JPanel {
         jPanel2 = new javax.swing.JPanel();
         xButton1 = new com.rameses.rcp.control.XButton();
         xButton3 = new com.rameses.rcp.control.XButton();
-        xButton4 = new com.rameses.rcp.control.XButton();
         xDataTable1 = new com.rameses.rcp.control.XDataTable();
         jPanel3 = new javax.swing.JPanel();
         xLabel1 = new com.rameses.rcp.control.XLabel();
@@ -41,7 +40,7 @@ public class CollateralAppliancePage extends javax.swing.JPanel {
         xHtmlView1 = new com.rameses.rcp.control.XHtmlView();
 
         xSplitView1.setDividerLocation(200);
-        xSplitView1.setOrientation(com.rameses.rcp.constant.UIConstants.VERTICAL);
+        xSplitView1.setOrientation("VERTICAL");
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 10));
         jPanel1.setLayout(new java.awt.BorderLayout());
@@ -56,10 +55,6 @@ public class CollateralAppliancePage extends javax.swing.JPanel {
         xButton3.setName("removeAppliance"); // NOI18N
         xButton3.setText("Remove");
 
-        xButton4.setDisableWhen("#{mode=='read'}");
-        xButton4.setName("addCiReport"); // NOI18N
-        xButton4.setText("CI Report");
-
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -68,16 +63,13 @@ public class CollateralAppliancePage extends javax.swing.JPanel {
                 .addComponent(xButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(xButton4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(432, Short.MAX_VALUE))
+                .addContainerGap(517, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                 .addComponent(xButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(xButton4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.NORTH);
@@ -187,7 +179,6 @@ public class CollateralAppliancePage extends javax.swing.JPanel {
     private javax.swing.JScrollPane jScrollPane1;
     private com.rameses.rcp.control.XButton xButton1;
     private com.rameses.rcp.control.XButton xButton3;
-    private com.rameses.rcp.control.XButton xButton4;
     private com.rameses.rcp.control.XDataTable xDataTable1;
     private com.rameses.rcp.control.border.XEtchedBorder xEtchedBorder1;
     private com.rameses.rcp.control.XHtmlView xHtmlView1;

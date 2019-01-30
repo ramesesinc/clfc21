@@ -183,6 +183,7 @@ class LoanLedgerFixPreviewService
 				prevbal = it.balance;
 
 			} else if (it.state == 'PROCEED' || it.state == 'ADJUSTMENT') {
+				println 'item ' + itm;
 				itm.paymentschedule = null;
 				if (!itm.interestpaid || itm.interestpaid == 0) itm.interestpaid = null;
 				if (!itm.penaltycharge || itm.penaltycharge == 0) itm.penaltycharge = null;

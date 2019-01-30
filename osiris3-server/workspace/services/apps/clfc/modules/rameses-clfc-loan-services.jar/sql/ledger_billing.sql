@@ -156,19 +156,17 @@ WHERE r.state = 'POSTED'
 ORDER BY billdate DESC, route_description 
 
 [getRouteBillingByCollector]
-SELECT i.objid AS itemid, i.state AS itemstate, i.parentid AS billingid, b.billdate, r.*,
-	CASE WHEN i.state = 'FOR_DOWNLOAD' THEN 1 ELSE 0 END AS fordownload,
-	CASE WHEN i.state = 'DOWNLOADED' THEN 1 ELSE 0 END AS downloaded,
+SELECT i.objid AS itemid, i.parentid AS billingid, b.billdate, r.*,
+	CASE WHEN i.state = 'FOR_DOWNLOAD' THEN 0 ELSE 1 END AS downloaded,
 	CASE WHEN rm.objid IS NOT NULL THEN 1 ELSE 0 END AS remitted,
-	CASE WHEN rm.state = 'POSTED' THEN 1 ELSE 0 END AS posted,
-	CASE WHEN i.state = 'CANCELLED' THEN 1 ELSE 0 END AS cancelled	
+	CASE WHEN rm.state = 'POSTED' THEN 1 ELSE 0 END AS posted
 FROM ledger_billing b
 INNER JOIN ledger_billing_item i ON b.objid = i.parentid
 INNER JOIN loan_route r ON i.item_objid = r.code
 LEFT JOIN collection_remittance rm ON rm.collection_objid = b.objid AND rm.group_objid = r.code
 LEFT JOIN ledger_billing_assist a ON b.objid = a.prevbillingid AND i.objid = a.previtemid
 WHERE b.collector_objid = $P{objid}
-	AND b.billdate = $P{date}
+	AND b.billdate >= $P{date}
 	AND i.item_type = 'route'
 	AND a.objid IS NULL
 ORDER BY b.billdate
@@ -247,18 +245,6 @@ WHERE l.collector_objid = $P{objid}
 	AND li.item_type ='route'
 
 [getSpecialBillingByCollector]
-SELECT li.objid AS itemid, li.state AS itemstate, li.parentid AS billingid, l.billdate
-FROM ledger_billing l
-INNER JOIN ledger_billing_item li ON l.objid = li.parentid
-INNER JOIN specialcollection s ON li.objid = s.objid
-WHERE l.collector_objid = $P{objid}
-	AND li.item_type = $P{itemtype}
-	AND l.billdate >= $P{date}
-	AND s.txntype = 'ONLINE'
-ORDER BY s.dtfiled
-
-
-[xxgetSpecialBillingByCollector]
 SELECT li.objid AS itemid, li.parentid AS billingid, l.billdate,
 	CASE s.state 
 		WHEN 'FOR_DOWNLOAD' THEN 0 ELSE 1
@@ -293,17 +279,6 @@ WHERE l.collector_objid = $P{objid}
 ORDER BY l.billdate, s.dtfiled
 
 [getSpecialBillingByCollectorByDate]
-SELECT li.objid AS itemid, li.state AS itemstate, li.parentid AS billingid, l.billdate
-FROM ledger_billing l
-INNER JOIN ledger_billing_item li ON l.objid = li.parentid
-INNER JOIN specialcollection s ON li.objid = s.objid
-WHERE l.collector_objid = $P{objid}
-	AND l.billdate = $P{date}
-	AND li.item_type = $P{itemtype}
-	AND s.txntype = 'ONLINE'
-ORDER BY s.dtfiled
-
-[xgetSpecialBillingByCollectorByDate]
 SELECT li.objid AS itemid, li.parentid AS billingid, l.billdate,
 	CASE s.state 
 		WHEN 'FOR_DOWNLOAD' THEN 0 ELSE 1

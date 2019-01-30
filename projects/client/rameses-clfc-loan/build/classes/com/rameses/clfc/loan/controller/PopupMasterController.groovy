@@ -14,6 +14,7 @@ public class PopupMasterController
     
     def entity = [:];
     def mode = 'read';
+    def state;
     def handler;
     def caller;
 
@@ -35,10 +36,11 @@ public class PopupMasterController
         return null;
     }
     
-    public def open() { 
+    public def open() {
+        entity = copyMap( entity );
         afterOpen( entity );
         return null; 
-    } 
+    }
     
     public def doOk() {
         if( handler ) handler(entity)
@@ -56,5 +58,39 @@ public class PopupMasterController
             }
         }
         return "_close"
+    }
+    
+    public def copyMap( src ) {
+        if (src instanceof Map) {
+            def data = [:];
+            src?.each{ k, v->
+                if (v instanceof Map) {
+                    data[k] = copyMap( v );
+                } else if (v instanceof List) {
+                    data[k] = copyList( v );
+                } else {
+                    data[k] = v;
+                }
+            }
+            return data;
+        }
+        return null;
+    }
+    
+    public def copyList( src ) {
+        if (src instanceof List) {
+            def list = [];
+            src?.each{ o->
+                if (o instanceof Map) {
+                    list << copyMap( o );
+                } else if (o instanceof List) {
+                    list << copyList( o );
+                } else {
+                    list << o;
+                }
+            }
+            return list;
+        }
+        return null;
     }
 }

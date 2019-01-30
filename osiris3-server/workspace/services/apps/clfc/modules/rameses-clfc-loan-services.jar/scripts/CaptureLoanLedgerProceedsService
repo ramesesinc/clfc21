@@ -14,12 +14,6 @@ class CaptureLoanLedgerProceedsService extends ActiveCrudService
 	@ActiveDB("loan_ledger")
 	def ledger;
 
-	@ActiveDB("loanapp")
-	def loanapp;
-
-	@ActiveDB("borrower")
-	def borrower;
-
 	@ActiveDB('loan_ledger_payment')
 	def ledger_payment;
 
@@ -28,9 +22,6 @@ class CaptureLoanLedgerProceedsService extends ActiveCrudService
 
 	@Service("LoanLedgerPaymentService")
 	def ledgerPaymentSvc;
-
-	@Service("CLFCUtilService")
-	def clfcUtilSvc;
 
 	private void validate( data ) {
 		def currentdate = dateSvc.getServerDateAsString().split(" ")[0];
@@ -48,30 +39,6 @@ class CaptureLoanLedgerProceedsService extends ActiveCrudService
 
 	void beforeUpdate( data ) {
 		validate(data);
-	}
-
-	@ProxyMethod
-	public def getInfo( params ) {
-		if (!params.ledgerid) throw new RuntimeException("Please specify ledgerid.");
-
-		def mledger = ledger.read( [objid: params.ledgerid] );
-		if (!mledger) throw new RuntimeException("Ledger record does not exist or has already been deleted.");
-
-		def app = loanapp.read( [objid: mledger.appid] );
-		if (!app) throw new RuntimeException("Loan Application record does not exist or has already been deleted.");
-
-		def pb = borrower.read( [objid: app.borrower.objid] );
-		if (!pb) throw new RuntimeException("Borrower record does not exist or has already been deleted.");
-
-		return [borrower: pb];
-	}
-
-	@ProxyMethod
-	public def saveCapturedProceed( data ) {
-		data = create( data );
-		data = sold( data );
-
-		return open( data );
 	}
 
 	@Async
@@ -106,23 +73,17 @@ class CaptureLoanLedgerProceedsService extends ActiveCrudService
 		//println 'data ' + data;
 		em.update(data, "proceeds-sold");
 
-		/*
 		def l = ledger.read([objid: data.parentid]);
 		if (!l) throw new Exception("Ledger record does not exist or has already been deleted.");
 
 		l.payments = ledger_payment.getList(l);
+		def info;
 		l.payments.each{ o->
-			if (o.info) {
-				def info = o.remove("info");
-				info = ledger_payment.serializer.read( info );
-				o = clfcUtilSvc.resolveMapMerging( o, info );
-			}
-			//info = null;
-			//if (o.info) info = ledger_payment.serializer.read(o.info);
-			//if (info) o.putAll(info);
+			info = null;
+			if (o.info) info = ledger_payment.serializer.read(o.info);
+			if (info) o.putAll(info);
 		}
 		ledgerPaymentSvc.rebuild(l);
-		*/
 
 		return open(data);
 	}

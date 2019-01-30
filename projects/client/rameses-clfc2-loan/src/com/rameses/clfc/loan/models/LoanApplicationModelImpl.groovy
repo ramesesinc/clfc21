@@ -6,16 +6,17 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 
 public class LoanApplicationModelImpl { 
-
+    
     @Service('LoanApplicationService')
     def appSvc;
     
     @Binding
     def binding;
-    
+        
     def entity = [:];
     def menuitems = [];
     def mode = 'read';
+    def handlers = [:];
         
     @FormId
     def getFormId() { 
@@ -24,8 +25,8 @@ public class LoanApplicationModelImpl {
     @FormTitle
     def getFormTitle() { 
         return getFormId(); 
-    } 
-
+    }
+    
     def getTitle() {
         if ( !entity ) return "";
         
@@ -36,6 +37,40 @@ public class LoanApplicationModelImpl {
         buffer.append('<font color="#444444" size="3"><b>'+entity.borrower?.name+'</b></font>');
         buffer.append('</body></html>');
         return buffer.toString();
+    }
+    
+    def copyMap( src ) {
+        if (src instanceof Map) {
+            def data = [:];
+            src.each{ k, v->
+                if (v instanceof Map) {
+                    data[k] = copyMap( v );
+                } else if (v instanceof List) {
+                    data[k] = copyList( v );
+                } else {
+                    data[k] = v;
+                }
+            }
+            return data;
+        }
+        return null;
+    }
+    
+    def copyList( src ) {
+        if (src instanceof List) {
+            def list = [];
+            src.each{ 
+                if (it instanceof Map) {
+                    list << copyMap( it );
+                } else if (it instanceof List) {
+                    list << copyList( it );
+                } else {
+                    list << it;
+                }
+            }
+            return list;
+        }
+        return null;
     }
     
     void open() { 
@@ -49,7 +84,7 @@ public class LoanApplicationModelImpl {
     void buildMenuItems() {
         def items = [];
         def type = entity?.borrower?.type?.toString().toLowerCase();
-        items << [name:'principalborrower', caption:'Principal Borrower'];
+        items << [name:'borrower', caption:'Principal Borrower'];
         if ( type == 'individual') { 
             items << [name:'jointborrower', caption:'Joint Borrower'];
             items << [name:'comaker', caption:'Co-Maker'];
@@ -65,6 +100,10 @@ public class LoanApplicationModelImpl {
         }
         items << [name:'cireport', caption:'CI Reports'];
         items << [name:'recommendation', caption:'Recommendations'];
+        items << [name:'approved-recommendation', caption:'Approved Recommendations'];
+        if (entity.state.toString().matches('FOR_PROCESSING|FOR_RELEASE|RELEASED|CLOSED')) {
+            items << [name:'assessment', caption:'Assessment'];
+        }
         items << [name:'comment', caption:'Logs'];
         /*
         [name:'fla', caption:'FLA'],
@@ -95,13 +134,41 @@ public class LoanApplicationModelImpl {
                 }
             } 
             
+            if (handlers.dataChangeHandler) handlers.dataChangeHandler;
+            binding?.refresh('opener');
+            /*
             if (o.opener != null && o.dataChangeHandler != null) {
                 o.dataChangeHandler();
             }
-            subFormHandler.reload();
+            */
+            //subFormHandler.reload();
         } 
     ] as ListPaneModel;
     
+    
+    def getOpener() {
+        if (selectedMenu == null) {
+            return new Opener(outcome:'blankpage'); 
+        }
+        handlers = [:];
+        
+        def invtype = 'loanapp-' + selectedMenu?.name;
+        def params = [
+            caller: this,
+            loanapp: copyMap( entity ),
+            menuitem: copyMap( selectedMenu ),
+            handlers: handlers
+        ];
+        if (selectedMenu?.name == 'borrower' && entity?.borrower?.type) {
+            invtype += entity?.borrower?.type?.toString().toLowerCase();
+        }
+
+        def op = Inv.lookupOpener( invtype + ':open', params);
+        if (!op) new Opener(outcome:'blankpage');
+        return op;
+    }
+    
+    /*
     def subFormHandler = [
         getOpener: {
             if (selectedMenu == null) {
@@ -111,6 +178,7 @@ public class LoanApplicationModelImpl {
             def op = selectedMenu.opener;
             if (op == null) {
                 def invtype = 'loanapp-'+ selectedMenu.name +':open';
+                println 'invtype->' + invtype;
                 def invparam = [:]; 
                 invparam.caller = this; 
                 invparam.loanapp = entity; 
@@ -120,7 +188,8 @@ public class LoanApplicationModelImpl {
             }
             return op; 
         } 
-    ] as SubFormPanelModel;    
+    ] as SubFormPanelModel; 
+    */
     
     
     boolean getIsPending() {
@@ -150,10 +219,12 @@ public class LoanApplicationModelImpl {
         p.handler = { 
             entity.state = appSvc.submitForCrecom([ objid: entity.objid ]).state;
             binding.refresh('title|formActions|opener');
+            /*
             if ( selectedMenu ) {
                 selectedMenu.opener = null;
                 subFormHandler.refresh();
             }
+            */
         } 
         return Inv.lookupOpener("cireport:review", p);
     }
@@ -161,14 +232,21 @@ public class LoanApplicationModelImpl {
     boolean getIsForCrecom() {
         return (entity.state == 'FOR_CRECOM' && entity.appmode != 'CAPTURE');
     }
+    
+    boolean getIsSendBack() {
+        return (entity.state == 'SEND_BACK' && entity.appmode != 'CAPTURE');
+    }
+    
     void submitForApproval() {
         if ( MsgBox.confirm('You are about to submit this application for approval. Continue?')) {
             entity.state = appSvc.submitForApproval([ objid: entity.objid ]).state;
             binding.refresh('title|formActions|opener');
+            /*
             if ( selectedMenu ) {
                 selectedMenu.opener = null;
                 subFormHandler.refresh();
             }
+            */
         } 
     }
     
@@ -179,6 +257,18 @@ public class LoanApplicationModelImpl {
             binding.refresh('title|formActions|opener');
         }
         return InvokerUtil.lookupOpener("application-returnforci:create", [handler:handler]);
+    }
+    
+    def viewSendBackRemarks() {
+        def op = Inv.lookupOpener('remarks:open', [remarks: entity.sendbackremarks]);
+        if (!op) return null;
+        return op;
+    }
+    
+    def viewDisapproveRemarks() {
+        def op = Inv.lookupOpener('remarks:open', [remarks: entity.disapproveremarks]);
+        if (!op) return null;
+        return op;
     }
     
     boolean isForApproval() {
@@ -218,6 +308,10 @@ public class LoanApplicationModelImpl {
             entity.state = appSvc.cancelledOut([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
         }
+    }
+    
+    boolean getIsDisapproved() {
+        return (entity.state == 'DISAPPROVED' && entity.appmode != 'CAPTURE');
     }
     
     boolean isApproved() {

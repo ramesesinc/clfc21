@@ -33,7 +33,14 @@ class CollateralApplianceController
             return removeApplianceImpl(o); 
         },
         getOpenerParams: {o-> 
-            return [mode: mode, caller:this];
+            def handler = { c->
+                def data = collateral.appliances?.find{ it.objid == c.objid }
+                if (data) {
+                    data.putAll( c );
+                    applianceHandler?.reload();
+                }
+            }
+            return [mode: mode, state: caller?.state, caller:this, handler: handler];
         }
     ] as EditorListModel;
     
@@ -44,7 +51,7 @@ class CollateralApplianceController
             collateral.appliances.add(appliance);
             applianceHandler.reload();
         }
-        return InvokerUtil.lookupOpener("appliance:create", [handler:handler]);
+        return InvokerUtil.lookupOpener("appliance:create", [state: caller?.state, handler:handler]);
     }
     
     void removeAppliance() {
@@ -63,12 +70,12 @@ class CollateralApplianceController
     
     def getHtmlview() {
         def m = [:]; 
-        if ( selectedAppliance ) m.putAll( selectedAppliance ); 
+        if ( selectedAppliance ) m.putAll( selectedAppliance );
         
-        m.ci = collateral.ci; 
         return htmlbuilder.buildAppliance( m );
     }
     
+    /*
     def addCiReport() {
         if ( collateral.ci == null ) collateral.ci = [:]; 
         
@@ -77,5 +84,6 @@ class CollateralApplianceController
         params.entity = collateral.ci.appliance; 
         if ( params.entity == null ) params.entity = [:]; 
         return InvokerUtil.lookupOpener("cireport:edit", params);
-    }    
+    } 
+    */
 }
