@@ -247,7 +247,7 @@ class BorrowerService {
 
 	private void updateParent(data) { 
 		borrowerindividual_parent.find([ objid: data.objid ]).delete(); 
-		if ( data.parent ) {
+		if ( data.parent?.fathername || data.parent?.mothername ) {
 			data.parent.objid = data.objid; 
 			borrowerindividual_parent.create( data.parent );
 		}

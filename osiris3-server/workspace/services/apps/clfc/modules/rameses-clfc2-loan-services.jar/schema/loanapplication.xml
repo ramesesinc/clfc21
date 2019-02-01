@@ -15,8 +15,8 @@
 		<field name="borrower_name" required="true" caption="BorrowerName" indexed="true" searchabale="true"/> 
 		<field name="loantype" required="true" caption="LoanType"/>
 		<field name="purpose" required="true"/> 		
-		<field name="producttype_name" caption="ProductType" indexed="true"/> 
-		<field name="producttype_term" caption="ProductTerm" hidden="true"/> 
+		<field name="producttype_name" required="true" caption="ProductType" indexed="true"/> 
+		<field name="producttype_term" required="true" caption="ProductTerm" hidden="true"/> 
 		<field name="route_code" caption="Route" indexed="true"/>
 		<field name="remarks" /> 
 		<field name="approval_type" />  

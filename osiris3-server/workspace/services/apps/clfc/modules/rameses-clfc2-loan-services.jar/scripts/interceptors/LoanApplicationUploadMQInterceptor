@@ -43,6 +43,8 @@ class LoanApplicationUploadMQInterceptor {
 			'begin', 
 			'loanapp', 
 			'business', 
+			'jointborrower',
+			'comaker',
 			'collateral_appliance', 
 			'collateral_vehicle', 
 			'collateral_property', 

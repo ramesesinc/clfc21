@@ -158,8 +158,7 @@ class LoanApplicationService {
 		data.createdby = env.USER; 
 		data.dtcreated = rundate;
 		data.dtfiled = rundate; 
-
-		loanapp_db.create(data); 
+		loanapp_db.create( data ); 
 
 		data.borrower._allow_items_update = false;  
 		borrowerSvc.save( data.borrower ); 

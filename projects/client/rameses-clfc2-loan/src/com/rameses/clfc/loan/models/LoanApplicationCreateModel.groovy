@@ -69,8 +69,6 @@ public class LoanApplicationCreateModel {
             throw new Exception('Marketed By is required'); 
 
         if ( MsgBox.confirm('You are about to submit this application. Proceed?')) {
-            //entity.loancount = appList? appList.size() : 0;
-            entity.producttype = producttype;
             def o = service.create( entity ); 
             if ( o ) entity.putAll( o ); 
 

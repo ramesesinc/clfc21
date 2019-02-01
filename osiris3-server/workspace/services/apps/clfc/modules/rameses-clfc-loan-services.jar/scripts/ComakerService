@@ -69,6 +69,11 @@ class ComakerService
 				}
 			}
 
+			def b = borrower.read([objid: o.objid]);
+			if (!b) {
+				borrowerService.create( o );
+			}
+
 			o.principalid = data.borrower.objid; 
 			borrowerService.update(o); 
 		}

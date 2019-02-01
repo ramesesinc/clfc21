@@ -18,6 +18,12 @@ class MQPubTask {
 	@Service('LoanApplicationService') 
 	def loanAppSvc; 
 
+	@Service('JointBorrowerService')
+	def jointBorrowerSvc;
+
+	@Service('ComakerService')
+	def comakerSvc;
+
 	@DataContext('loanapplication')
 	def app_db;
 
@@ -26,6 +32,9 @@ class MQPubTask {
 
 	@DataContext('ledgerapplication')
 	def ledger_db;
+
+	@DataContext('loanapplication_borrower')
+	def borrower_db;
 
 	@DataContext('loanapplication_business') 
 	def business_db;
@@ -127,7 +136,27 @@ class MQPubTask {
 			return otherlending_db.fin([ objid: param.refid ]).list();
 		} else if (param.reftype == 'history') {
 			return getLoanHistory( param );
-		} 
+		} else if (param.reftype == 'jointborrower') {
+			def list = [];
+			borrower_db.find([ parentid: param.refid, type: 'joint' ]).list().each{
+				def jb = jointBorrowerSvc.openBorrower([ objid: it.borrowerid ]);
+				if (jb) {
+					jb.objid = it.objid;
+					list << jb;
+				}
+			}
+			return list;
+		} else if (param.reftype == 'comaker') {
+			def list = [];
+			borrower_db.find([ parentid: param.refid, type: 'comaker' ]).list().each{
+				def cm = comakerSvc.openBorrower([ objid: it.borrowerid ]);
+				if (cm) {
+					cm.objid = it.objid;
+					list << cm;
+				}
+			}
+			return list;
+		}
 		/*
 		else if (param.reftype == 'cireport') {
 			return cireport_db.find([ parentid: param.refid ]).list();  

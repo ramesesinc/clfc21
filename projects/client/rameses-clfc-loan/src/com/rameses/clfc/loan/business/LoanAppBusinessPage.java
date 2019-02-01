@@ -45,7 +45,7 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
         xHtmlView1 = new com.rameses.rcp.control.XHtmlView();
 
         xSplitView1.setDividerLocation(200);
-        xSplitView1.setOrientation(com.rameses.rcp.constant.UIConstants.VERTICAL);
+        xSplitView1.setOrientation("VERTICAL");
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 10));
         jPanel1.setLayout(new java.awt.BorderLayout());
@@ -55,10 +55,10 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
         xButton1.setName("addBusiness"); // NOI18N
         xButton1.setText("Add");
 
-        xButton3.setDepends(new String[] {"selectedBusiness"});
-        xButton3.setDisableWhen("#{selectedBusiness == null || mode != 'edit'}");
         xButton3.setName("removeBusiness"); // NOI18N
         xButton3.setText("Remove");
+        xButton3.setDepends(new String[] {"selectedBusiness"});
+        xButton3.setDisableWhen("#{selectedBusiness == null || mode != 'edit'}");
         xButton3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 xButton3ActionPerformed(evt);
@@ -66,14 +66,14 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
         });
 
         xLabel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 2, 0));
-        xLabel2.setFontStyle("font-weight:bold;font-size:12");
         xLabel2.setForeground(new java.awt.Color(80, 80, 80));
         xLabel2.setText("Businesses");
+        xLabel2.setFontStyle("font-weight:bold;font-size:12");
 
-        xButton2.setDepends(new String[] {"selectedBusiness"});
-        xButton2.setDisableWhen("#{loanapp.state != 'FOR_INSPECTION' || selectedBusiness == null || mode == 'read'}");
         xButton2.setName("addCiReport"); // NOI18N
         xButton2.setText("CI Report");
+        xButton2.setDepends(new String[] {"selectedBusiness"});
+        xButton2.setDisableWhen("#{loanapp.state != 'FOR_INSPECTION' || selectedBusiness == null || mode == 'read'}");
         xButton2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 xButton2ActionPerformed(evt);
@@ -197,8 +197,8 @@ public class LoanAppBusinessPage extends javax.swing.JPanel {
         xLabel1.setForeground(new java.awt.Color(80, 80, 80));
         jPanel3.add(xLabel1, java.awt.BorderLayout.NORTH);
 
-        xHtmlView1.setDepends(new String[] {"selectedBusiness"});
         xHtmlView1.setName("htmlview"); // NOI18N
+        xHtmlView1.setDepends(new String[] {"selectedBusiness"});
         jScrollPane1.setViewportView(xHtmlView1);
 
         jPanel3.add(jScrollPane1, java.awt.BorderLayout.CENTER);

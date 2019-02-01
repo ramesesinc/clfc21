@@ -200,6 +200,8 @@ public class LoanApplicationModelImpl {
             def p = [ objid: entity.objid ];
             entity.state = appSvc.submitForInspection(p).state;
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }
     
@@ -241,6 +243,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to submit this application for approval. Continue?')) {
             entity.state = appSvc.submitForApproval([ objid: entity.objid ]).state;
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
             /*
             if ( selectedMenu ) {
                 selectedMenu.opener = null;
@@ -279,6 +283,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to send back the application. Continue?')) {
             entity.state = appSvc.sendBack([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }
     
@@ -286,6 +292,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to approve this application. Continue?')) {
             entity.state = appSvc.approve([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }
     
@@ -293,6 +301,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to disapprove this application. Continue?')) {
             entity.state = appSvc.disapprove([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }
     
@@ -300,6 +310,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to disqualify this application. Continue?')) {
             entity.state = appSvc.disqualifiedOut([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }
     
@@ -307,6 +319,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to cancel out this application. Continue?')) {
             entity.state = appSvc.cancelledOut([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }
     
@@ -325,6 +339,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to submit this application for requirement. Continue?')) {
             entity.state = appSvc.submitForRequirement([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }
 
@@ -335,6 +351,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to submit this application for processing. Continue?')) {
             entity.state = appSvc.submitForProcessing([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }
 
@@ -345,6 +363,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to submit this application for release. Continue?')) {
             entity.state = appSvc.submitForRelease([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }    
 
@@ -355,6 +375,8 @@ public class LoanApplicationModelImpl {
         if ( MsgBox.confirm('You are about to release this application. Continue?')) {
             entity.state = appSvc.release([ objid: entity.objid])?.state; 
             binding.refresh('title|formActions|opener');
+            buildMenuItems();
+            listHandler?.reload();
         }
     }    
 }
