@@ -13,6 +13,12 @@
 		<field name="poster_name" />
 	</element>
 
+	<element name="borrowerHeaderMerge" tablename="borrower_header_merge">
+		<field name="objid" primary="true" />
+		<field name="headerid" required="true" />
+	</element>
+
+
 	<element name="retain-borrower" tablename="borrower_merge">
 		<field name="objid" primary="true" />
 		<field name="borrower_objid" required="true" />

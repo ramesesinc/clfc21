@@ -117,6 +117,7 @@ class MigrationBorrowerResolverService extends ActiveCrudListService
 	}
 
 	void beforeList( params ) {
+		
 		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
 
 		def lm;
@@ -186,6 +187,8 @@ class MigrationBorrowerResolverService extends ActiveCrudListService
 			item = borrower_merge.findByBorroweridAndState([borrowerid: objid, state: 'FOR_APPROVAL']);
 			if (item) throw new RuntimeException("Borrower " + o.borrowername + " already has a merge request for approval.");
 
+			item = em.read([objid: objid],"borrowerHeader");
+			if (!item) throw new RuntimeException("No borrower header record found.");
 			//item = borrower_merge.findByBorroweridAndState([borrowerid: objid, state: 'APPROVED']);
 			//if (item) throw new RuntimeException("Borrower " + o.borrowername + " already has a merge request approved.");
 		}
@@ -219,12 +222,16 @@ class MigrationBorrowerResolverService extends ActiveCrudListService
 		return item;
 	}
 	*/
+	
 
 	@ProxyMethod
 	public def saveMergeRequest( params ) {
 		if (!params.list) throw new Exception("Please specify list.");
 
 		validateForApprovalMergeList(params);
+
+		// def data = em.read(objid: params.objid);
+		// if(!data) throw new Exception ("No borrower header generated.");
 
 		def item = [
 			objid 		: 'BM' + new UID(),

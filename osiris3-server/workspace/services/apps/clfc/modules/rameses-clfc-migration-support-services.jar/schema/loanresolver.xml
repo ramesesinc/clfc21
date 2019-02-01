@@ -10,6 +10,11 @@
 		<field name="balance" required="true" />
 	</element>
 
+	<element name="loanHeader" tablename="loan_header">
+		<field name="objid" primary="true"/>
+		<field name="headerid" required="true"/>
+	</element>
+
 	<element name="ext-info" tablename="loan_extinfo">
 		<field name="objid" primary="true" />
 		<field name="producttype_name" required="true" />

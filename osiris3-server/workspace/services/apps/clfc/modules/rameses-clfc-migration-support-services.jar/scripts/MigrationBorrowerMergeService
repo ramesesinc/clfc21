@@ -1,6 +1,7 @@
 import com.rameses.common.*;
 import com.rameses.annotations.*;
 import com.rameses.services.extended.*;
+import java.rmi.server.UID;
 
 class MigrationBorrowerMergeService extends ActiveCrudListService
 {
@@ -18,6 +19,33 @@ class MigrationBorrowerMergeService extends ActiveCrudListService
 
 	@Service("DateService")
 	def dateSvc;
+
+	@ProxyMethod
+	public def generateBorrowerLoanHeader() {
+
+		def borrower = borrowerresolver.getBorrowerWithNoBorrowerHeader();
+		if ( borrower ) {
+			borrower.each { o ->
+				def data = [
+					objid : o.objid ,
+					headerid : 'BH' + new UID() 
+				];
+				borrowerresolver.create( data, "borrowerHeader" );
+			}
+		}
+		
+		def loan = loanresolver.getLoanWithNoLoanHeader();
+		if ( loan ){
+			loan.each { o ->
+				def data = [
+					objid : o.objid,
+					headerid : 'LH' + new UID()
+				];
+				loanresolver.create( data, "loanHeader" );
+			}
+		} 
+		
+	}
 
 	@ProxyMethod
 	public def getColumns( params ) {
@@ -81,22 +109,65 @@ class MigrationBorrowerMergeService extends ActiveCrudListService
 
 	@ProxyMethod
 	public def approveDocument( params ) {
+
 		if (!params.items) throw new Exception("Please specify items.");
 
 		def data = approveImpl(params, 'APPROVED');
 		def list = params.items;
 		//def objid = list[0].borrower.objid;
 		def objid = data.borrower.objid;
-
 		def item = list.find{ it.borrower.objid == objid }
 		def xlist = list.findAll{ it.borrower.objid != objid }
-		def itm, loans;
-		xlist.each{ o->
-			itm = borrowerresolver.read([objid: o.borrower.objid], 'ext-info');
-			if (itm) borrowerresolver.delete(itm, 'ext-info');
+		def itm, zzlitm, loans;
 
-			itm = borrowerresolver.read([objid: o.borrower.objid], 'resolved');
-			if (itm) borrowerresolver.delete(itm, 'resolved');
+		def btrobjid = params.borrower.objid;
+		def borrower = borrowerresolver.read([objid: btrobjid], "borrowerHeader");
+		if(!borrower) throw new Exception("No borrower header record found.");
+
+		list.each{ o ->
+			 def borrowerid = o.borrower.objid;
+			 println borrowerid;
+			 def qbhmobjid = em.read([objid: borrowerid], "borrowerHeaderMerge");
+			 if(!qbhmobjid){
+			 	def cbhmdata = [
+			 		objid: borrowerid,
+			 		headerid: btrobjid
+			 	];
+			 	em.create(cbhmdata, "borrowerHeaderMerge");
+			 	println 'pass1';
+			 }
+			 else{
+			 	def ubhmdata = qbhmobjid;
+			 	ubhmdata.headerid = btrobjid;
+			 	em.update(ubhmdata, "borrowerHeaderMerge");
+			 	println 'pass2';
+			 }
+
+			loans = loanresolver.getListByBorrowerid([searchtext: '%', borrowerid: o.borrower.objid]);
+			loans.each{ l->
+				itm = loanresolver.read([objid: l.objid]);
+				if (itm) {
+					itm.borrowerid = objid;
+					loanresolver.update(itm);
+				}
+
+				itm = loanresolver.findLoanBorrowerConnectionByLoanid([loanid: l.objid]);
+				//println 'itm ' + itm;
+				if (itm) {
+					itm.borrowerid = objid;
+					loanresolver.update(itm, 'loan-borrower');
+				}
+			}
+		}
+
+		/*
+		xlist.each{ o->
+
+			// zzlitm = borrowerresolver.read([objid: o.borrower.objid], 'ext-info');
+			// if (itm) borrowerresolver.delete(itm, 'ext-info');
+
+			// itm = borrowerresolver.read([objid: o.borrower.objid], 'resolved');
+			// if (itm) borrowerresolver.delete(itm, 'resolved');
 			
 			loans = loanresolver.getListByBorrowerid([searchtext: '%', borrowerid: o.borrower.objid]);
 			loans.each{ l->
@@ -115,6 +186,7 @@ class MigrationBorrowerMergeService extends ActiveCrudListService
 			}
 			borrowerresolver.delete([objid: o.borrower.objid]);
 		}
+		*/
 
 		return open(data);
 	}

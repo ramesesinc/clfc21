@@ -13,6 +13,12 @@ class MigrationTask
 	@ActiveDB(em="migration", value="migrationpayment")
 	def migrationpayment;
 
+	@ActiveDB(em="migration", value="borrowerheader")
+	def borrowerheader;
+
+	@ActiveDB(em="migration", value="borrowerheadermerge")
+	def borrowerheadermerge;
+
 	@ActiveDB("var")
 	def var;
 
@@ -86,8 +92,9 @@ class MigrationTask
 
 	@Schedule(interval=5, timeUnit="SECONDS")
 	public void migrationResolvedBorrowersAndLoans( task ) {
-		def sysvar = var.read([name: 'start_migration_task']);
+		def sysvar = var.read([name: 'start_migration_task' ]);
 		def start = false;
+		// def sysvar = [value:true];
 		if (sysvar) {
 			try {
 				start = Boolean.valueOf(sysvar.value);
@@ -95,8 +102,8 @@ class MigrationTask
 				start = false;
 			}
 		}
-		if (start == false) return;
 
+		if (start == false) return;
 		//def list;
 		//def list = borrowerresolver.getResolvedList([searchtext: '%']);
 
@@ -108,7 +115,6 @@ class MigrationTask
 		def loanlist, loan, ledger, paymentlist, payment;
 		list = borrowerresolver.getForMigrationList([_start: _start, _limit: _limit+1, taskkey: getMigrationKey()]);
 		//println 'list size ' + list.size();
-
 		for (int i = 0; i < list.size(); i++) {
 			if (i >= _limit) break;
 
@@ -116,7 +122,7 @@ class MigrationTask
 			cust = processCustomer(item);
 			getLoans(item, item, cust);
 		}
-
+		println 'migration successful';
 		/*
 		def _page = 1, _start = 0, _limit = 1;
 
@@ -151,39 +157,44 @@ class MigrationTask
 	}
 
 	private def processCustomer( data ) {
-		def cust = customer.findCustomerByCustno([custno: String.valueOf(data.objid).trim()]);
-		if (!cust) {
-			/*
-			def extinfo = borrowerresolver.read(data, 'ext-info');
-			cust = [
-				objid 		: 'CUST' + new UID(),
-				custno 		: String.valueOf(data.objid).trim(),
-				birthdate 	: '1980-01-01',
-				address 	: [text: data.address],
-				lastname 	: extinfo.lastname,
-				firstname 	: extinfo.firstname,
-				middlename	: extinfo.middlename,
-				mobileno 	: extinfo.mobileno,
-				phoneno		: extinfo.phoneno,
-				email		: extinfo.email,
-				civilstatus	: extinfo.maritalstatus,
-				gender		: data.gender,
-				citizenship	: extinfo.citizenship
-			];
-			*/
+
+		def cust = customer.read([objid: data.headerid]);
+		// throw new Exception('This is test');
+			
+// 			def extinfo = borrowerresolver.read(data, 'ext-info');
+// eption("block 1");
+		if (!cust) {			
+
+			// cust = [
+			// 	objid 		: 'CUST' + new UID(),
+			// 	custno 		: String.valueOf(data.objid).trim(),
+			// 	birthdate 	: '1980-01-01',
+			// 	address 	: [text: data.address],
+			// 	lastname 	: extinfo.lastname,
+			// 	firstname 	: extinfo.firstname,
+			// 	middlename	: extinfo.middlename,
+			// 	mobileno 	: extinfo.mobileno,
+			// 	phoneno		: extinfo.phoneno,
+			// 	email		: extinfo.email,
+			// 	civilstatus	: extinfo.maritalstatus,
+			// 	gender		: data.gender,
+			// 	citizenship	: extinfo.citizenship
+			// ];
+			
 
 			def extinfo = borrowerresolver.read(data, 'ext-info');
 			cust = [
-				objid 		: 'CUST' + new UID(),
+				objid 		: data.headerid,
 				state 		: 'ACTIVE', 
 				mode 		: 'CAPTURE',
 				dtcreated 	: dateSvc.serverDate,
 				createdby 	: 'SYSTEM',
-				custno 		: String.valueOf(data.objid).trim(),
+				custno 		: String. valueOf(data.objid).trim(),
 				address 	: [objid: 'A' + new UID(), text: data.address, type: 'LOCAL'],
 				type 		: extinfo?.type
 			];
 
+			println cust;
 			def branch = branchSvc.open([:]);
 			cust.branchid = branch?.objid;
 
@@ -263,11 +274,9 @@ class MigrationTask
 		def _page = 1, _start = 0, _limit = 1;
 		def list, i, xitem, item, hasMoreResults;
 		def loan, ledger;
-
 		while (true) {
 			_start = (_page*_limit)-_limit;
 			list = loanresolver.getForMigrationList([_start: _start, _limit: _limit+1, borrowerid: borrower.objid, taskkey: getMigrationKey()]);
-
 			for (i = 0; i < list.size(); i++) {
 				if (i >= _limit) break;
 
@@ -347,12 +356,13 @@ class MigrationTask
 	private def processLoan( data, borrower, cust ) {
 		//println 'data objid ' + data.objid;
 		//println 'borrower objid ' + borrower.objid;
-		def loan = loanapp.findByAppno([appno: String.valueOf(data.objid).trim()]);
+		def loan = loanapp.read([objid:data.headerid]);
+		// def loan = loanapp.findByAppno([appno: String.valueOf(data.objid).trim()]);
 		if (!loan) {
 			def extinfo = loanresolver.read(data, 'ext-info');
 			cust.address = borrower.address;
 			loan = [
-				objid		: 'LOAN' + new UID(),
+				objid		: data.headerid,
 				appno 		: String.valueOf(data.objid).trim(),
 				borrower 	: cust,
 				loanamount	: data.loanamount,

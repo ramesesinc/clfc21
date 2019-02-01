@@ -258,9 +258,10 @@ WHERE loanid = $P{loanid}
 	AND borrowerid = $P{borrowerid}
 
 [getForMigrationList]
-SELECT l.*
+SELECT l.*, h.headerid
 FROM loan l
 INNER JOIN loan_resolved r ON l.objid = r.objid
+INNER JOIN loan_header h ON l.objid = h.objid
 WHERE l.borrowerid = $P{borrowerid}
 	and r.taskkey = $P{taskkey}
 ORDER BY l.objid
@@ -290,3 +291,9 @@ LIMIT 15
 [getResolvedLoansWithoutKey]
 SELECT objid FROM loan_resolved
 WHERE taskkey IS NULL
+
+[getLoanWithNoLoanHeader]
+SELECT l.objid
+FROM loan l
+LEFT JOIN loan_header lh ON l.objid = lh.objid
+WHERE lh.objid IS NULL

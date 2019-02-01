@@ -10,6 +10,11 @@
 		<field name="telno" />
 	</element>
 
+	<element name="borrowerHeader" tablename="borrower_header">
+		<field name="objid" primary="true" />
+		<field name="headerid" required="true" />
+	</element>
+
 	<element name="ext-info"  tablename="borrower_extinfo">
 		<!--
 		<field name="objid" primary="true" />
