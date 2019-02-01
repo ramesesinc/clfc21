@@ -4,19 +4,40 @@ import com.rameses.rcp.common.*;
 import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 
-class LoanAppAttachmentController
-{
+class LoanAppAttachmentController { 
+    
     //feed by the caller
-    def loanapp, caller, selectedMenu;
+    def caller, loanapp, menuitem, handlers;
     def attachments;
     
+    def mode;
+    def snapshot;
+    def base64;
+    
     void init() {
-        selectedMenu.saveHandler = { save(); }
+        mode = 'read';
+        handlers.saveHandler = { save(); }
+        //menuitem.saveHandler = { save(); }  
+        base64 = new com.rameses.util.Base64Cipher();  
     }
     
     void save() {
         println 'saving attachment'
     }
+    void edit() {
+        snapshot = (attachments ? base64.encode( attachments ) : null ); 
+        mode = 'edit'; 
+    }
+    void cancelEdit() { 
+        if (MsgBox.confirm('Are you sure you want to cancel any changes made?')) { 
+            def o = ( snapshot ? base64.decode( snapshot ) : null ); 
+            if ( o ) {
+                attachments = o; 
+                attachmentHandler?.reload();
+            }
+            mode = 'read'; 
+        }
+    }     
     
     def selectedAttachment;
     def attachmentHandler = [

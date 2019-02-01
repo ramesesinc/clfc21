@@ -1,20 +1,21 @@
+<% if ( property._filetype ) { %> 
 <font class="bold">General Information</font>
 <table>
 <tr>
     <td width="100px">Classification : </td>
-    <td>$property.classification</td>
+    <td>${ifNull(property.classification, '-')}</td>
 </tr>
 <tr>
     <td>Location : </td>
-    <td>$property.location</td>
+    <td>${ifNull(property.location, '-')}</td>
 </tr>
 <tr>
     <td>Area : </td>
-    <td>$property.areavalue $property.areauom</td>
+    <td>${ifNull(property.areavalue, '-')} ${ifNull(property.areauom, '-')}</td>
 </tr>
 <tr>
     <td>Zonal Value : </td>
-    <td>$property.zonalvalue</td>
+    <td>${ifNull(property.zonalvalue, '-')}</td>
 </tr>
 <tr>
     <td>Date Acquired : </td>
@@ -22,22 +23,34 @@
 </tr>
 <tr>
     <td>Acquired From : </td>
-    <td>$property.acquiredfrom</td>
+    <td>${ifNull(property.acquiredfrom, '-')}</td>
 </tr>
 <tr>
     <td class="nowrap">Mode of Acquisition : </td>
-    <td>$property.modeofacquisition</td>
+    <td>${ifNull(property.modeofacquisition, '-')}</td>
 </tr>
 <tr>
     <td>Registered Name : </td>
-    <td>$property.registeredname</td>
+    <td>${ifNull(property.registeredname, '-')}</td>
 </tr>
 <tr>
     <td>Market Value : </td>
-    <td>$property.marketvalue</td>
+    <td>${ifNull(property.marketvalue, '-')}</td>
 </tr>
 <tr>
     <td>Remarks : </td>
-    <td> <p>$property.remarks</p> </td>
+    <td> <p>${ifNull(property.remarks, '-')}</p> </td>
 </tr>
 </table>
+<br/>
+<% } %> 
+
+<font class="bold">Credit Investigation Report</font>
+<table style="width:100%;"> 
+<tr>
+    <td>
+        ${ifNull(property.ci?.evaluation, '-')}
+    </td>
+</tr>
+</table>
+<br/> 

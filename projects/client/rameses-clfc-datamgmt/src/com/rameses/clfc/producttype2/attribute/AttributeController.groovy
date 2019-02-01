@@ -4,6 +4,7 @@ import com.rameses.rcp.common.*;
 import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
+import java.rmi.server.UID;
 
 class AttributeController extends CRUDController {
     
@@ -30,7 +31,7 @@ class AttributeController extends CRUDController {
     boolean allowEdit = true;
     
     Map createEntity() {
-        return [txnstate: "DRAFT", conditiontype: "USER", _allowedit: true];
+        return [code: 'PA' + new UID().toString().hashCode(), txnstate: "DRAFT", conditiontype: "USER", _allowedit: true];
     }
     
     void checkEditable( data ) {

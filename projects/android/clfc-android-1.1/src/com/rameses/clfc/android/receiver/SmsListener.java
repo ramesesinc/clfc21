@@ -9,14 +9,22 @@ import com.rameses.client.android.Platform;
 
 public class SmsListener extends BroadcastReceiver {
 	
-	private String KEY = ((AppSettingsImpl) Platform.getApplication().getAppSettings()).getKey();	
+//	private String KEY = ((AppSettingsImpl) Platform.getApplication().getAppSettings()).getKey();	
+	
+	private String getKey() {
+		AppSettingsImpl settings = (AppSettingsImpl) Platform.getApplication().getAppSettings();
+		if (settings != null) {
+			return settings.getKey();
+		}
+		return "";
+	}
 	
 	public void onReceive(Context ctx, Intent intent) {
 		if (intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED")) {
 
 			Intent smsIntent = new Intent(ctx, SmsService.class);
 			smsIntent.putExtras(intent.getExtras());
-			smsIntent.putExtra("KEY", KEY);
+			smsIntent.putExtra("KEY", getKey());
 			
 			ctx.startService(smsIntent);
 			

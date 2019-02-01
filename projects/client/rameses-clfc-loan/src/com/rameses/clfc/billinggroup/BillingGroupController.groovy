@@ -4,34 +4,52 @@ import com.rameses.rcp.common.*;
 import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
-import java.rmi.server.UID;
+import java.rmi.server.UID;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+import com.rameses.common.*;
 
-class BillingGroupController extends CRUDController
-{
+class BillingGroupController extends CRUDController {
+    
+    @Caller
+    def caller;
+    
     @Binding
     def binding;
     
     @Service('DateService')
     def dateSvc;
     
+    @PropertyChangeListener
+    def listener = [
+        "entity.dtstarted": { o->
+            entity.dtended = o;
+        }
+    ]
+    
     String serviceName = 'LoanBillingGroupService';
+    String entityName = "billing:group";
     
     boolean allowApprove = false;
     boolean allowDelete = false;
     boolean allowEdit = true;
+    def loadingOpener;
     
+    def collectorLookup = Inv.lookupOpener("route-collector:lookup", [
+         onselect: { o->
+             //println 'o-> ' + o;
+             entity.collector = o;
+             binding?.refresh();
+         }
+    ])
     def options;
     
     Map createEntity() {
         def date = dateSvc.getServerDateAsString().split(' ')[0];
         return [
-            objid       : 'BG' + new UID(),
-            txnstate    : 'DRAFT',
-            dtstarted   : date,
-            dtended     : date
+            objid               : "BG" + new UID(),
+            txnstate            : 'DRAFT',
+            dtstarted           : date
         ];
     }
-    
     
     def selectedLedger, selectedLedgerToAdd = [:];
     def listHandler = [
@@ -95,6 +113,7 @@ class BillingGroupController extends CRUDController
     void afterSave( data ) {
         data._removedledgers = [];
         data._addedledgers = [];
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
     def getTypeList() {
@@ -135,42 +154,133 @@ class BillingGroupController extends CRUDController
 
     }
     
-    def getOptionsList() {
-        getOpeners: {
+    def optionsList = [
+        fetchList: { o->
             if (!selectedLedgerToAdd) selectedLedgerToAdd = [:];
-            
+
             def params = [
                 selectedLedgerToAdd : selectedLedgerToAdd,
                 addLedgerHandler    : addLedgerHandler
             ];
             def list = Inv.lookupOpeners("billinggroup-option", params);
-            
+
+            list?.sort{ it.properties.index }
+            return list;
+        }
+    ] as TabbedPaneModel;
+    
+    /*
+    def getOptionsList() {
+        getOpeners: {
+            if (!selectedLedgerToAdd) selectedLedgerToAdd = [:];
+
+            def params = [
+                selectedLedgerToAdd : selectedLedgerToAdd,
+                addLedgerHandler    : addLedgerHandler
+            ];
+            def list = Inv.lookupOpeners("billinggroup-option", params);
+
             list?.sort{ it.properties.index }
             return list;
         }
     }
+    */
     
     void submitForApproval() {
         if (!MsgBox.confirm('You are about to submit this document for approval. Continue?')) return;
         
         entity = service.submitForApproval(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
+    def approveDocument() {
+        if (!MsgBox.confirm('You are about to approve this document. Continue?')) return;
+                
+        loadingOpener = Inv.lookupOpener('popup:loading', [:]);
+        def handler = [
+            onMessage   : { o->
+                //println 'onMessage '  + o;
+                //println 'EOF ' + AsyncHandler.EOF;
+                //loadingOpener.handle.binding.fireNavigation("_close");
+
+                if (o == AsyncHandler.EOF) {
+                    //loadingOpener.handle.binding.fireNavigation("_close");
+                    loadingOpener.handle.closeForm();
+                    return;
+                }
+                entity = o;
+                //generatePDFFile();
+                loadingOpener.handle.closeForm();
+                //entity.putAll(o);
+                //def msg = ;
+                //if (mode == 'edit') msg = "Follow-up collection updated successfully!";
+                //mode = 'read';
+                EventQueue.invokeLater({ 
+                    binding?.refresh();
+                    caller?.reload(); 
+                });
+            },
+            onError     : { p->
+                loadingOpener.handle.closeForm();
+                MsgBox.err(p.message);
+            }
+        ] as AsyncHandler;
+        service.approveDocument(entity, handler);
+        return loadingOpener;
+    }
+    
+    /*
     void approveDocument() {
         if (!MsgBox.confirm('You are about to approve this document. Continue?')) return;
         
         entity = service.approveDocument(entity);
         checkEditable(entity);
+        EventQueue.invokeLater({ caller?.reload(); });
+    }
+    */
+    
+    void returnToDraft() {
+        entity = service.returnToDraft( entity );
+        checkEditable( entity );
+        EventQueue.invokeLater({ caller?.reload(); });
     }
     
+    /*
     void disapprove() {
         if (!MsgBox.confirm('You are about to disapprove this document. Continue?')) return;
         
         entity = service.disapprove(entity);
         checkEditable(entity);
     }
+    */
     
+    def addLedgersFromPreviousBilling() {
+        def handler = { o->
+            def list = service.getBillingGroupLedgers( o );
+            list?.each{ itm->
+                
+                itm.objid = "BGD" + new UID();
+                itm.parentid = entity.objid;
+                
+                def i = entity?.items?.find{ it.ledgerid == itm.ledgerid }
+                if (!i) {
+                    if (!entity.items) entity.items = [];
+                    entity.items << itm;
+                }
+                
+                i = entity?._addedledgers?.find{ it.ledgerid == itm.ledgerid }
+                if (!i) {
+                    if (!entity?._addedledgers) entity._addedledgers = [];
+                    entity._addedledgers << itm;
+                }
+            }
+            listHandler?.reload();
+        }
+        def op = Inv.lookupOpener("billing:group:previous:billing", [onselect: handler, type: entity.txntype, date: entity.dtstarted]);
+        if (!op)return null;
+        return op;
+    } 
 }
 
 

@@ -40,8 +40,8 @@
                     query.state = selectedOption?.state; 
                     reloadAll(); 
                 }
-            ] as ListPaneModel; 
-        
+            ] as ListPaneModel;
+             
             def entity;
             void beforeFetchList(Map params) {
                 params.ledgerid = entity?.objid;

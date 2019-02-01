@@ -26,7 +26,14 @@ class BorrowerCheckingAccountController
             return removeCheckingAcctImpl(o);
         },
         getOpenerParams: {o->
-            return [ mode: borrowerContext.mode, caller:this ]
+            def handler = {  c->
+                def data = borrowerContext.borrower.checkingaccts?.find{ it.objid == c.objid }
+                if (data) {
+                    data.putAll( c );
+                    checkingAcctHandler?.reload();
+                }
+            }
+            return [ mode: borrowerContext.mode, caller:this, handler: handler ]
         }
     ] as EditorListModel; 
     

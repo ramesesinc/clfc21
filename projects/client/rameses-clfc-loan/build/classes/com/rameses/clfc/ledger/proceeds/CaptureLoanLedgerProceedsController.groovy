@@ -16,7 +16,7 @@ class CaptureLoanLedgerProceedsController extends CRUDController
     String entityName = "captureledgerproceed";
     
     boolean allowEdit = true;
-    boolean allowDelete = true;
+    boolean allowDelete = false;
     boolean allowApprove = false;
     
     Map createPermission = [domain: 'LOAN', role: 'CAO_OFFICER'];
@@ -40,11 +40,26 @@ class CaptureLoanLedgerProceedsController extends CRUDController
         ];
     }
     
+    void checkEditable( data ) {
+        allowEdit = false;
+        if (data.txnstate=='FOR_SELLING') {
+            allowEdit = true;
+        }
+        binding?.refresh();
+    }
+    
+    void afterSave( data ) {
+        checkEditable( data );
+    }
+    
     void afterOpen( data ) {
+        checkEditable( data );
+        /*
         if (data.txnstate == 'SOLD') {
             allowEdit = false;
             allowDelete = false;
         }
+        */
     }
     
     def sold() {
@@ -59,11 +74,14 @@ class CaptureLoanLedgerProceedsController extends CRUDController
                     return;
                 }                
                 
-                loadingOpener.handle.binding.fireNavigation("_close");
                 entity = o;
+                checkEditable( entity );
+                /*
                 allowEdit = false;
                 allowDelete = false;
                 binding?.refresh();
+                */
+                loadingOpener.handle.binding.fireNavigation("_close");
                 MsgBox.alert("Successfully sold proceed!");
             },
             onError: { o->
@@ -78,7 +96,12 @@ class CaptureLoanLedgerProceedsController extends CRUDController
         ] as AsyncHandler;
         service.sold(entity, handler);
         return loadingOpener;
-    }
+    }    
     
+    def getStatus() {
+        def str = (entity.txntype? entity.txntype : '') + (entity.txnstate? ' - ' + entity.txnstate : '');
+        
+        return str;
+    }
 }
 

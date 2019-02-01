@@ -13,19 +13,22 @@ WHERE parentid = $P{objid}
 AND `type` = 'JOINT'
 
 [getJointBorrowers]
-SELECT b.*, 
-	lb.objid AS refid, lb.type, lb.relation, lb.principalid, lb.relaterid 
+SELECT lb.type, lb.relation, lb.principalid, lb.relaterid, bi.birthdate, bi.civilstatus, 
+	bi.citizenship,	b.*, b.type as borrowertype
 FROM loanapp_borrower lb 
 	INNER JOIN borrower b ON lb.borrowerid=b.objid 
+	INNER JOIN borrowerindividual bi on b.objid = bi.objid
 WHERE lb.parentid=$P{parentid} AND lb.type='JOINT' 
 
 [removeJointBorrowers]
 DELETE FROM loanapp_borrower WHERE parentid=$P{parentid} AND type='JOINT' 
 
 [getComakers]
-SELECT lb.type, lb.relation, b.* 
+SELECT lb.type, lb.relation, lb.principalid, lb.relaterid, bi.birthdate, bi.civilstatus, 
+	bi.citizenship,	b.*, b.type as borrowertype
 FROM loanapp_borrower lb 
 	INNER JOIN borrower b ON lb.borrowerid=b.objid 
+	INNER JOIN borrowerindividual bi on b.objid = bi.objid
 WHERE lb.parentid=$P{parentid} AND lb.type='COMAKER' 
 
 [removeComakers]

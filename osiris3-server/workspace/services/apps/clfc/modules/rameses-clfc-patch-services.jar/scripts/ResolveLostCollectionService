@@ -1,0 +1,457 @@
+import com.rameses.common.*;
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+import java.rmi.server.UID;
+
+class ResolveLostCollectionService extends ActiveCrudListService
+{
+	@Env
+	def env;
+
+	@ActiveDB('resolve_lost_collection')
+	def em;
+
+	@ActiveDB('datatxnlog')
+	def txnlog; 
+
+	@ActiveDB('loanpayment')
+	def loanpayment;
+
+	@ActiveDB('ledger_billing')
+	def ledger_billing;
+
+	@ActiveDB('fieldcollection')
+	def fieldcollection;
+
+	@ActiveDB('loan_ledger')
+	def loan_ledger;
+
+	@ActiveDB('loanapp')
+	def loanapp;
+
+	@ActiveDB('borrower')
+	def borrower;
+
+	@ActiveDB('collection_remittance')
+	def collection_remittance;
+
+	@ActiveDB('collection_cb')
+	def collection_cb;
+
+	@Service('DateService')
+	def dateSvc;
+
+	@Service('BranchService')
+	def branchSvc;
+
+	@Service('LoanLedgerBillingService')
+	def ledgerBillingSvc;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		if (!params.state) cols << [name: 'txnstate', caption: 'Status'];
+
+		cols << [name: 'txndate', caption: 'Date', type: 'date', outputFormat: 'MMM-dd-yyyy'];
+		cols << [name: 'collector.name', caption: 'Collector'];
+		cols << [name: 'route.description', caption: 'Route'];
+		cols << [name: 'cbs.no', caption: 'CBS No.'];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : '') + '%';
+		if (params.state) {
+			params._listMethod = 'getListByState';
+		}
+	}
+
+	@ProxyMethod
+	public def getStates() {
+		return [
+			[caption: 'All'],
+			[caption: 'DRAFT', state: 'DRAFT'],
+			[caption: 'FOR APPROVAL', state: 'FOR_APPROVAL'],
+			[caption: 'APPROVED', state: 'APPROVED'],
+			[caption: 'DISAPPROVED', state: 'DISAPPROVED']
+		];
+	}
+
+	@ProxyMethod
+	public def getTypeList() {
+		return ['ONLINE', 'ROUTE', 'FOLLOW-UP', 'SPECIAL'];
+	}
+
+	def getUser() {
+		return [objid: env.USERID, name: env.NAME];
+	}
+
+	void validate( data ) {
+		def i = em.findCreatedDocumentByPaymentid([objid: data?.objid, paymentid: data?.loanpaymentid]);
+		if (i) throw new Exception('Already created document for Ref. ID ' + data?.loanpaymentid);
+	}
+
+	void beforeCreate( data ) {
+		validate(data);
+		data.dtcreated = dateSvc.serverDate;
+		data.author = getUser();
+	}
+
+	void beforeUpdate( data ) {
+		validate(data);
+	}
+
+	def changeState( params, state ) {
+		def data = em.read(params);
+		if (!data) throw new Exception('Resolve lost collection record does not exist or has already been deleted.');
+
+		if (data.txnstate == state) {
+			throw new Exception('Resolve lost collection record already ' + state + '.');
+		}
+
+		data.txnstate = state;
+		em.update(data);
+
+
+		def action, remarks;
+		switch (state) {
+			case 'FOR_APPROVAL'	: action = 'For Approval';
+								  remarks = 'Submitted for Approval lost collection resolve for collector ' + data.collector.name;
+								  break;
+			case 'APPROVED'		: action = 'Approve';
+								  remarks = 'Approve lost collection resolve for collector ' + data.collector.name;
+								  break;
+			case 'DISAPPROVED' 	: action = 'Disapprove';
+								  remarks = 'Disapprove lost collection resolve for collector ' + data.collector.name;
+								  break;
+		}
+
+		if (action && remarks) {
+			def loginfo = [
+				objid 	: 'TLOG' + new UID(), 
+				txndate : dateSvc.serverDate, 
+				txnid   : data.objid, 
+				user    : [objid: env.USERID, username: env.USER], 
+				action	: action,
+				remarks : remarks
+			]; 
+			txnlog.create( loginfo ); 
+		}
+
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def getPaymentInfo( params ) {
+		def data = loanpayment.read(params);
+		if (!data) throw new Exception('Payment record does not exist or has already been deleted.');
+
+		def item = [loanpaymentid: data?.objid, txndate: data.txndate];
+		item.payments = em.getPaymentDetails(data);
+
+		return item;
+	}
+
+	@ProxyMethod
+	public def submitForApproval( params ) {
+		def data = changeState(params, 'FOR_APPROVAL');
+
+		data.dtsubmitforapproval = dateSvc.serverDate;
+		data.submittedforapprovalby = getUser();
+		em.update(data);
+
+		return open(data);
+	}
+
+	def approveImpl( params, state ) {
+		def data = changeState(params, state);
+
+		data.dtposted = dateSvc.serverDate;
+		data.postedby = getUser();
+		em.update(data, 'post');
+
+		return open(data);
+	}
+
+	@ProxyMethod
+	public def approveDocument( params ) {
+		def data = approveImpl(params, 'APPROVED');
+
+		switch (data?.type) {
+			case 'ROUTE' 	: resolveFieldBilling(data); break;
+			case 'ONLINE' 	: resolveOnlineBilling(data); break;
+			case 'FOLLOW-UP': resolveFollowupBilling(data); break;
+			case 'SPECIAL' 	: resolveSpecialBilling(data); break;
+		}
+
+		throw new RuntimeException('stopping approve document');
+
+		return open(data);
+	}
+
+	void resolveFieldBilling( data) {
+		def branch = branchSvc.open([:]);
+
+		def currdate = dateSvc.serverDate;
+		def user = getUser();
+
+		def billing = em.findBillingByCollectorAndDate([collectorid: data?.collector?.objid, date: data?.txndate]);
+		if (billing) {
+			data.billing.objid = billing?.objid;
+			em.update(data);
+		} else if (!billing) {
+			billing = [
+				objid				: data?.billing?.objid,
+				dtcreated 			: currdate,
+				author 				: user,
+				collector 			: data?.collector,
+				billdate 			: data?.txndate,
+				branchid 			: branch?.code,
+				totalfordownload 	: 0,
+				totaldownloaded 	: 0,
+				totalposted 		: 0
+			];
+			ledger_billing.create(billing);
+		}
+
+		def fc = fieldcollection.read([objid: billing?.objid]);
+		if (!fc) {
+			fc = [
+				objid		: billing?.objid,
+				dtfiled 	: currdate,
+				author 		: user,
+				branchid	: branch?.code,
+				billdate 	: data?.txndate,
+				collector 	: billing?.collector
+			];
+			fieldcollection.create(fc);
+		}
+
+		def bi = em.findBillingItemByParentidAndItemid([objid: billing?.objid, itemid: data?.route?.code]);
+		if (!bi) {
+			bi = [
+				objid 		: 'LBI' + new UID(),
+				parentid 	: billing?.objid,
+				state 		: 'POSTED',
+				dtmodified 	: currdate,
+				modifiedby 	: user,
+				item 		: [objid: data?.route?.code, type: 'route']
+			];
+			ledger_billing.create(bi, 'billing-item');
+		}
+
+		def fi = fieldcollection.read(bi, 'fc-item');
+		if (!fi) {
+			fi = [
+				objid 		: bi?.objid,
+				parentid 	: bi?.parentid,
+				state  		: 'POSTED',
+				dtfiled 	: currdate,
+				author 		: user,
+				item 		: bi?.item,
+				totalcount 	: 0,
+				totalamount : 0,
+				cbsno 		: data?.cbs?.no
+			];
+			fieldcollection.create(fi, 'fc-item');
+		} 
+
+		def cbs = em.findCBSByCbsno([cbsno: data?.cbs?.no]);
+		if (!cbs) {
+			cbs = [
+				objid 		: data?.cbs?.objid,
+				state 		: 'VERIFIED',
+				dtfiled 	: currdate,
+				author 		: user,
+				txndate 	: data?.txndate,
+				collector 	: data?.collector,
+				collection 	: [objid: billing?.objid, type: 'FIELD'],
+				group 		: bi?.item,
+				cbsno 		: data?.cbs?.no,
+				dtverified 	: currdate,
+				verifier 	: user
+			];
+			collection_cb.create(cbs);
+		}
+
+		def lpyt = loanpayment.read([objid: data?.loanpaymentid]);
+		
+		def rem = collection_remittance.read([objid: lpyt?.objid]);
+		if (!rem) {
+			rem = [
+				objid 				: data?.loanpaymentid,
+				state 				: 'POSTED',
+				dtfiled 			: lpyt?.dtfiled,
+				author 				: lpyt?.author,
+				txndate 			: lpyt?.txndate,
+				collector 			: data?.collector,
+				collection 			: cbs?.collection,
+				group 				: cbs?.group,
+				totalacctscollected : lpyt?.totalacctscollected,
+				totalamount 		: lpyt?.totalamount,
+				cbsno 				: cbs?.cbsno,
+				dtposted 			: lpyt?.dtfiled,
+				poster 				: lpyt?.author
+			]
+
+			collection_remittance.create(rem);
+		}
+
+		/*
+		data?.payments?.each{ o->
+			def pyt = em.findFieldCollectionPaymentByRefno([refno: o?.refno]);
+
+			def dtl = collection_remittance.read([objid: o?.objid], 'rem-detail');
+			if (!dtl) {
+				objid 			: o?.objid,
+				parentid 		: rem?.objid
+				refid 			: pyt?.objid,
+				borrower 		: o?.borrower,
+				loanapp 		: o?.loanapp,
+				routecode 		: o?.routecode,
+				refno 			: o?.refno,
+				amount 			: o?.amount,
+				paytype 		: o?.paytype,
+				payoption 		: pyt?.payoption,
+				dtpaid 			: pyt?.dtpaid,
+				paidby 			
+				bank_objid
+				bank_name
+				check_no
+				check_date
+			}
+		}
+		*/
+
+		data?.payments?.each{ o->
+			def params = [billingid: billing?.objid, itemid: bi?.objid, appid: o?.loanapp?.objid];
+
+			def ledger = loan_ledger.findByAppId([appid: o?.loanapp?.objid]);
+			def app = loanapp.read([objid: o?.loanapp?.objid]);
+			def appc = loanapp.read([objid: app?.objid], 'loanapp_capture');
+			def pb = borrower.read([objid: o?.borrower?.objid]);
+
+			def dtl = em.findBillingDetailByAppidAndBillingidAndItemid(params);
+			if (!dtl) {
+				dtl = [
+					objid				: o?.objid,
+					parentid 			: bi?.objid,
+					billingid 			: billing?.objid,
+					ledgerid			: ledger?.objid,
+					route 				: [code: o?.routecode],
+					acctid				: o?.borrower?.objid,
+					acctname 			: o?.borrower?.name,
+					loanamount 			: app?.loanamount,
+					appno 				: app?.appno,
+					dailydue 			: ledger?.dailydue,
+					amountdue 			: 0,
+					overpaymentamount 	: ledger?.overpaymentamount,
+					balance 			: ledger?.balance,
+					refno 				: ledgerBillingSvc.getRefno([routecode: o?.routecode]),
+					txndate 			: billing?.txndate,
+					dtreleased 			: appc?.dtreleased,
+					dtmatured			: ledger?.dtmatured,
+					isfirstbill 		: 0,
+					paymentmethod 		: ledger?.paymentmethod,
+					loandate 			: appc?.dtreleased,
+					term 				: ledger?.term,
+					loanappid			: app?.objid,
+					homeaddress 		: pb?.address,
+					penalty				: 0,
+					interest			: 0,
+					others				: 0
+				];
+
+				ledger_billing.create(dtl, 'billing-detail');
+			}
+
+			def fl = em.findFieldCollectionLoanByAppid([appid: app?.objid]);
+			if (!fl) {
+				fl = [
+					objid 				: 'FCL' + new UID(),
+					parentid 			: fi?.objid,
+					fieldcollectionid 	: fc?.objid,
+					loanapp 			: [objid: app?.objid, appno: app?.appno],
+					borrower 			: [objid: pb?.objid, name: pb?.name],
+					routecode 			: o?.routecode,
+					noofpayments 		: 0
+				];
+
+				fieldcollection.create(fl, 'fc-loan');
+			}
+
+			def fp = em.findFieldCollectionPaymentByRefno([refno: o?.refno]);
+			if (!fp) {
+				def lp = em.findLedgerPaymentByRefno([refno: o?.refno]);
+
+				fp =[
+					objid 				: o?.objid,
+					parentid 			: fl?.objid,
+					itemid 				: fi?.objid,
+					fieldcollectionid 	: fc?.objid,
+					dtfiled 			: lp?.txndate,
+					author 				: user,
+					txnmode 			: 'ONLINE_WIFI',
+					dtpaid 				: lp?.txndate,
+					refno 				: o?.refno, 
+					paytype 			: o?.paytype,
+					amount 				: o?.amount,
+					paidby 				: o?.paidby,
+					payoption 			: 'cash',
+					version 			: 1
+				];
+
+				fieldcollection.create(fp, 'fc-payment');
+
+				fl.noofpayments++;
+				fieldcollection.update(fl, 'fc-loan');
+			}
+
+			def rem_dtl = collection_remittance.read([objid: o?.objid], 'rem-detail');
+			if (!rem_dtl) {
+				rem_dtl = [
+					objid 		: o?.objid,
+					parentid 	: rem?.objid,
+					refid 		: fp?.objid,
+					borrower 	: o?.borrower,
+					loanapp 	: o?.loanapp,
+					routecode 	: o?.routecode,
+					refno 		: o?.refno,
+					amount 		: o?.amount,
+					paytype 	: o?.paytype,
+					payoption 	: fp?.payoption,
+					dtpaid 		: fp?.dtpaid,
+					paidby 		: fp?.paidby,
+					bank 		: fp?.bank,
+					check 		: fp?.check
+				];
+
+				collection_remittance.create(rem_dtl, 'rem-detail');
+			}
+		}
+
+	}
+
+	void resolveOnlineBilling( data ) {
+		throw new Exception('stopping resolve online billing');
+	}
+
+	void resolveFollowupBilling( data ) {
+		throw new Exception('stopping resolve follow-up billing');
+	}
+
+	void resolveSpecialBilling( data ) {
+		throw new Exception('stopping resolve special billing');
+	}
+
+	@ProxyMethod
+	public def disapprove( params ) {
+		def data = approveImpl(params, 'DISAPPROVED');
+
+		return data;
+	}
+
+}

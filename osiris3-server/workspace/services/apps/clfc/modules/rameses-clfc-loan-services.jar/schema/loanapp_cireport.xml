@@ -1,0 +1,12 @@
+<schema>
+	<element tablename="loanapp_cireport">
+		<field name="objid" primary="true"/>
+		<field name="parentid" required="true"/> 
+		<field name="evaluation" required="true"/>
+		<field name="reftype" required="true"/>
+		<field name="refid"/>
+		<field name="dtfiled"/>
+		<field name="filedby_objid"/>
+		<field name="filedby_name"/>
+	</element>
+</schema>	

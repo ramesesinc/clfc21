@@ -75,9 +75,9 @@ var trackerlogs = @register('/tracker/logs')
 	<tr>
 		<td style="width:30px;">&nbsp;</td>
 		<td style="width:300px;">Collector</td>
-		<td style="width:100px;maxWidth:100px;">Collection Date</td>
+		<td style="width:100px;maxWidth:100px;">Tracking Date</td>
 		<td style="width:100px;">Description</td>
-		<td>Status</td> 
+		<td>Tracking Status</td> 
 	</tr>
 </thead>
 <tbody>

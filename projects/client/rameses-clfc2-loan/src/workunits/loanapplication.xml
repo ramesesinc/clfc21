@@ -1,0 +1,95 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapplication:open" caption="Loan Application" action="open" target="window"/>
+        
+        <invoker type="formActions" caption="Submit" action="submitForInspection" 
+            icon="images/toolbars/approve.png" visibleWhen="#{isPending}" 
+            tooltip="Submit For Inspection"/>
+        
+        <invoker type="formActions" caption="Submit" action="submitForCrecom" 
+            role="CI_OFFICER" icon="images/toolbars/approve.png" 
+            tooltip="Submit For CRECOM" visibleWhen="#{isForInspection}"/>
+                    
+        <invoker type="formActions" caption="Submit" action="submitForApproval" 
+            role="CRECOM_OFFICER" icon="images/toolbars/approve.png" 
+            tooltip="Submit For Approval" visibleWhen="#{isForCrecom}"/>
+                    
+        <invoker type="formActions" caption="Return For CI" action="returnForCi" 
+            role="CRECOM_OFFICER" icon="images/toolbars/approve.png" 
+            tooltip="Return For CI" visibleWhen="#{isForCrecom}"/>
+        
+        <invoker type="formActions" caption="View Send Back Remarks" action="viewSendBackRemarks"
+            role="CRECOM_OFFICER" tooltip="View Send Back Remarks"
+            visibleWhen="#{entity.sendbackremarks != null}" />
+        
+        <invoker type="formActions" caption="View Disapprove Remarks" action="viewDisapproveRemarks"
+            tooltip="View Disapprove Remarks" visibleWhen="#{isDisapproved == true}" />
+
+        <!--
+        <invoker type="formActions" caption="Send Back" action="sendBack"
+                 role="APPROVER" visibleWhen="#{forApproval == true}"
+                 tooltip="Send Back"/> 
+        <invoker type="formActions" caption="Approve" action="approve"
+                 role="APPROVER" visibleWhen="#{forApproval == true}"
+                 tooltip="Approve"/> 
+        <invoker type="formActions" caption="Disqualified Out" action="disqualifiedOut"
+                 role="APPROVER" visibleWhen="#{forApproval == true}"
+                 tooltip="Disqualified Out"/> 
+        <invoker type="formActions" caption="Cancelled Out" action="cancelledOut"
+                 role="APPROVER" visibleWhen="#{forApproval == true}"
+                 tooltip="Cancelled Out"/> 
+        -->
+
+        <invoker type="formActions" caption="Submit" action="submitForRequirement"
+                 role="FLA_OFFICER" visibleWhen="#{approved == true}"
+                 tooltip="Submit For Requirement"/> 
+        <invoker type="formActions" caption="Backout" action="backout"
+                 role="FLA_OFFICER" visibleWhen="#{approved == true}"
+                 tooltip="Backout"/>
+        <invoker type="formActions" caption="Disqualified Out" action="disqualifiedOut"
+                 role="FLA_OFFICER" visibleWhen="#{approved == true}"
+                 tooltip="Disqualified Out"/> 
+        <invoker type="formActions" caption="Cancelled Out" action="cancelledOut"
+                 role="FLA_OFFICER" visibleWhen="#{approved == true}"
+                 tooltip="Cancelled Out"/> 
+        <!--
+        <invoker type="formActions" caption="Disapprove" action="disapprove"
+                 role="FLA_OFFICER,APPROVER" visibleWhen="#{approved == true}"
+                 tooltip="Disapprove"/> 
+        -->
+                
+        <invoker type="formActions" caption="Submit" action="submitForProcessing"
+                 role="FLA_OFFICER" visibleWhen="#{forRequirement == true}"
+                 tooltip="Submit For Processing"/> 
+        <invoker type="formActions" caption="Backout" action="backout"
+                 role="FLA_OFFICER" visibleWhen="#{forRequirement == true}"
+                 tooltip="Backout"/> 
+
+        <invoker type="formActions" caption="Submit" action="submitForRelease"
+                 role="FLA_OFFICER" visibleWhen="#{forProcessing == true}"
+                 tooltip="Submit For Release"/> 
+        <invoker type="formActions" caption="Backout" action="backout"
+                 role="FLA_OFFICER" visibleWhen="#{forProcessing == true}"
+                 tooltip="Backout"/> 
+        <!--
+        <invoker type="formActions" caption="Assess" action="assess"
+                 role="FLA_OFFICER" visibleWhen="#{forProcessing == true}"
+                 tooltip="Assess"/> 
+        -->
+
+        <invoker type="formActions" caption="Release" action="release"
+                 role="FLA_OFFICER" visibleWhen="#{forRelease == true}"
+                 tooltip="Release"/> 
+        <invoker type="formActions" caption="Backout" action="backout"
+                 role="FLA_OFFICER" visibleWhen="#{forRelease == true}"
+                 tooltip="Backout"/> 
+                                
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.models.LoanApplicationModelImpl"/>
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.views.LoanAppPage"/> 
+        <page template="com.rameses.clfc.loan.views.LoanAppBlankPage" name="blankpage"/> 
+    </pages>
+</workunit>

@@ -25,17 +25,17 @@ public class LoginLoader implements AppLoader
 		println("started");
 		Platform.getApplication().pauseSuspendTimer();
 		
-		println("before synch date");
+//		println("before synch date");
 		Platform.getApplication().syncServerDate();
-		println("after synch date");
+//		println("after synch date");
 		
 		String sessionid = SessionContext.getSessionId();
-		println("sessionid: " + sessionid); 
+//		println("sessionid: " + sessionid); 
 		
 		AppSettingsImpl settings = (AppSettingsImpl) Platform.getApplication().getAppSettings();
 		String collector_state = settings.getCollectorState();
-		println("collector state: " + collector_state);
-		println("server date: " + Platform.getApplication().getServerDate());
+//		println("collector state: " + collector_state);
+//		println("server date: " + Platform.getApplication().getServerDate());
 		 
 		/*
 		SessionContext sess = (SessionContext) settings.getSession();

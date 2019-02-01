@@ -261,7 +261,9 @@ class FieldCollectionController
             handler     : handler,
             allowCreate : allowCreate
         ];
-        return Inv.lookupOpener('overage:list', params);
+        def op = Inv.lookupOpener('overage:list', params);
+        if (!op) return null;
+        return op;
     }
     
     def getIsCashier() {
@@ -295,7 +297,9 @@ class FieldCollectionController
             handler     : handler,
             allowCreate : allowCreate
         ];
-        return Inv.lookupOpener('shortage:list', params);
+        def op = Inv.lookupOpener('shortage:list', params);
+        if (!op) return null;
+        return op;
     }
 
     def sendback() {

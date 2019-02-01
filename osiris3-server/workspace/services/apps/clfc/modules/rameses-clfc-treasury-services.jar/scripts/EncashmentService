@@ -1860,7 +1860,7 @@ class EncashmentService extends ActiveCrudListService
 			}
 		}
 
-		println 'cbsno ' + data.cbsno + ' has encashment ' + hasencashment;
+		//println 'cbsno ' + data.cbsno + ' has encashment ' + hasencashment;
 		if (hasencashment == false) return;
 
 

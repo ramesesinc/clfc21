@@ -34,7 +34,7 @@ class CustomerSearchController extends BasicLookupModel
     
     def selectedCustomer; 
     def customerlistHandler = [ 
-        getRows: { return 15; },             
+        getRows: { return 20; },             
         fetchList: {o-> 
             return service.getList(o);  
         }, 
@@ -59,7 +59,14 @@ class CustomerSearchController extends BasicLookupModel
         customerlistHandler.moveNextPage(); 
     } 
     
-    void moveLastPage() {}     
+    void moveLastPage() {} 
+
+    Map createOpenerParams() {
+        return [
+            listModelHandler: this,
+            callerContext   : createContextHandler()
+        ];
+    }    
    
     def createContextHandler() {
         def ctx = new CustomerSearchContext(this);
@@ -71,23 +78,45 @@ class CustomerSearchController extends BasicLookupModel
     }
     
     def create() {
-        def params = [callerContext: createContextHandler()];
-        def opener = InvokerUtil.lookupOpener('customer:create', params);
-        opener.target = 'self';
-        return opener;
+        def op = Inv.lookupOpener('customer:create', createOpenerParams());
+        if (!op) return null;
+        return op;
     }
     
-    void view() {
-        def params = [
-            callerContext: createContextHandler(), 
-            entity: selectedCustomer 
-        ];
-        params.callerContext.closeHandler = {
-            customerlistHandler.reload(); 
-        }         
+    def view() {
+        if (!selectedCustomer) return null;
+        def params = createOpenerParams();
+        params.entity = selectedCustomer;
         
-        def opener = InvokerUtil.lookupOpener('customer:open', params);
-        opener.target = 'self';
-        customerlistHandler.bindingObject.fireNavigation(opener);
+        def op = Inv.lookupOpener('customer:open', params);
+        if (!op) return null;
+        return op;
+    }
+    
+    def xcreate() {   
+        def ctype = null;
+        def params = [:];
+        params.handler = { o-> ctype = o; }
+        Modal.show('customer:selecttype', params); 
+        if (!ctype) return null; 
+        
+        params.clear();
+        //def op = Inv.lookupOpener('entity'+ ctype +':create', params);
+        //op.target = 'popup';
+        def op = Inv.lookupOpener('customer:' + ctype + ':create', params);
+        if (!op) return null;
+        return op;
+    }
+    
+    def xview() { 
+        if ( !selectedCustomer ) return null;
+        
+        def ctype = selectedCustomer.type.toString().toLowerCase();
+        def params = [ entity: selectedCustomer ];
+        //def op = Inv.lookupOpener('entity'+ ctype +':open', params ); 
+        //op.target = 'popup'; 
+        def op = Inv.lookupOpener('customer:' + ctype + ':open', params);
+        if (!op) return null;
+        return op;
     }    
 } 

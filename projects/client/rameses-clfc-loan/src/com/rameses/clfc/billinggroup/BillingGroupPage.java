@@ -37,13 +37,14 @@ public class BillingGroupPage extends javax.swing.JPanel {
         xPanel1 = new com.rameses.rcp.control.XPanel();
         xDataTable1 = new com.rameses.rcp.control.XDataTable();
         xButton2 = new com.rameses.rcp.control.XButton();
+        xButton3 = new com.rameses.rcp.control.XButton();
         xButton1 = new com.rameses.rcp.control.XButton();
         xTabbedPane1 = new com.rameses.rcp.control.XTabbedPane();
         xPanel2 = new com.rameses.rcp.control.XPanel();
         xFormPanel1 = new com.rameses.rcp.control.XFormPanel();
         xTextField1 = new com.rameses.rcp.control.XTextField();
         xDateField1 = new com.rameses.rcp.control.XDateField();
-        xDateField2 = new com.rameses.rcp.control.XDateField();
+        xLookupField1 = new com.rameses.rcp.control.XLookupField();
         xComboBox1 = new com.rameses.rcp.control.XComboBox();
 
         xLabel1.setExpression("#{entity.txnstate}");
@@ -159,6 +160,11 @@ public class BillingGroupPage extends javax.swing.JPanel {
         xButton2.setPreferredSize(new java.awt.Dimension(80, 23));
         xButton2.setText("Remove");
 
+        xButton3.setDisableWhen("${mode=='read'}");
+        xButton3.setImmediate(true);
+        xButton3.setName("addLedgersFromPreviousBilling"); // NOI18N
+        xButton3.setText("Add Ledgers from Previous Billing");
+
         javax.swing.GroupLayout xPanel1Layout = new javax.swing.GroupLayout(xPanel1);
         xPanel1.setLayout(xPanel1Layout);
         xPanel1Layout.setHorizontalGroup(
@@ -169,6 +175,8 @@ public class BillingGroupPage extends javax.swing.JPanel {
                     .addComponent(xDataTable1, javax.swing.GroupLayout.DEFAULT_SIZE, 415, Short.MAX_VALUE)
                     .addGroup(xPanel1Layout.createSequentialGroup()
                         .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
@@ -178,7 +186,9 @@ public class BillingGroupPage extends javax.swing.JPanel {
                 .addContainerGap()
                 .addComponent(xDataTable1, javax.swing.GroupLayout.DEFAULT_SIZE, 138, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(xPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(xButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(xButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap())
         );
 
@@ -206,7 +216,7 @@ public class BillingGroupPage extends javax.swing.JPanel {
         xTextField1.setRequired(true);
         xFormPanel1.add(xTextField1);
 
-        xDateField1.setCaption("Date Started");
+        xDateField1.setCaption("Date");
         xDateField1.setCaptionWidth(90);
         xDateField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xDateField1.setName("entity.dtstarted"); // NOI18N
@@ -214,13 +224,15 @@ public class BillingGroupPage extends javax.swing.JPanel {
         xDateField1.setRequired(true);
         xFormPanel1.add(xDateField1);
 
-        xDateField2.setCaption("Date Ended");
-        xDateField2.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xDateField2.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xDateField2.setName("entity.dtended"); // NOI18N
-        xDateField2.setOutputFormat("MMM-dd-yyyy");
-        xDateField2.setRequired(true);
-        xFormPanel1.add(xDateField2);
+        xLookupField1.setCaption("Collector");
+        xLookupField1.setDisableWhen("${mode=='read'}");
+        xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
+        xLookupField1.setExpression("${item.name}");
+        xLookupField1.setHandler("collectorLookup");
+        xLookupField1.setName("entity.collector"); // NOI18N
+        xLookupField1.setPreferredSize(new java.awt.Dimension(200, 20));
+        xLookupField1.setRequired(true);
+        xFormPanel1.add(xLookupField1);
 
         xComboBox1.setCaption("Type");
         xComboBox1.setCaptionWidth(90);
@@ -296,12 +308,13 @@ public class BillingGroupPage extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private com.rameses.rcp.control.XButton xButton1;
     private com.rameses.rcp.control.XButton xButton2;
+    private com.rameses.rcp.control.XButton xButton3;
     private com.rameses.rcp.control.XComboBox xComboBox1;
     private com.rameses.rcp.control.XDataTable xDataTable1;
     private com.rameses.rcp.control.XDateField xDateField1;
-    private com.rameses.rcp.control.XDateField xDateField2;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
     private com.rameses.rcp.control.XLabel xLabel1;
+    private com.rameses.rcp.control.XLookupField xLookupField1;
     private com.rameses.rcp.control.XPanel xPanel1;
     private com.rameses.rcp.control.XPanel xPanel2;
     private com.rameses.rcp.control.XTabbedPane xTabbedPane1;

@@ -81,10 +81,10 @@ public class LoanAppPage extends javax.swing.JPanel {
 
         jScrollPane1.setPreferredSize(new java.awt.Dimension(150, 130));
 
+        xlist.setName("selectedMenu"); // NOI18N
         xlist.setDynamic(true);
         xlist.setExpression("#{item.caption}");
         xlist.setHandler("listHandler");
-        xlist.setName("selectedMenu"); // NOI18N
         xlist.setPadding(new java.awt.Insets(3, 10, 3, 5));
         jScrollPane1.setViewportView(xlist);
 
@@ -95,10 +95,8 @@ public class LoanAppPage extends javax.swing.JPanel {
         jPanel5.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 3, 3, 3));
         jPanel5.setLayout(new java.awt.BorderLayout());
 
-        xSubFormPanel1.setDepends(new String[] {"selectedMenu"});
         xSubFormPanel1.setDynamic(true);
-        xSubFormPanel1.setHandler("subFormHandler");
-        xSubFormPanel1.setName("opener"); // NOI18N
+        xSubFormPanel1.setHandler("opener");
         jPanel5.add(xSubFormPanel1, java.awt.BorderLayout.CENTER);
 
         jPanel3.add(jPanel5, java.awt.BorderLayout.CENTER);

@@ -31,29 +31,28 @@ public class RegistrationLoader implements AppLoader
 				
 		try {
 			Platform.getApplication().pauseSuspendTimer();
-			
-			println("before synch date");
 			Platform.getApplication().syncServerDate();
-			println("after synch date"); 
 			
 			String deviceid = TerminalManager.getDeviceId();
 			String terminalid = TerminalManager.getTerminalId();
-			if (terminalid == null || terminalid.length() == 0) 
+			if (terminalid == null || terminalid.length() == 0) {
 				throw new Exception("TERMINALID_NOT_FOUND"); 
-			  
-			int networkStatus = ApplicationUtil.getNetworkStatus();
-			println("network status " + networkStatus);
-			if (networkStatus == 3) {
+				
+			} else {
+				ApplicationUtil.deviceResgistered();
+				
+			} 
+			
+			boolean isDeviceRegistered = ApplicationUtil.getIsDeviceRegistered();
+			if (isDeviceRegistered == true) {
 				caller.resume();
 			} else {
 				ClientContext cctx = ClientContext.getCurrentContext();
-				println(" client context " + cctx);
-				println(" app env " + cctx.getAppEnv());
 				TerminalService svc = new TerminalService(); 
 				Object response = svc.findTerminal(terminalid+"");
 				if (response == null) {  
 					throw new Exception("TERMINALID_NOT_FOUND");
-					
+					 
 				} else if (response instanceof Map) {
 					Map map = (Map) response; 
 					String macaddress = map.get("macaddress")+"";
@@ -61,12 +60,20 @@ public class RegistrationLoader implements AppLoader
 						println("ok");
 						ApplicationUtil.deviceResgistered();					
 						caller.resume();
+						
 					} else {
 						println("macaddress does not matched");
 						showRegistration(); 
+						
 					}
 				}
 			}
+//			
+//			int networkStatus = ApplicationUtil.getNetworkStatus();
+//			if (networkStatus == 3) {
+//				caller.resume();
+//			} else {
+//			}
 		} catch (Throwable e) {
 			println(e);
 			e.printStackTrace();

@@ -1,0 +1,27 @@
+<schema>
+	<element tablename="loan_ledger">
+		<field name="objid" primary="true"/>
+		<field name="acctid" required="true"/> 
+		<field name="acctname" required="true"/> 
+		<field name="appid" required="true"/> 
+		<field name="state" required="true"/>
+		<field name="producttypeid" required="true"/> 
+		<field name="loancount" required="true"/> 
+		<field name="term" required="true"/>
+		<field name="paymentmethod" required="true"/>
+		<field name="balance" required="true"/>
+		<field name="dailydue" required="true"/> 
+		<field name="interestamount" required="true"/>
+		<field name="overpaymentamount" require="true"/>
+		<field name="overduepenalty" required="true"/> 
+		<field name="absentpenalty" required="true"/> 
+		<field name="totalprincipal" required="true"/> 
+		<field name="totaldue" required="true"/> 
+		<field name="compromiseid"/> 
+		<field name="dtstarted" required="true"/> 
+		<field name="dtmatured" /> 
+		<field name="dtlastpaid"/>
+		<field name="dtcurrentschedule" required="true"/>
+		<field name="updatetype" required="true"/>
+	</element>
+</schema>

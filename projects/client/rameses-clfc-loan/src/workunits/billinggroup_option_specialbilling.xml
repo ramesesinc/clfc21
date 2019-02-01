@@ -14,6 +14,7 @@
         {
             String serviceName = 'LoanBillingGroupOptionAccountsService';
             String type = 'SPECIALBILLING';
+            String entityName = "billing:group:special";
         
         }
     </code>

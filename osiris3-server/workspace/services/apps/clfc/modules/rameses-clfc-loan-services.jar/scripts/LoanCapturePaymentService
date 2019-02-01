@@ -89,9 +89,6 @@ class LoanCapturePaymentService {
 	@Service("RuleExecutorService")
 	def ruleSvc;
 
-	@Service("CLFCUtilService")
-	def clfcUtilSvc;
-
 	@ProxyMethod
 	public def getPendingCollectors( params ) {
 		if (!params.date) throw new RuntimeException("Please specify date.");
@@ -142,15 +139,9 @@ class LoanCapturePaymentService {
 
 		def list = em.getCapturedPaymentCollectionsByDateAndCollector( params );
 		list.eachWithIndex{ itm, idx-> 
-			if (itm.info) {
-				def info = itm.remove("info");
-				if (info) {
-					info = em.serializer.read(info);
-					//itm.putAll(info);
-
-					itm = clfcUtilSvc.resolveMapMerging( itm, info );
-				}
-			}
+			def info = itm.remove("info");
+			info = em.serializer.read(info);
+			itm.putAll(info);
 			if (!itm.scdetailid) itm.scdetailid = "SCD" + new UID();
 			if (!itm.name) {
 				itm.name = "Capture " + (idx + 1);
@@ -550,9 +541,8 @@ class LoanCapturePaymentService {
 
 	}
 	private void createFieldCollection( data ) {
-		//data = em.read(data);
-		data = open( data );
-		//if (!data) throw new Exception('Capture payment record does not exist or has already been deleted.');
+		data = em.read(data);
+		if (!data) throw new Exception('Capture payment record does not exist or has already been deleted.');
 
 		def fc = fieldcollection.read([objid: data.fieldcollectionid]);
 		if (!fc) {
@@ -568,8 +558,6 @@ class LoanCapturePaymentService {
 			];
 			fieldcollection.create(fc);
 		}
-
-		println 'list->' + data.list;
 
 		def item = fieldcollection.read([objid: data.specialcollectionid], "fc-item");
 		if (!item) {

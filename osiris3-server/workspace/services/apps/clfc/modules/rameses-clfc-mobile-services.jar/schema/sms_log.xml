@@ -1,0 +1,16 @@
+<schema>
+
+	<element tablename="sms_log">
+		<field name="objid" primary="true" />
+		<field name="dtfiled" required="true" />
+		<field name="ledger_objid" required="true" />
+		<field name="loanapp_objid" required="true" />
+		<field name="loanapp_appno" required="true" />
+		<field name="borrower_objid" required="true" />
+		<field name="borower_name" required="true" />
+		<field name="reftype" required="true" />
+		<field name="remarks" required="true" />
+		<complex name="info" required="false" merge="true" serializer="default" />
+	</element>
+
+</schema>

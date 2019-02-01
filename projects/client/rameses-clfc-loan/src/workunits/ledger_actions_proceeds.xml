@@ -1,0 +1,15 @@
+<workunit>
+    <invokers>
+        <invoker type="loan:ledger:actions" action="init" caption="Collect Proceed" target="popup" />
+        
+        <invoker type="formActions" action="cancel" caption="Cancel" mnemonic="c" shortcut="ctrl c"
+            immediate="true" />
+        <invoker type="formActions" action="save" caption="Save" mnemonic="s" shortcut="ctrl s" />
+    </invokers>
+    
+    <code class="com.rameses.clfc.ledger.proceeds.ProceedController" />
+    
+    <pages>
+        <page template="com.rameses.clfc.ledger.proceeds.ProceedPage" />
+    </pages>
+</workunit>

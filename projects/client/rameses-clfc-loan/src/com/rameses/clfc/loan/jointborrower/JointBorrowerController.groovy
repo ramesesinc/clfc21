@@ -11,8 +11,36 @@ class JointBorrowerController
     //feed by the caller
     def loanapp, service, beforeSaveHandlers, callBackHandler, caller, dataChangeHandlers;
     
-    def helper = MapObject.helper;
+    //def helper = MapObject.helper;
     def source;
+    
+    def copyMap( src ) {
+        def data = [:];
+        src?.each{ k, v->
+            if (v instanceof Map) {
+                data[k] = copyMap( v );
+            } else if (v instanceof List) {
+                data[k] = copyList( v );
+            } else {
+                data[k] = v;
+            }
+        }
+        return data;
+    }
+    
+    def copyList( src ) {
+        def list = [];
+        src?.each{
+            if (it instanceof Map) {
+                list << copyMap( it );
+            } else if (it instanceof List) {
+                list << copyList( it );
+            } else {
+                list << it;
+            }
+        }
+        return list;
+    }
     
     void create() {
         loanapp.borrower = [ 
@@ -24,7 +52,8 @@ class JointBorrowerController
     
     void open() {
         source = loanapp.borrower;
-        loanapp.borrower = helper.clone(source); 
+        //loanapp.borrower = helper.clone(source); 
+        loanapp.borrower = copyMap( source );
 
         def borrower = loanapp.borrower;
         if (borrower.spouse == null) borrower.spouse = [:];
@@ -55,7 +84,14 @@ class JointBorrowerController
         borrower.relation = relation; 
         borrower.type = 'JOINT';  
     }
-        
+    
+    def getMode() {
+        try { 
+            return caller.mode; 
+        } catch(Throwable t) {
+            return null; 
+        }
+    }
     def createOpenerParams() {
         def ctx = new BorrowerContext(caller, this, service, loanapp);
         ctx.beforeSaveHandlers = beforeSaveHandlers;

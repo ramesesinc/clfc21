@@ -1,0 +1,8 @@
+<workunit extends="com/rameses/menu/templates/MenuCategory.xml" context="loan" cols="2">
+    <invokers>
+        <invoker type="home.action" 
+                 caption="Loans" 
+                 visibleWhen="#{self.hasChildren('menucategory/loan')==true}" 
+                 action="init"/>
+    </invokers> 
+</workunit>

@@ -1,0 +1,9 @@
+<workunit>
+    <invokers>
+        <invoker type="workflow_prompt:view" caption="Please enter message" action="init"/>
+    </invokers>
+    <code class="com.rameses.seti2.models.WorkflowTaskPromptModel" />
+    <pages>
+        <page template="com.rameses.seti2.views.WorkflowPromptPage"/>
+    </pages>
+</workunit> 

@@ -32,7 +32,14 @@ class BorrowerSiblingsController
             return removeSiblingImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: borrowerContext.mode, caller:this]
+            def handler = { s->
+                def data = borrowerContext.borrower.siblings?.find{ it.objid == s.objid }
+                if (data) {
+                    data.putAll( s );
+                    siblingsHandler?.reload();
+                }
+            }
+            return [mode: borrowerContext.mode, caller:this, handler: handler];
         }
     ] as EditorListModel;
     

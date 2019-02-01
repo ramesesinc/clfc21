@@ -1,0 +1,9 @@
+<schema>
+	<element tablename="borrowerindividual_sibling"> 
+		<field name="objid" primary="true" prefix="SIB"/>
+		<field name="borrowerid" required="true" />
+		<field name="name" required="true" />
+		<field name="age" required="true" />
+		<field name="address" required="true" />	
+	</element>
+</schema>

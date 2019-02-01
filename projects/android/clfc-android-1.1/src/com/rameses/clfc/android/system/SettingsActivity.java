@@ -164,5 +164,5 @@ public class SettingsActivity extends UIActionBarActivity
 			spinner.setSelection(1);
 		}
 //		setValue(R.id.et_debugEnabled, sets.getDebugEnabled());
-	} 	
+	} 
 }

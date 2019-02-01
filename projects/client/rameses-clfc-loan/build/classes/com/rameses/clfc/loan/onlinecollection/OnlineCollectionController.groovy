@@ -7,16 +7,17 @@ import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import com.rameses.common.*;
 import java.rmi.server.UID;
+import com.rameses.clfc.util.LoanUtil;
 
-class OnlineCollectionController
-{
+class OnlineCollectionController {
+    
     @Binding
     def binding;
     
-    @Service('LoanOnlineCollectionService')
+    @Service("LoanOnlineCollectionService")
     def service;
     
-    @Service('DateService')
+    @Service("DateService")
     def dateSvc;
     
     @PropertyChangeListener
@@ -27,28 +28,18 @@ class OnlineCollectionController
         'collector': { o->
             binding?.refresh('route');
         }
-    ];
+    ]
     
-    String title = 'Post Online Collection';
+    String title = "Post Online Collection";
     
     def txndate, route, collector;
-    def action = 'init', mode = 'read';
-    def entity, totalbreakdown, prevcashbreakdown;
-    def selectedPayment;
+    def page = 'init', mode = 'read';
+    def entity, prevcashbreakdown;
+    def selectedPayment, breakdownPanel;
     
-    def init() {
-        resetDate();
-        return initImpl();
-    }
-    
-    def initImpl() {
-        action = 'init';
+    void init() {
+        page = 'init';
         mode = 'read';
-        binding?.refresh();
-        return 'default';
-    }
-    
-    void resetDate() {
         txndate = dateSvc.getServerDateAsString().split(' ')[0];
     }
     
@@ -69,92 +60,48 @@ class OnlineCollectionController
     }
     
     def next() {
-        action = 'main';
+        page = 'main';
         mode = 'read';
         getCollection();
+        listHandler?.reloadAll();
         
         return 'main';
     }
     
-    void setSelectedPayment( selectedPayment ) {
-        this.selectedPayment = selectedPayment;
-        binding?.refresh('formActions');
-    }
-    
-    private void getCollection() {
-        entity = service.getCollection([collector: collector, collection: route]);
-        entity.collector = collector;
-        
-        listHandler?.reload();
-        if (entity.remittance) {            
-            if (entity.hasCash) {
-                if (!entity.cashbreakdown) {
-                    entity.cashbreakdown = createCashBreakdown();
-                }
-                totalbreakdown = entity.cashbreakdown?.items?.amount?.sum();
-                if (!totalbreakdown) totalbreakdown = 0;
-                
-            }
-        } else {
-            entity.remittance = [objid: 'REM' + new UID(), state: 'DRAFT'];
-        }
-    }
-    
-    def createCashBreakdown() {
-        def item = [
-            objid   : 'CB' + new UID(),
-            items   : []
-        ]
-        mode = 'create';
-        totalbreakdown = 0;
-        return item;
-        
-    }
-    
     def back() {
-        action = 'init';
-        mode = 'read';
+        page = "init";
+        return "default";
+    }
+    
+    void getCollection() {
+        entity = service.getCollection([collector: collector, collection: route]);
+        buildConsolidatedCashBreakdown( entity );
         
-        return 'default';
+        binding?.refresh();
+        listHandler?.reload();
     }
     
-    def listHandler = [
-        fetchList: { o->
-            if (!entity.payments) entity.payments = [];
-            return entity.payments;
-        }
-    ] as BasicListModel;
-    
-    def getCashbreakdown() {
-        if (!entity.cashbreakdown?.items) {
-            entity.cashbreakdown.items = [];
-        }
-        def params = [
-            entries         : entity.cashbreakdown.items,
-            totalbreakdown  : totalbreakdown,
-            editable        : ((mode != 'read' && entity.hasCash)? true: false),
-            onupdate        : { o->
-                totalbreakdown = o;
-            }
-        ]
-        def op = InvokerUtil.lookupOpener('clfc:denomination', params);
-        if (!op) return null;
-        return op;
+    def getTotalcashbreakdown() {
+        def amt = entity.cashbreakdown?.items?.amount?.sum();
+        if (!amt) amt = 0;
+        
+        return amt;
     }
     
+    def getTotalbreakdown() {
+        def amt = entity?.consolidatedbreakdown?.items?.amount?.sum();
+        if (!amt) amt = 0;
+        
+        return amt;
+    }
+    
+    /*
     def getTotalcollection() {
         if (!entity.payments || !entity.payments.find{ !it.state }) return 0;
         def list = entity.payments.findAll{ !it.state };
         def amt = list?.amount?.sum();
         if (!amt) amt = 0;
         return amt;
-    }
-    
-    def getState() {
-        if (!entity.remittance?.state) {
-            entity.remittance.state = 'DRAFT';
-        }
-        return entity?.remittance?.state;
     }
     
     def getTotalcash() {
@@ -172,16 +119,29 @@ class OnlineCollectionController
         if (!amt) amt = 0;
         return amt;
     }
+    */
     
-    void save() {
-        if (totalbreakdown != getTotalcash()) {
-            throw new Exception('Total for denomination does not match with total cash collected.');
+    def getState() {
+        if (!entity) return;
+        return entity.state;
+    }
+    
+    def listHandler = [
+        getColumns: { o->
+            return service.getCollectionColumns( o );
+        },
+        fetchList: { o->
+            if (!entity.payments) entity.payments = [];
+            return entity.payments;
         }
-        
+    ] as BasicListModel;
+    
+    void save() {        
         if (mode != 'read') {
             entity.cashbreakdown = service.updateCashBreakdown(entity.cashbreakdown);
         }
         mode = 'read';
+        binding?.refresh();
     }
     
     void edit() {
@@ -195,61 +155,196 @@ class OnlineCollectionController
         }
         
         mode = 'edit';
+        binding?.refresh();
     }
     
     void cancel() {
+        
         entity?.cashbreakdown?.items = [];
-        entity?.cashbreakdown?.items.addAll(prevcashbreakdown);
-        totalbreakdown = entity?.cashbreakdown?.items?.amount?.sum();
-        if (!totalbreakdown) totalbreakdown = 0;
+        if (prevcashbreakdown) {
+            entity?.cashbreakdown?.items = prevcashbreakdown;
+        }
+        buildConsolidatedCashBreakdown( entity );
         
         mode = 'read';
+        binding?.refresh();
     }
-    
+        
     void remit() {
         if (!MsgBox.confirm('You are about to remit this collection. Continue?')) return;
         
         entity.objid = route?.objid;
-        entity = service.remit(entity);
+        entity = service.remit( entity );
+        buildConsolidatedCashBreakdown( entity );
         
-        totalbreakdown = entity?.cashbreakdown?.items?.amount?.sum();
-        if (!totalbreakdown) totalbreakdown = 0;
+        binding?.refresh('breakdownPanel');
+    }
+    
+    void submitForVerification() {
+        if (!MsgBox.confirm("You are about to submit this collection for verification. Continue?")) return;
         
-        binding?.refresh('formActions');
+        entity = service.submitForVerification( entity );
+        buildConsolidatedCashBreakdown( entity );
+        binding?.refresh();
+    }
+    
+    void returnToRemittance() {
+        entity = service.returnToRemittance( entity );
+        buildConsolidatedCashBreakdown( entity );
+        binding?.refresh();
+    }
+    
+    void returnToDraft() {
+        entity = service.returnToDraft( entity );
+        binding?.refresh();
+    }
+    
+    void verify() {
+        entity = service.verify( entity );
+        buildConsolidatedCashBreakdown( entity );
+        binding?.refresh();
     }
     
     def post() {
         if (!MsgBox.confirm('You are about to post this collection. Continue?')) return;
         
-        service.post(entity);
+        service.post( entity );
         MsgBox.alert("Collection successfully posted!");
-        return initImpl();
+        binding?.refresh();
+        init();
+        return "default";
     }
     
-    void submitCbsForVerification() {
-        if (!MsgBox.confirm("You are about to submit CBS for this collection for verification. Continue?")) return;
+    def overage() {
+        def handler = { o->
+            getCollection();
+            binding.refresh();
+        }
         
-        entity.cashbreakdown = service.submitCbsForVerification(entity);
-        getCollection();
-        //entity.cashbreakdown = service.submitCbsForVerification(entity);
-        //getFieldCollection();
-    }
-    
-    def viewCbsSendbackRemarks() {
+        def allowCreate = false;
+        if (entity.totalcashamount < getTotalcashbreakdown()) {
+            allowCreate = true;
+        }
+
         def params = [
-            title   : 'Reason for Send Back',
-            remarks : entity?.cashbreakdown?.sendbackremarks
+            remittanceid: entity.remittance?.objid,
+            collector   : entity.collector,
+            txndate     : entity.txndate,
+            handler     : handler,
+            allowCreate : allowCreate
         ];
+        def op = Inv.lookupOpener('overage:list', params);
+        if (!op) return null;
+        return op;
+    }
+
+    def shortage() {
+        def handler = { o->
+            getCollection();
+            binding.refresh();
+        }
         
-        def op = Inv.lookupOpener('remarks:open', params);
+        def allowCreate = false;
+        if (entity.totalcashamount > getTotalcashbreakdown()) {
+            allowCreate = true;
+        }
+
+        def params = [
+            remittanceid: entity.remittance?.objid,
+            collector   : entity.collector,
+            txndate     : entity.txndate,
+            handler     : handler,
+            allowCreate : allowCreate
+        ];
+        def op = Inv.lookupOpener('shortage:list', params);
         if (!op) return null;
         return op;
     }
     
+    
+    def getConsolidatedCashbreakdown() {
+        if (!entity.consolidatedbreakdown) entity.consolidatedbreakdown = [:];
+        if (!entity.consolidatedbreakdown.items) entity.consolidatedbreakdown.items = [];
+        
+        def tb = entity.consolidatedbreakdown?.items?.amount?.sum();
+        if (!tb) tb = 0;
+        def params = [
+            entries         : entity.consolidatedbreakdown?.items,//entity?.cashbreakdown?.items,
+            totalbreakdown  : tb, //totalbreakdown,
+            editable        : false, //(mode != 'read'? true: false),
+        ];
+        
+        def op = Inv.lookupOpener("clfc:denomination:nopanel", params);
+        if (!op) return null;
+        return op;
+    }
+    
+    def getCollectionCashbreakdown() {
+        if (!entity.cashbreakdown) entity.cashbreakdown = [:];
+        if (!entity.cashbreakdown.items) entity.cashbreakdown.items = [];
+        
+        def tb = entity.cashbreakdown?.items?.amount?.sum();
+        if (!tb) tb = 0;
+        def params = [
+            entries         : entity.cashbreakdown?.items,//entity?.cashbreakdown?.items,
+            totalbreakdown  : tb, //totalbreakdown,
+            editable        : (mode != 'read'? true: false),
+            onupdate        : { o->
+                buildConsolidatedCashBreakdown( entity );
+                binding?.refresh("consolidatedCashbreakdown");
+            }
+        ];
+        
+        def op = Inv.lookupOpener("clfc:denomination:nopanel", params);
+        if (!op) return null;
+        return op;
+    }
+    
+    def getShortageCashbreakdown() {
+        if (!entity.shortagebreakdown) entity.shortagebreakdown = [:];
+        if (!entity.shortagebreakdown.items) entity.shortagebreakdown.items = [];
+        
+        def tb = entity.shortagebreakdown?.items?.amount?.sum();
+        if (!tb) tb = 0;
+        def params = [
+            entries         : entity.shortagebreakdown?.items,//entity?.cashbreakdown?.items,
+            totalbreakdown  : tb, //totalbreakdown,
+            editable        : false, //(mode != 'read'? true: false),
+        ];
+        
+        def op = Inv.lookupOpener("clfc:denomination:nopanel", params);
+        if (!op) return null;
+        return op;
+    }
+    
+    void buildConsolidatedCashBreakdown( params ) {
+        entity.consolidatedbreakdown = [items: buildConsolidatedCashBreakdownImpl(params)];
+    }
+    
+    def buildConsolidatedCashBreakdownImpl( params ) {
+        def list = [];
+        LoanUtil.denominations.each{ o->
+            def map = [:];
+            map.putAll(o);
+            
+            def i = params.cashbreakdown.items?.find{ it.denomination==o.denomination && it.qty > 0 }
+            if (i) map.qty += i.qty;
+            
+            i = params.shortagebreakdown?.items?.find{ it.denomination==o.denomination && it.qty > 0 }
+            if (i) map.qty += i.qty;
+            
+            map.amount = map.qty * map.denomination;
+            
+            list << map;
+        }
+        
+        return list;
+    }   
+    
     def voidPayment() {
         if (!selectedPayment) return;
         
-        if (selectedPayment?.isproceedcollection == 1) {
+        if (selectedPayment?.allowvoid==false) {
             MsgBox.alert("Cannot void this payment.");
             return;
         }
@@ -265,29 +360,7 @@ class OnlineCollectionController
         return op;
     }
     
-    def createVoidRequest( payment ) {
-        def params = getVoidRequestParameters(payment);
-        params.route = payment.route;
-        params.collectionsheet = [
-            loanapp : payment.loanapp,
-            borrower: payment.borrower
-        ];
-        params.payment = payment;
-        params.collector = [
-            objid   : ClientContext.currentContext.headers.USERID,
-            name    : ClientContext.currentContext.headers.NAME
-        ];
-        //println 'params ' + params;
-        return InvokerUtil.lookupOpener('voidrequest:create', params);
-    }
-
-    def openVoidRequest( payment ) {
-        def params = getVoidRequestParameters(payment);        
-        params.payment = payment;
-        return InvokerUtil.lookupOpener('voidrequest:open', params);
-    }
-    
-    private def getVoidRequestParameters( payment ) {
+    def getVoidRequestParameters( payment ) {
         def handler = { o->
             getCollection();
             binding?.refresh();
@@ -302,24 +375,31 @@ class OnlineCollectionController
         ];
         
         return params;
-        /*
-        def params = [
-            txncode                 : 'ONLINE',
-            collectionid            : payment.parentid,
-            afterSaveHandler        : { o->
-                selectedPayment.voidid = o.objid;
-                selectedPayment.pending = 1;
-            },
-            afterApproveHandler     : { o->
-                selectedPayment.voided = 1;
-                selectedPayment.pending = 0;
-                binding.refresh('totalcollection');
-            },
-            afterDisapproveHandler  : { o->
-                selectedPayment.pending = 0;
-                binding.refresh('totalcollection');
-            }
+    }
+    
+    def createVoidRequest( payment ) {
+        def params = getVoidRequestParameters( payment );
+        params.route = payment.route;
+        params.collectionsheet = [
+            loanapp : payment.loanapp,
+            borrower: payment.borrower
         ];
-        */
+        params.payment = payment;
+        params.collector = [
+            objid   : ClientContext.currentContext.headers.USERID,
+            name    : ClientContext.currentContext.headers.NAME
+        ];
+        
+        def op = Inv.lookupOpener('voidrequest:create', params);
+        if (!op) return null;
+        return op;
+    }
+
+    def openVoidRequest( payment ) {
+        def params = getVoidRequestParameters( payment );        
+        params.payment = payment;
+        def op = Inv.lookupOpener('voidrequest:open', params);
+        if (!op) return null;
+        return op;
     }
 }

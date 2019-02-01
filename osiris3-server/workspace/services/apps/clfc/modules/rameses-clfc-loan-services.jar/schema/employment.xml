@@ -1,0 +1,14 @@
+<schema>
+	<element tablename="employment"> 
+		<field name="objid" primary="true" prefix="EMP"/> 
+		<field name="refid" required="true"/>
+		<field name="employer" required="true"/>
+		<field name="address"/>
+		<field name="contactno"/>
+		<field name="position"/>
+		<field name="salary"/>
+		<field name="lengthofservice"/>
+		<field name="status"/>
+		<field name="remarks" required="true"/>
+	</element> 	
+</schema>

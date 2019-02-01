@@ -34,21 +34,18 @@ public class AssessmentOtherChargePage extends javax.swing.JPanel {
     private void initComponents() {
 
         xFormPanel1 = new com.rameses.rcp.control.XFormPanel();
-        xLookupField1 = new com.rameses.rcp.control.XLookupField();
+        xLookupField2 = new com.rameses.rcp.control.XLookupField();
         xDecimalField1 = new com.rameses.rcp.control.XDecimalField();
 
-        xLookupField1.setCaption("Account");
-        xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("${entity.title}");
-        xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        xLookupField1.setHandler("lookupItemAccount");
-        xLookupField1.setName("account"); // NOI18N
-        xLookupField1.setPreferredSize(new java.awt.Dimension(200, 20));
-        xLookupField1.setRequired(true);
-        xFormPanel1.add(xLookupField1);
+        xLookupField2.setCaption("Account");
+        xLookupField2.setExpression("${entity.title}");
+        xLookupField2.setHandler("lookupItemAccount");
+        xLookupField2.setPreferredSize(new java.awt.Dimension(0, 20));
+        xLookupField2.setRequired(true);
+        xFormPanel1.add(xLookupField2);
 
-        xDecimalField1.setCaption("Amount");
         xDecimalField1.setName("entity.amount"); // NOI18N
+        xDecimalField1.setCaption("Amount");
         xDecimalField1.setRequired(true);
         xFormPanel1.add(xDecimalField1);
 
@@ -72,6 +69,6 @@ public class AssessmentOtherChargePage extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private com.rameses.rcp.control.XDecimalField xDecimalField1;
     private com.rameses.rcp.control.XFormPanel xFormPanel1;
-    private com.rameses.rcp.control.XLookupField xLookupField1;
+    private com.rameses.rcp.control.XLookupField xLookupField2;
     // End of variables declaration//GEN-END:variables
 }

@@ -401,10 +401,16 @@ class MigrationTask
 			data.state = 'RELEASED';
 		}
 
+		def islastloan = false;
+		def ll = loanresolver.findLastLoanByBorrowerid([borrowerid: data.borrower.custno]);
+		if (ll && data.appno==String.valueOf(ll.objid).trim()) {
+			islastloan = true;
+		}
+
 		//println 'data ' + data;
 		loanapp.create(data);
 		loanapp.create(data, 'loanapp_capture');
-		if (data.state=='RELEASED') {
+		if (data.state=='RELEASED' || islastloan) {
 			buildSearchIndex(data);
 		}
 		buildBorrower(data);

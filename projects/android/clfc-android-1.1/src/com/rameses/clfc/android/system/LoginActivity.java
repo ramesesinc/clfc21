@@ -192,9 +192,9 @@ public class LoginActivity extends SettingsMenuActivity
 		}
 	};
 	
-	private void println(String  str) {
+	private void println(Object msg) {
 //		System.out.println("[LoginActivity] " + str);
-		Log.i("LoginActivity", str);
+		ApplicationUtil.println("LoginActivity", msg.toString());
 	}
 	
 	private class ActionProcess implements Runnable 
@@ -209,14 +209,14 @@ public class LoginActivity extends SettingsMenuActivity
 		
 		private void disconnectedLogin(String user, String pwd, LoginService loginSvc) throws Exception {
 			boolean validatepwd = true;
-			println("[disconnectedLogin] sessionid " + SessionContext.getSessionId());
+//			println("[disconnectedLogin] sessionid " + SessionContext.getSessionId());
 			UserProfile prof = SessionContext.getProfile();
-			println("profile " + prof);
-			println("full name: " + prof.getFullName());
-			println("job title: " + prof.getJobTitle());
-			println("name: " + prof.getName());
-			println("userid: " + prof.getUserId());
-			println("username: " + prof.getUserName());
+//			println("profile " + prof);
+//			println("full name: " + prof.getFullName());
+//			println("job title: " + prof.getJobTitle());
+//			println("name: " + prof.getName());
+//			println("userid: " + prof.getUserId());
+//			println("username: " + prof.getUserName());
 			
 			String xuid = (prof != null? prof.getUserId() : "");
 			if (xuid == null || "".equals(xuid)) {
@@ -276,6 +276,10 @@ public class LoginActivity extends SettingsMenuActivity
 					disconnectedLogin(username, password, loginSvc);
 				}
 				println("after login");
+				
+//				if (1==1) {
+//					throw new RuntimeException("stopping login");
+//				}
 												
 				UserSetting userSets = SessionContext.getSettings();
 				String onlinehost 	= userSets.getOnlineHost();
@@ -286,7 +290,7 @@ public class LoginActivity extends SettingsMenuActivity
 				int port 			= userSets.getPort();
 
 				
-				HashMap<String,Object> map = new HashMap();
+				HashMap<String, Object> map = new HashMap();
 				if (port > 0) map.put("host_port", port);
 				if (onlinehost != null) map.put("host_online", onlinehost);
 				if (offlinehost != null) map.put("host_offline", offlinehost);
@@ -386,8 +390,9 @@ public class LoginActivity extends SettingsMenuActivity
 				String collector_state = settings.getCollectorState();
 
 				if (networkStatus < 3) {
-//					println("login result: " + loginSvc.getResult());
+//					ApplicationUtil.println("LoginActivity", "result " + loginSvc.getResult());
 					String result = new Base64Cipher().encode(loginSvc.getResult());
+//					ApplicationUtil.println("LoginActivity", "result " + result);
 					map.put("result", result);
 					map.put("encpwd", loginSvc.getEncpwd());
 				}
@@ -435,7 +440,10 @@ public class LoginActivity extends SettingsMenuActivity
 //						xtrackerid = tracker.get(prefix + "trackerid").toString();
 						map.putAll(tracker);
 					}
-				}
+				} 
+				
+				println("trackerid " + trackerid);
+				map.put("collector_trackerid", trackerid);
 //				System.out.println("trackerid: " + trackerid);
 //				System.out.println("xtrackerid: " + xtrackerid);
 
@@ -448,7 +456,7 @@ public class LoginActivity extends SettingsMenuActivity
 //						xcaptureid = capture.get(prefix + "captureid").toString();
 						map.putAll(capture);
 					} 
-				}
+				} 
 //				System.out.println("captureid: " + captureid);
 //				System.out.println("xcaptureid: " + xcaptureid);
 

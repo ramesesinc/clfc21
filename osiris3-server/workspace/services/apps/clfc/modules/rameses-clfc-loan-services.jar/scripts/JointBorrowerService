@@ -63,6 +63,7 @@ class JointBorrowerService
 		for (o in borrowers) {
 			itm = customer.read([objid: o.objid]);
 			if (itm) {
+				o.type = itm.type;
 				if (itm.type == 'INDIVIDUAL') {
 					itm2 = customerindividual.read([objid: itm.objid]);
 					o.name = borrowerService.createFullName(itm2.lastname, itm2.firstname, itm2.middlename); 
@@ -70,6 +71,12 @@ class JointBorrowerService
 					o.name = itm.name;
 				}
 			}
+
+			def b = borrower.read([objid: o.objid]);
+			if (!b) {
+				borrowerService.create( o );
+			}
+
 			o.principalid = data.borrower.objid; 
 			borrowerService.update(o); 
 		}

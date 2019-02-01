@@ -56,6 +56,9 @@ class LoanLedgerPhoneFollowupResultService extends ActiveCrudListService
 	@Service('InboxService')
 	def inboxSvc;
 
+    @SqlContext("system")
+    def sysdb;
+
 	@ProxyMethod
 	public def getColumns( params ) {
 		def cols = [];

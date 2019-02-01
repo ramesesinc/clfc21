@@ -1,0 +1,14 @@
+<schema>
+	<element tablename="loanapp_collateral_appliance">
+		<field name="objid" primary="true"/>
+		<field name="parentid" required="true"/> 
+		<field name="type" required="true"/> 
+		<field name="brand" required="true"/> 
+		<field name="dtacquired" required="true"/> 
+		<field name="modelno" /> 
+		<field name="serialno" /> 
+		<field name="marketvalue" /> 
+		<field name="remarks"/> 
+		<complex name="attachments" serializer="default" type="list" required="false"/> 
+	</element>
+</schema>

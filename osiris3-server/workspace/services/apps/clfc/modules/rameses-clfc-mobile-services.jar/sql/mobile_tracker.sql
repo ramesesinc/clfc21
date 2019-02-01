@@ -39,6 +39,11 @@ SELECT * FROM mobile_tracker_detail
 WHERE parentid =  $P{objid}
 ORDER BY txndate DESC
 
+[findDetailByRefid]
+select * 
+from mobile_tracker_detail
+where refid=$P{refid}
+
 [xgetList]
 SELECT t.*, 
 	u.username AS user_name, u.lastname AS user_lastname, 
@@ -102,7 +107,7 @@ FROM (
 	) b
 ORDER BY b.txndate DESC
 
-[xgetRoutes]
+[getRoutes]
 SELECT t.*, 
 	r.code AS 'route_code', r.area AS 'route_area', 
 	r.description AS 'route_description', r.dayperiod AS 'route_dayperiod' 

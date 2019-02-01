@@ -10,9 +10,18 @@ class CollateralVehicleController
 {
     @Binding
     def binding;
-    def loanappid, collateral, mode, beforeSaveHandlers;
+    def loanappid, collateral, caller, beforeSaveHandlers;
     
-    def htmlbuilder=new CollateralHtmlBuilder();
+    def htmlbuilder = new CollateralHtmlBuilder();
+    
+    def getMode() {
+        try { 
+            return caller.mode; 
+        } catch(Throwable t) {
+            return null; 
+        }
+    }
+    
     def selectedVehicle;
     def vehicleHandler = [
         fetchList: {o->
@@ -24,7 +33,14 @@ class CollateralVehicleController
             return removeVehicleImpl(o); 
         },
         getOpenerParams: {o->
-            return [mode: mode, caller:this];
+            def handler = { c->
+                def data = collateral.vehicles?.find{ it.objid == c.objid }
+                if (data) {
+                    data.putAll( c );
+                    vehicleHandler?.reload();
+                }
+            }
+            return [mode: mode, state: caller?.state, caller:this, handler: handler];
         }
     ] as EditorListModel;
     
@@ -34,7 +50,7 @@ class CollateralVehicleController
             collateral.vehicles.add(vehicle);
             vehicleHandler.reload();
         }
-        return InvokerUtil.lookupOpener("vehicle:create", [handler:handler]);
+        return InvokerUtil.lookupOpener("vehicle:create", [state: caller?.state, handler:handler]);
     }
     
     void removeVehicle() {
@@ -52,6 +68,21 @@ class CollateralVehicleController
     }
     
     def getHtmlview() {
-        return htmlbuilder.buildVehicle(selectedVehicle);
+        def m = [:]; 
+        if ( selectedVehicle ) m.putAll( selectedVehicle ); 
+         
+        return htmlbuilder.buildVehicle( m );
     }
+    
+    /*
+    def addCiReport() {
+        if ( collateral.ci == null ) collateral.ci = [:]; 
+        
+        def params = [mode: mode, caller: this]; 
+        params.handler = { collateral.ci.vehicle = it } 
+        params.entity = collateral.ci.vehicle; 
+        if ( params.entity == null ) params.entity = [:]; 
+        return InvokerUtil.lookupOpener("cireport:edit", params);
+    } 
+    */
 }

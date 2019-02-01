@@ -29,23 +29,35 @@ import com.rameses.util.*;
                         }
                         out.print('<u>' + o.title + '</u>&nbsp;&nbsp;');
                         if (mode!='read') { %>
-                            <a href="editCondition" objid="${o.objid}">[Edit]</a>&nbsp;&nbsp;
+                            <a href="editCondition" code="${o.code}">[Edit]</a>&nbsp;&nbsp;
                             <%  if (o?.isfirst == false) { %>
-                                    <a href="moveUpCondition" objid="${o.objid}">[Move Up]</a>&nbsp;&nbsp;
+                                    <a href="moveUpCondition" code="${o.code}">[Move Up]</a>&nbsp;&nbsp;
                             <%  } 
                                 if (o?.islast == false) { %>
-                                    <a href="moveDownCondition" objid="${o.objid}">[Move Down]</a>&nbsp;&nbsp;
+                                    <a href="moveDownCondition" code="${o.code}">[Move Down]</a>&nbsp;&nbsp;
                             <%  } 
                                 if (!o?.isdefault) { %>
-                                    <a href="removeCondition" objid="${o.objid}">[Remove]</a>&nbsp;&nbsp;
+                                    <a href="removeCondition" code="${o.code}">[Remove]</a>&nbsp;&nbsp;
                             <%  }
                         }
-                        out.print('<br/>&nbsp;&nbsp;');
+
+                        /*
                         if (o?.postonlastitem == true) {
                             out.print('Post on last item is <b>true</b>');
                         } else if (o?.postperitem == true) {
                             out.print('Post per item is <b>true</b>');
-                        } 
+                        }
+                        */
+                        
+                        if (o?.posttoheader) {
+                            out.print('<br/>&nbsp;&nbsp;Post to Header: <b>' + o.posttoheader.title + '</b>');
+                        }
+                        
+                        switch (o?.ruleset) {
+                            case 'postprepaid': out.print('<br/>&nbsp;&nbsp;Post prepaid is <b>true</b>'); break;
+                            case 'postperitem': out.print('<br/>&nbsp;&nbsp;Post per item is <b>true</b>'); break;
+                            case 'postonglastitem': out.print('<br/>&nbsp;&nbsp;Post on last item is <b>true</b>'); break;
+                        }
 
                         if (o?.isdeductabletoamount == true) {
                             out.print('<br/>&nbsp;&nbsp;Deductable to amount is <b>true</b>');

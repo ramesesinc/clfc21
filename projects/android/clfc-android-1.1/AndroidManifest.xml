@@ -12,9 +12,11 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    
+    <!-- Phone startup permission -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES"/>
 	<!-- My Location -->
@@ -68,20 +70,31 @@
         <activity android:name="com.rameses.clfc.android.main.CapturePaymentActivity"  android:screenOrientation="portrait"/>
         <activity android:name="com.rameses.clfc.android.main.CollectionSheetInfoMainActivity"  android:screenOrientation="portrait"/>
         <activity android:name="com.rameses.clfc.android.main.CollectionSheetListActivity"  android:screenOrientation="portrait"/>
-        <receiver 
-            android:exported="true" 
-            android:name="com.rameses.clfc.android.receiver.SmsListener">
+<!--         <receiver  -->
+<!--             android:exported="true"  -->
+<!--             android:name="com.rameses.clfc.android.receiver.SmsListener"> -->
+<!--             <intent-filter> -->
+<!--         		<action android:name="android.provider.Telephony.SMS_RECEIVED" /> -->
+<!--             </intent-filter> -->
+<!--         </receiver> -->
+<!--         <receiver  -->
+<!--             android:exported="true"  -->
+<!--             android:name="com.rameses.clfc.android.receiver.TimeChangeListener"> -->
+<!--             <intent-filter> -->
+<!--         		<action android:name="android.intent.action.TIME_SET" /> -->
+<!--             </intent-filter> -->
+<!--         </receiver> -->
+        
+        <receiver
+            android:exported="true"
+            android:enabled="true"
+            android:name="com.rameses.clfc.android.receiver.PhoneStatusListener">
             <intent-filter>
-        		<action android:name="android.provider.Telephony.SMS_RECEIVED" />
+                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="rameses.clfc.APPLICATION_START" />
             </intent-filter>
-        </receiver>
-        <receiver 
-            android:exported="true" 
-            android:name="com.rameses.clfc.android.receiver.TimeChangeListener">
-            <intent-filter>
-        		<action android:name="android.intent.action.TIME_SET" />
-            </intent-filter>
-        </receiver>
+         </receiver>
         <service 
             android:name="com.rameses.clfc.android.receiver.SmsService">
         </service>

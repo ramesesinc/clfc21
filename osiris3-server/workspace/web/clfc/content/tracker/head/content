@@ -1,13 +1,17 @@
 <%
 def svc = SERVICE.lookup("MobileTrackerService", "admin");
-def data = svc.open([objid: PARAMS.objid]); 
+//def data = svc.open([objid: PARAMS.objid]); 
+def data = svc.openLog( [objid: PARAMS.objid] );
 if (PARAMS.type == 'end') {
-	data.txndate = data.dtclosed;
+	data.txndate = data.txndate;
 	data.remarks = 'TRACKING SESSION ENDED'; 
-} else {
-	data.txndate = data.dtstart;
+} else if (PARAMS.type == 'start') {
+	data.txndate = data.txndate;
 	data.remarks = 'STARTING POINT';
-} 
+} else if (PARAMS.type == 'download') {
+	data.txndate = data.txndate;
+	data.remarks = 'Billing Downloaded';
+}
 %>
 <style>
 #markerinfo { font-family:'opensans',Tahoma,Arial; }

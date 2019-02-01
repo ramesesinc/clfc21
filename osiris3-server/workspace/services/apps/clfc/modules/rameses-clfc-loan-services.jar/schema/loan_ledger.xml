@@ -10,14 +10,14 @@
 		<field name="loancount" required="true"/> 
 		<field name="term" required="true"/>
 		<field name="paymentmethod" required="true"/>
-		<field name="balance"/>
+		<field name="balance" required="true"/>
 		<field name="dailydue" required="true"/> 
 		<field name="interestamount" required="true"/>
-		<field name="overpaymentamount"/>
-		<field name="overduepenalty" /> 
+		<field name="overpaymentamount" require="true"/>
+		<field name="overduepenalty" required="true"/> 
 		<field name="absentpenalty" required="true"/> 
 		<field name="totalprincipal" required="true"/> 
-		<field name="totaldue"/> 
+		<field name="totaldue" required="true"/> 
 		<field name="compromiseid"/> 
 		<field name="dtstarted" required="true"/> 
 		<field name="dtmatured" /> 

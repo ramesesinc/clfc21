@@ -99,7 +99,10 @@ function isGoogleMapReady() {
 } 
 
 function createMapObject(params) {
-	if (!isGoogleMapReady()) return;
+	if (!isGoogleMapReady()) {
+		window.console.log("google map not ready");
+		return;
+	}
 
 	try { 
 		var tracker = trackerSvc.open({objid: trackerid}); 
@@ -114,10 +117,13 @@ function createMapObject(params) {
 		return; 
 	} 
 
+	//var branchLocation = trackerSvc.getBranchLocation();
+	//window.console.log("create map object");
+	//window.console.log( branchLocation );
 	if (!params) params = {};			
 	if (!params.zoom) params.zoom = 14;
-	if (!params.lng || params.lng == 0) params.lng = 123.87636423110962;
-	if (!params.lat || params.lat == 0) params.lat = 10.309926522447359;
+	if (!params.lng || params.lng == 0) params.lng = 123.87636423110962;//params.lng = branchLocation.lng; //params.lng = 123.87636423110962;
+	if (!params.lat || params.lat == 0) params.lat = 10.309926522447359;//params.lat = branchLocation.lat; //params.lat = 10.309926522447359;
 
 	var mapOptions = { 
 		zoom      : params.zoom, 

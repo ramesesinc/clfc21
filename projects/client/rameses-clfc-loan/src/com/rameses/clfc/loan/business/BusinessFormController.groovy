@@ -27,4 +27,8 @@ class BusinessFormController extends PopupMasterController
     public def createEntity() {
         return [ objid: 'BUSS'+new UID(), occupancy:[:] ]
     }
+    
+    def open() {
+        entity = copyMap( entity );
+    }
 }

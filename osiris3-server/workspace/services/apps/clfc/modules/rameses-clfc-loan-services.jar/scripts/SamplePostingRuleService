@@ -1,0 +1,108 @@
+import com.rameses.annotations.*;
+import com.rameses.rules.common.*;
+import loan.facts.*;
+import loan.actions.*;
+import java.util.*;
+import com.rameses.util.*;
+import com.rameses.osiris3.core.*;
+import com.rameses.osiris3.rules.*;
+
+
+
+import org.drools.KnowledgeBase;
+import org.drools.KnowledgeBaseFactory;
+
+import org.drools.builder.KnowledgeBuilder;
+import org.drools.builder.KnowledgeBuilderError;
+import org.drools.builder.KnowledgeBuilderErrors;
+import org.drools.builder.KnowledgeBuilderFactory;
+import org.drools.builder.ResourceType;
+
+import org.drools.io.ResourceFactory;
+import org.drools.runtime.StatefulKnowledgeSession;
+
+class SamplePostingRuleService 
+//extends RuleService
+{
+	@Resource('RuleService')
+	def ruleSvc;
+
+	@Context
+	def context;
+
+	//@Service('RuleExecutorService')
+	//def ruleSvc;
+
+	def conf;
+
+	@ProxyMethod
+	public def execute( params ) {
+
+		try {
+			//println 'context ' + this.context;
+			//println 'class loader ' + context.getClassLoader();
+
+			String langLevel = (String)this.context.getConf().get("drools.langLevel");
+			Properties properties = new Properties();
+			if (langLevel != null) {
+				properties.setProperty("drools.dialect.java.compiler.lnglevel", langLevel);
+			}
+			properties.setProperty("drools.dialect.java.compiler", "JANINO");
+
+			println 'properties ' + properties;
+      		//KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
+			//KnowledgeBase kbase = readKnowledgeBase();
+			//println 'kbase ' + kbase;
+			ClassLoader[] classLoaders = [context.getClassLoader()] as ClassLoader[]; 
+			println 'class loaders ' + classLoaders;
+			conf = KnowledgeBuilderFactory.newKnowledgeBuilderConfiguration();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		//def facts = [];
+
+		/*
+		facts << new SampleLoanApp(params);
+
+		def actions = new RuleAction(); 
+		actions.addCommand( "addSamplePostingItem", new  AddSamplePostingItem(facts: facts) );
+
+
+		ruleSvc.execute( "loanposting", facts, actions, null );
+
+		println 'facts size ' + facts?.size();
+		facts?.each{ println it?.toMap(); }
+		*/
+	}
+
+	public void start() throws Exception {
+	}
+
+	public void stop() throws Exception {
+	}
+
+	public Class getProviderClass() {
+		return SamplePostingRuleService.class;
+	}
+	private KnowledgeBase readKnowledgeBase() throws Exception {
+
+		KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
+      
+		kbuilder.add(ResourceFactory.newClassPathResource("SMCPosting.drl"), ResourceType.DRL);
+		//kbuilder.add(ResourceFactory.newClassPathResource("Nagpur.drl"), ResourceType.DRL);
+		KnowledgeBuilderErrors errors = kbuilder.getErrors();
+      
+		if (errors.size() > 0) {
+			for (KnowledgeBuilderError error: errors) {
+				System.err.println(error);
+			}
+			throw new IllegalArgumentException("Could not parse knowledge.");
+		}
+
+		KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
+		kbase.addKnowledgePackages(kbuilder.getKnowledgePackages());
+
+		return kbase;
+	}
+}

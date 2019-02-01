@@ -9,7 +9,11 @@ import com.rameses.clfc.util.*;
 class LoanAppCoMakerController 
 {
     //feed by the caller
-    def loanapp, caller, selectedMenu;
+    def caller, loanapp, menuitem, handlers;
+    
+    def mode;
+    def snapshot;
+    def base64;
     
     private def beforeSaveHandlers = [:];
     private def dataChangeHandlers = [:];
@@ -20,8 +24,22 @@ class LoanAppCoMakerController
     def borrowers = [];
     def selectedCoMaker;
     
+    def hasProperty( property, bean ) {
+        if (bean == null) return false;
+        return (bean.metaClass.hasProperty(bean, property)? true : false);
+    }
+    
+    def hasMethod( property, bean ) {
+        if (bean == null) return false;
+        return (bean.metaClass.respondsTo(bean, property)? true : false);
+    }
+    
     void init() {
-        selectedMenu.saveHandler = { save(); }  
+        mode = 'read';
+        handlers.saveHandler = { save(); }
+        //menuitem.saveHandler = { save(); }  
+        base64 = new com.rameses.util.Base64Cipher();  
+        
         def data = service.open([objid: loanapp.objid]);
         loanapp.clear();
         loanapp.putAll(data);
@@ -33,8 +51,24 @@ class LoanAppCoMakerController
         service.update(data); 
         borrowers.each { 
             it.remove('_isnew'); 
-        }        
+        } 
+        mode = 'read';
+        snapshot = null; 
     }
+    void edit() {
+        snapshot = (borrowers ? base64.encode( borrowers ) : null ); 
+        mode = 'edit';
+    }
+    void cancelEdit() { 
+        if (MsgBox.confirm('Are you sure you want to cancel any changes made?')) { 
+            def o = ( snapshot ? base64.decode( snapshot ) : null ); 
+            if ( o ) {
+                borrowers = o; 
+                coMakerHandler?.reload();
+            }
+            mode = 'read'; 
+        }
+    } 
 
     def addCoMaker() {
         def params = createOpenerParams()
@@ -48,12 +82,11 @@ class LoanAppCoMakerController
     
     def createOpenerParams() {
         return [
-                loanapp: [:],
-                caller: caller, 
-                service: service, 
-                beforeSaveHandlers: beforeSaveHandlers,
-                dataChangeHandlers: dataChangeHandlers
-        ]
+            loanapp: [:],
+            caller: this, service: service, 
+            beforeSaveHandlers: beforeSaveHandlers,
+            dataChangeHandlers: dataChangeHandlers
+        ]; 
     }
     
     def coMakerHandler = [
@@ -70,14 +103,14 @@ class LoanAppCoMakerController
             params.loanapp.borrower = o;
             return params;
         }
-    ] as EditorListModel;
+    ] as BasicListModel;
         
     void removeCoMaker() {
         removeCoMakerImpl(selectedCoMaker);
     }
             
     boolean removeCoMakerImpl(o) {
-        if (caller.mode == 'read') return false;
+        if (mode == 'read') return false;
         if (MsgBox.confirm("You are about to remove this co-maker. Continue?")) {
             borrowers.remove(o);
             return true;

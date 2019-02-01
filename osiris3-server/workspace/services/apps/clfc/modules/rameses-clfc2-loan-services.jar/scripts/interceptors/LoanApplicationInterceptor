@@ -1,0 +1,90 @@
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+
+class LoanApplicationInterceptor {
+	
+	@DataContext('loanapplication_search')
+	def loanapp_search;
+
+	@DataContext('loanapplication_search_index')
+	def loanapp_search_index;
+
+	@ActiveDB("datatxnlog")
+	def txnlog_db;
+
+	@Service 
+	def self;
+
+	@After( pattern="QueryService.getNodeList", eval="#{args[0]._schemaname == 'loanapplication'}" ) 
+	public void afterGetNodeList( evt) {
+		evt.result << [ objid: 'PENDING', title:'Pending' ]; 
+		evt.result << [ objid: 'FOR_INSPECTION', title:'For Inspection' ]; 
+		evt.result << [ objid: 'FOR_CRECOM', title:'For CRECOM' ]; 
+		evt.result << [ objid: 'FOR_APPROVAL', title:'For Approval' ]; 
+		evt.result << [ objid: 'APPROVED', title:'Approved' ]; 
+		evt.result << [ objid: 'FOR_REQUIREMENT', title:'For Requirement' ]; 
+		evt.result << [ objid: 'FOR_PROCESSING', title:'For Processing' ]; 
+		evt.result << [ objid: 'FOR_RELEASE', title:'For Release' ]; 
+		evt.result << [ objid: 'RELEASED', title:'Released' ]; 
+		evt.result << [ objid: 'DISAPPROVED', title:'Disapproved' ]; 
+		evt.result << [ objid: 'DISQUALIFIED_OUT', title:'Disqualified Out' ]; 
+		evt.result << [ objid: 'CANCELLED_OUT', title:'Cancelled Out' ]; 
+		evt.result << [ objid: 'BACK_OUT', title:'Back Out' ]; 
+		evt.result << [ objid: 'CLOSED', title:'Fully Paid' ]; 
+	}
+
+	@Before( pattern="QueryService.getList", eval="#{args[0]._schemaname == 'loanapplication'}" ) 
+	public void beforeGetList( evt ) {
+		def param = evt.args[0]; 
+		if ( param.node?.objid ) {
+			def where = param.where; 
+			if ( where == null ) where = []; 
+
+			def whereSql = (where.size() > 0 ? where[0]: ""); 
+			def whereParam = (where.size() > 1 ? where[1]: [:]); 
+			whereParam.state = param.node.objid; 
+
+			def buff = new StringBuilder(); 
+			buff.append( whereSql.toString() ); 
+			if ( buff.length() > 0 ) buff.append(" AND "); 
+			buff.append("state = :state"); 
+
+			param.where = [ buff.toString(), whereParam ]; 
+		}
+	}
+
+	@After( pattern="LoanApplicationService.create" ) 
+	public void afterCreate( evt ) {
+		def app = evt.result; 
+
+		loanapp_search.create([
+			objid: app.objid, 
+			state: app.state, 
+			appno: app.appno, 
+			branchcode: app.branch.code, 
+			branchname: app.branch.name, 
+			fullborrowername: app.borrower.name, 
+			loanamount: app.loanamount, 
+			dtposted: app.dtcreated, 
+			postedby: app.author.name 
+		]); 
+
+		def indexes = [ app.appno, app.borrower.name ];
+		indexes.findAll{( it )}.each{ o-> 
+			loanapp_search_index.create([
+				objid: 'IDX'+ new UID(), 
+				appid: app.objid, 
+				searchtext: o 
+			]); 
+		} 
+
+		txnlog_db.create([
+			objid 	: 'TLOG' + new UID(), 
+			txnid   : app.objid, 
+			txndate : app.dtcreated, 			
+			user    : [objid: app.author.objid, username: app.createdby], 
+			action	: 'Create', 
+			remarks : 'NEW LOAN APPLICATION #'+app.appno 
+		]); 
+	}
+}

@@ -10,7 +10,7 @@
         <tr>
             <td width="5">&#8226; </td>
             <td>Source of Income : </td>
-            <td>$it.name</td>
+            <td>${ifNull(it.name, '-')}</td>
         </tr>
         <tr>
             <td width="5">&nbsp; </td>

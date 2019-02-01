@@ -14,6 +14,8 @@
         {
             String serviceName = 'LoanBillingGroupOptionAccountsService';
             String type = 'DELINQUENT';
+            String entityName = "billing:group:delinquent";
+        
         }
     </code>
 </workunit>

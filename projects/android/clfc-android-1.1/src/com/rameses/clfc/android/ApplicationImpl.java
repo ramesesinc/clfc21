@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
+import android.content.Intent;
 import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
@@ -41,7 +42,7 @@ public class ApplicationImpl extends UIApplication
 	private RemarksRemovedDB remarksremoveddb;
 	private CaptureDB capturedb;
 	private SpecialCollectionDB specialcollectiondb;
-	private int networkStatus;
+	private int networkStatus = 3;
 	private AppSettingsImpl appSettings; 
 	
 	private CancelledBillingCheckerService cancelledBillingCheckerSvc;
@@ -71,7 +72,7 @@ public class ApplicationImpl extends UIApplication
 	private DBVoidService voidsvc = new DBVoidService();
 	private DBSpecialCollectionPendingService scPendingSvc = new DBSpecialCollectionPendingService();
 
-		public File getLogFile() {
+	public File getLogFile() {
 		// TODO Auto-generated method stub
 		File dir = Environment.getExternalStorageDirectory();
 		return new File(dir, "clfclog.txt");
@@ -79,12 +80,13 @@ public class ApplicationImpl extends UIApplication
 	 
 	protected void init() {
 		super.init();
+		networkStatus = 3;
 //		System.out.println(getClass().getProtectionDomain());
 	}
 	
 	protected void onCreateProcess() {
 		super.onCreateProcess();
-		println("is date synced " + getIsDateSync());
+//		println("is date synced " + getIsDateSync());
 //		int result = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
 //		if (result == ConnectionResult.SUCCESS) {
 //			System.out.println("Google Play services is available.");
@@ -394,7 +396,7 @@ public class ApplicationImpl extends UIApplication
 	
 	protected boolean isConnected() {
 		boolean isConnected = true;
-		int networkStatus = ApplicationUtil.getNetworkStatus();
+//		int networkStatus = ApplicationUtil.getNetworkStatus();
 		if (networkStatus == 3) isConnected = false;
 		return isConnected;
 	}
@@ -527,11 +529,11 @@ public class ApplicationImpl extends UIApplication
 		appenv.put("app.context", "clfc");
 		appenv.put("app.cluster", "osiris3");
 		
-		int ns = ApplicationUtil.getNetworkStatus();
+//		int ns = ApplicationUtil.getNetworkStatus();
 		//if (ns == 0) ns = 1;
-		appenv.put("app.host", ApplicationUtil.getAppHost(ns));
-		println("before load");
-		println("network status " + ns);
+		appenv.put("app.host", ApplicationUtil.getAppHost( networkStatus ));
+//		println("before load");
+//		println("network status " + ns);
 		
 //		if (networkStatus == 3) {
 //			AppSettingsImpl settings = (AppSettingsImpl) Platform.getApplication().getAppSettings();
@@ -567,46 +569,42 @@ public class ApplicationImpl extends UIApplication
 	protected void afterLoad() {
 //		SessionContext sc = AppContext.getSession();
 //		println("session context: " + sc);
-
-		int networkStatus = ApplicationUtil.getNetworkStatus();
-		if (networkStatus == 3) {
-			AppSettingsImpl settings = (AppSettingsImpl) Platform.getApplication().getAppSettings();
-			
-			String result = settings.getString("result", null);
-//			println("result: " + result);
-			String encpwd = settings.getString("encpwd", null);
-//			println("encpwd: " + encpwd);
-			if (result != null && encpwd != null) {
-				Map xresult = (Map) new Base64Cipher().decode(result);//gson.fromJson(result, Map.class);
+		AppSettingsImpl settings = (AppSettingsImpl) getAppSettings();
+		
+		String result = settings.getString("result", null);
+		String encpwd = settings.getString("encpwd", null);
+		println("result " + result);
+		if (result != null && encpwd != null) {
+			Map xresult = (Map) new Base64Cipher().decode(result);//gson.fromJson(result, Map.class);
 //				println("xresult: " + xresult);
-				
-				SessionProviderImpl sessImpl = new SessionProviderImpl(xresult);
-		        SessionContext sess = AppContext.getSession();
-		        sess.setProvider(sessImpl); 
-		        sess.set("encpwd", encpwd); 
-		         
-		        Map authOpts = (Map) xresult.remove("AUTH_OPTIONS");
-		        //println("authopts " + authOpts);
-		        if (authOpts != null) {
-		            Iterator keys = authOpts.keySet().iterator(); 
-		            while (keys.hasNext()) { 
-		                String key = keys.next().toString(); 
-		                //println("key: " + key);
-		                sess.set(key, authOpts.get(key)); 
-		            } 
-		        }	
-			}
+			
+			SessionProviderImpl sessImpl = new SessionProviderImpl(xresult);
+	        SessionContext sess = AppContext.getSession();
+	        sess.setProvider(sessImpl); 
+	        sess.set("encpwd", encpwd); 
+	         
+	        Map authOpts = (Map) xresult.remove("AUTH_OPTIONS");
+	        //println("authopts " + authOpts);
+	        if (authOpts != null) {
+	            Iterator keys = authOpts.keySet().iterator(); 
+	            while (keys.hasNext()) { 
+	                String key = keys.next().toString(); 
+	                //println("key: " + key);
+	                sess.set(key, authOpts.get(key)); 
+	            } 
+	        }	
 		}
 		
+		sendBroadcast(new Intent("rameses.clfc.APPLICATION_START"));
 	}   
 	
-	private void println(String str) {
+	private void println(Object msg) {
 //		System.out.println("[ApplicationImpl] " + str);
-		Log.i("ApplicationImpl", str);
+//		Log.i("ApplicationImpl", str);
+		ApplicationUtil.println("ApplicationImpl", msg.toString());
 	}
  
-	protected void onTerminateProcess() { 
-		super.onTerminateProcess(); 
+	protected void onTerminateProcess() {
 		NetworkLocationProvider.setEnabled(false);
 		AppSettingsImpl settings = (AppSettingsImpl) getAppSettings();
 		Date date = getServerDate();
@@ -618,10 +616,10 @@ public class ApplicationImpl extends UIApplication
 	public int getNetworkStatus() { return networkStatus; }
 	void setNetworkStatus(int networkStatus) { 
 		this.networkStatus = networkStatus; 
-		
+		 
 //		println("network status " + networkStatus);
 		String apphost = ApplicationUtil.getAppHost(networkStatus);
-		println("apphost -> " + apphost);
+//		println("apphost -> " + apphost);
 		getAppEnv().put("app.host", apphost); 
 	}   
 

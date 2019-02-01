@@ -1,0 +1,70 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class ILSFactService extends ActiveCrudListService {
+	
+	@ActiveDB("ils_fact")
+	def em;
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: "title", caption: "Title"];
+		cols << [name: "domain", caption: "Domain"];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.searchtext = (params.searchtext? params.searchtext : "") + "%";
+	}
+
+	void afterCreate( data ) {
+		afterSaveData(data);
+	}
+
+	void afterUpdate( data ) {
+		afterSaveData(data);
+	}
+
+	void afterSaveData( data ) {
+		em.removeCategories([objid: data.objid]);
+		data.categories.each{ o->
+			em.create(o, "category");
+		}
+
+		data._removed?.each{ 
+			em.delete(it, "factfield");
+		}
+		data.remove("_removed");
+
+		data._added?.each{
+			em.create(it, "factfield");
+			if (it.source=="database") {
+				em.update(it, "factfield-database");
+			}
+		}
+		data.remove("_added");
+
+		data.fields?.findAll{ it._edited==true }?.each{
+			em.update(it, "factfield");
+			em.update(it, "factfield-database");
+		}
+
+		/*
+		em.removeFields([objid: data.objid]);
+		data.fields.each{ o->
+			em.create(o, "factfield");
+			if (o.source=='database') {
+				em.update(o, "factfield-database");
+			}
+		}
+		*/
+	}
+
+	void afterOpen( data ) {
+		data.categories = em.getCategories([objid: data.objid]);
+		data.fields = em.getFields([objid: data.objid]);
+	}
+}

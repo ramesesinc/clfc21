@@ -47,9 +47,9 @@ public class LoanAttributePage extends javax.swing.JPanel {
         xLookupField1.setCaption("Attribute");
         xLookupField1.setDisableWhen("${mode=='read'}");
         xLookupField1.setDisabledTextColor(new java.awt.Color(0, 0, 0));
-        xLookupField1.setExpression("${entity.attribute.title}");
+        xLookupField1.setExpression("${item.title}");
         xLookupField1.setHandler("attributeLookup");
-        xLookupField1.setName("entitiy.attribute"); // NOI18N
+        xLookupField1.setName("entity.attribute"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(0, 20));
         xLookupField1.setRequired(true);
         xFormPanel1.add(xLookupField1);
@@ -112,7 +112,7 @@ public class LoanAttributePage extends javax.swing.JPanel {
                     .addComponent(xFormPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(xSubFormPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 411, Short.MAX_VALUE)
                     .addComponent(xFormPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, 411, Short.MAX_VALUE)
-                    .addComponent(xFormPanel3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 411, Short.MAX_VALUE))
+                    .addComponent(xFormPanel3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 411, Short.MAX_VALUE))
                 .addContainerGap())
         );
         layout.setVerticalGroup(

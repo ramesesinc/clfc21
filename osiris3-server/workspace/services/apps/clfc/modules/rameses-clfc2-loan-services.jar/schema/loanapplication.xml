@@ -1,0 +1,29 @@
+<schema>
+
+	<element tablename="loanapp">
+		<field name="objid" primary="true"/> 
+		<field name="state" required="true" caption="Status"/> 
+		<field name="appno" required="true" caption="AppNo" indexed="true" searchable="true"/> 
+		<field name="apptype" required="true" caption="AppType"/> 
+		<field name="appmode" required="true" caption="AppMode"/> 
+		<field name="dtcreated" required="true" caption="DateFiled" indexed="true"/> 
+		<field name="createdby" required="true" caption="FiledBy" indexed="true" hidden="true"/> 
+		<field name="loanamount" required="true" caption="LoanAmount"/> 
+		<field name="branch_code" required="true"/> 
+		<field name="branch_name" required="true"/> 
+		<field name="borrower_objid" required="true"/> 
+		<field name="borrower_name" required="true" caption="BorrowerName" indexed="true" searchabale="true"/> 
+		<field name="loantype" required="true" caption="LoanType"/>
+		<field name="purpose" required="true"/> 		
+		<field name="producttype_name" required="true" caption="ProductType" indexed="true"/> 
+		<field name="producttype_term" required="true" caption="ProductTerm" hidden="true"/> 
+		<field name="route_code" caption="Route" indexed="true"/>
+		<field name="remarks" /> 
+		<field name="approval_type" />  
+		<field name="approval_amount" /> 
+		<field name="approval_absencetype" /> 
+		<field name="approval_absencepolicy"/> 
+		<field name="approval_absenceprovision" />  
+	</element> 
+
+</schema>

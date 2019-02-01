@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<Form version="1.3" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
+<Form version="1.3" maxVersion="1.3" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
   <AuxValues>
+    <AuxValue name="FormSettings_autoResourcing" type="java.lang.Integer" value="0"/>
+    <AuxValue name="FormSettings_autoSetComponentName" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true"/>
     <AuxValue name="FormSettings_generateMnemonicsCode" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_i18nAutoMode" type="java.lang.Boolean" value="false"/>
     <AuxValue name="FormSettings_layoutCodeTarget" type="java.lang.Integer" value="1"/>
     <AuxValue name="FormSettings_listenerGenerationStyle" type="java.lang.Integer" value="0"/>
     <AuxValue name="FormSettings_variablesLocal" type="java.lang.Boolean" value="false"/>
@@ -60,7 +64,7 @@
               <Group type="102" alignment="0" attributes="0">
                   <Component id="jPanel1" min="-2" pref="122" max="-2" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
-                  <Component id="xFormPanel3" pref="102" max="32767" attributes="0"/>
+                  <Component id="xFormPanel3" max="32767" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
               </Group>
           </Group>
@@ -92,7 +96,7 @@
               <Group type="103" groupAlignment="0" attributes="0">
                   <Group type="102" alignment="0" attributes="0">
                       <Group type="103" groupAlignment="1" attributes="0">
-                          <Component id="xFormPanel1" alignment="0" pref="112" max="32767" attributes="1"/>
+                          <Component id="xFormPanel1" alignment="0" max="32767" attributes="1"/>
                           <Component id="xFormPanel2" alignment="0" min="-2" pref="112" max="-2" attributes="1"/>
                       </Group>
                       <EmptySpace max="-2" attributes="0"/>
@@ -188,7 +192,7 @@
                     <Property name="fontStyle" type="java.lang.String" value="font-size:12;"/>
                     <Property name="itemKey" type="java.lang.String" value="value"/>
                     <Property name="items" type="java.lang.String" value="clientTypes"/>
-                    <Property name="name" type="java.lang.String" value="data.clienttype"/>
+                    <Property name="name" type="java.lang.String" value="data.clienttype" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
                     </Property>
@@ -204,7 +208,7 @@
                         <StringItem index="0" value="data.clienttype"/>
                       </StringArray>
                     </Property>
-                    <Property name="name" type="java.lang.String" value="data.marketedby"/>
+                    <Property name="name" type="java.lang.String" value="data.marketedby" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
                     </Property>
@@ -253,7 +257,7 @@
                     <Property name="fontStyle" type="java.lang.String" value="font-size:12;"/>
                     <Property name="immediate" type="boolean" value="true"/>
                     <Property name="items" type="java.lang.String" value="productTypes"/>
-                    <Property name="name" type="java.lang.String" value="data.producttype"/>
+                    <Property name="name" type="java.lang.String" value="data.producttype" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
                     </Property>
@@ -272,7 +276,7 @@
                     <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
                       <Font name="Courier New" size="14" style="0"/>
                     </Property>
-                    <Property name="name" type="java.lang.String" value="data.producttype.term"/>
+                    <Property name="name" type="java.lang.String" value="data.producttype.term" noResource="true"/>
                     <Property name="pattern" type="java.lang.String" value="#,##0"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
@@ -288,7 +292,7 @@
                     <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
                       <Font name="Courier New" size="14" style="0"/>
                     </Property>
-                    <Property name="name" type="java.lang.String" value="data.loanamount"/>
+                    <Property name="name" type="java.lang.String" value="data.loanamount" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[0, 20]"/>
                     </Property>
@@ -327,7 +331,7 @@
                   <Properties>
                     <Property name="caption" type="java.lang.String" value="Purpose of Loan"/>
                     <Property name="captionWidth" type="int" value="110"/>
-                    <Property name="name" type="java.lang.String" value="data.purpose"/>
+                    <Property name="name" type="java.lang.String" value="data.purpose" noResource="true"/>
                     <Property name="required" type="boolean" value="true"/>
                   </Properties>
                 </Component>
@@ -336,14 +340,13 @@
             <Component class="com.rameses.rcp.control.XLookupField" name="xLookupField2">
               <Properties>
                 <Property name="caption" type="java.lang.String" value="Next To"/>
-                <Property name="captionWidth" type="int" value="110"/>
                 <Property name="expression" type="java.lang.String" value="#{item.borrowername}"/>
                 <Property name="handler" type="java.lang.String" value="borrowerLookupHandler"/>
-                <Property name="name" type="java.lang.String" value="data.nextto"/>
+                <Property name="name" type="java.lang.String" value="data.nextto" noResource="true"/>
+                <Property name="captionWidth" type="int" value="110"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                   <Dimension value="[200, 20]"/>
                 </Property>
-                <Property name="required" type="boolean" value="true"/>
               </Properties>
             </Component>
           </SubComponents>
@@ -354,6 +357,9 @@
       <Properties>
         <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
           <PropertyBean type="com.rameses.rcp.control.border.XTitledBorder">
+            <Property name="padding" type="java.awt.Insets" editor="org.netbeans.beaninfo.editors.InsetsEditor">
+              <Insets value="[25, 15, 15, 25]"/>
+            </Property>
             <Property name="title" type="java.lang.String" value=" Route Information "/>
           </PropertyBean>
         </Property>
@@ -373,7 +379,7 @@
             </Property>
             <Property name="expression" type="java.lang.String" value="#{item.code}"/>
             <Property name="handler" type="java.lang.String" value="routeLookupHandler"/>
-            <Property name="name" type="java.lang.String" value="data.route"/>
+            <Property name="name" type="java.lang.String" value="data.route" noResource="true"/>
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
               <Dimension value="[180, 20]"/>
             </Property>

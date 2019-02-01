@@ -1,0 +1,18 @@
+import com.rameses.annotations.*;
+import java.io.*;
+
+class FileUploadService {
+
+	@Service('PersistenceService') 
+	def persistenceSvc; 
+
+	@ProxyMethod 
+	public def upload( data ) {
+		data._schemaname = 'sys_file'; 
+		data.items.each{
+			it._schemaname = 'sys_fileitem'; 
+		} 
+		return persistenceSvc.create( data ); 
+	}
+    
+}

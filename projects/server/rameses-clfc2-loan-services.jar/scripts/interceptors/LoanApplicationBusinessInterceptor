@@ -1,0 +1,16 @@
+import com.rameses.annotations.*;
+import java.rmi.server.UID;
+
+class LoanApplicationBusinessInterceptor {
+
+	@DataContext('loanapp_business')
+	def loanapp_business; 
+
+	@Before( pattern="LoanApplicationService.submitForInspection" ) 
+	void beforeSubmitForInspection( evt ) {
+		def p = evt.args[0]; 
+		def data = loanapp_business.find([ parentid: p.objid ]).first();
+		if ( !data ) throw new Exception('Please specify at least one business information'); 
+	}
+
+} 

@@ -7,16 +7,28 @@ import com.rameses.osiris2.common.*;
 
 class CollateralOtherController
 {
-    def loanappid, collateral, mode, beforeSaveHandlers;
+    def loanappid, collateral, caller, beforeSaveHandlers;
     def entity = [:];
+    def state;
     
     void init() {
         if( collateral?.other ) entity = collateral.other;
+        if (entity.attachments == null) entity.attachments = [];
+        if (!entity.ci) entity.ci = [:];
         beforeSaveHandlers.otherCollateralSaveHandler = { validate(); }
     }
     
     void validate() {
-        if( !collateral?.other ) 
+        if( !collateral?.other ) {
             collateral.other = entity
+        }
     }
+    
+    def getMode() {
+        try { 
+            return caller.mode; 
+        } catch(Throwable t) {
+            return null; 
+        }
+    }    
 }

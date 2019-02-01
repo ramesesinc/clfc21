@@ -1,0 +1,18 @@
+<schema>
+	<element tablename="loanapp_collateral_property">
+		<field name="objid" primary="true"/>
+		<field name="parentid" required="true"/> 
+		<field name="classification" required="true"/> 
+		<field name="location" required="true"/> 
+		<field name="areauom" required="true"/> 
+		<field name="areavalue" required="true"/> 
+		<field name="zonalvalue" required="true"/> 
+		<field name="dtacquired"/> 
+		<field name="acquiredfrom"/> 
+		<field name="modeofacquisition" required="true"/> 
+		<field name="registeredname" required="true"/> 
+		<field name="marketvalue" required="true"/> 
+		<field name="remarks" required="true"/> 
+		<complex name="attachments" serializer="default" type="list" required="false"/> 
+	</element>
+</schema>

@@ -6,13 +6,16 @@
 
 package com.rameses.clfc.loan.otherlending;
 
+import com.rameses.osiris2.themes.FormPage;
 import com.rameses.rcp.ui.annotations.StyleSheet;
+import com.rameses.rcp.ui.annotations.Template;
 
 /**
  *
  * @author  wflores
  */
 @StyleSheet
+@Template(FormPage.class)
 public class LoanAppOtherLendingPage extends javax.swing.JPanel {
     
     public LoanAppOtherLendingPage() {

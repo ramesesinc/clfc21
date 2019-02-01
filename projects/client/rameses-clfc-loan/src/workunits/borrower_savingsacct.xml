@@ -1,10 +1,6 @@
 <workunit>
     <invokers>
-        <!--
         <invoker type="loanapp-borrower:plugin" caption=" Savings Account  " action="init" index="-92"/>
-        -->
-        <invoker type="loanapp-borrowerindividual:plugin" caption=" Savings Account  " action="init" index="-92"/>
-        <invoker type="loanapp-borrowerjuridical:plugin" caption=" Savings Account  " action="init" index="-92"/>
         <invoker type="loanapp-jointborrower:plugin" caption=" Savings Account  " 
             action="init" index="-92"/>
         <invoker type="loanapp-comaker:plugin" caption=" Savings Account  " 

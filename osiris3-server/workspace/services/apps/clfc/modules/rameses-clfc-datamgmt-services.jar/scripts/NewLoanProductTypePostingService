@@ -1,0 +1,47 @@
+import com.rameses.annotations.*;
+
+class NewLoanProductTypePostingService {
+
+
+	@ActiveDB('posting_header')
+	def posting_header;
+
+	@ProxyMethod
+	public def getDefaultPostingSequence() {
+		def xlist = posting_header.getList([searchtext: '%']);
+		
+		def list = [], item;
+		xlist?.each{ o->
+			item = list?.find{ it.code == o.code }
+			if (!item) list << o;
+		}
+
+		list?.sort{ it.sequence }
+		list?.eachWithIndex{ o, idx->
+			o.index = idx;
+			o.sequence = (idx + 1);
+			o.isfirst = false;
+			o.islast = false;
+		}
+
+		if (list) {
+			list.sort{ it.sequence }
+			list[0].isfirst = true;
+			list[list.size() - 1].islast = true;
+		}
+
+		return list;
+	}
+	
+	@ProxyMethod
+	public def getFieldList() {
+		def list = [
+			[name: 'interest', title: 'Interest', datatype: 'decimal'],
+			[name: 'interestpaid', title: 'Interest Paid', datatype: 'decimal'],
+			[name: 'penalty', title: 'Penalty', datatype: 'decimal'],
+			[name: 'penaltypaid', title: 'Penalty Paid', datatype: 'decimal']
+		];
+
+		return list;
+	}
+}

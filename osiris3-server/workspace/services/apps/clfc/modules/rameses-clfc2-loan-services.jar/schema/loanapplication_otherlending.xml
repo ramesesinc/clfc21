@@ -1,0 +1,17 @@
+<schema>
+	<element tablename="loanapp_otherlending">
+		<field name="objid" primary="true"/>
+		<field name="parentid" required="true"/> 
+		<field name="name" required="true"/> 
+		<field name="address"/> 
+		<field name="kind"/> 
+		<field name="amount" required="true"/> 
+		<field name="dtgranted"/> 
+		<field name="dtmatured"/> 
+		<field name="term"/> 
+		<field name="interest"/> 
+		<field name="paymentmode"/> 
+		<field name="paymentamount"/> 
+		<field name="otherinfo"/> 
+	</element>
+</schema>

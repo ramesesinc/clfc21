@@ -1,0 +1,11 @@
+<workunit>
+    <invokers>
+        <invoker type="loanapp-cireport:open" caption="CI Reports" action="init" key="cireport"/>
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.models.LoanAppCIReportModel"/>
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.views.LoanAppCIReportPage"/>
+    </pages>
+</workunit>

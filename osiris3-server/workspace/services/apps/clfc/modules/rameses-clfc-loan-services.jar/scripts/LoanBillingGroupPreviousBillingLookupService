@@ -1,0 +1,31 @@
+import com.rameses.annotations.*;
+import com.rameses.services.extended.*;
+
+class LoanBillingGroupPreviousBillingLookupService extends ActiveListService {
+
+	@ActiveDB("specialcollection_billinggroup")
+	def em;
+
+	@Service("DateService")
+	def dateSvc;
+
+	String listMethod = "getPreviousBillingGroupByDate";
+
+	@ProxyMethod
+	public def getColumns( params ) {
+		def cols = [];
+
+		cols << [name: "dtstarted", caption: "Date", type: "date", outputFormat: "MMM-dd-yyyy"];
+		cols << [name: "name", caption: "Name"];
+		cols << [name: "collector.name", caption: "Collector"];
+		cols << [name: "txntype", caption: "Type"];
+
+		return cols;
+	}
+
+	void beforeList( params ) {
+		params.search = (params.searchtext? params.searchtext : "") + "%";
+		params._limit = 5;
+	}
+
+}

@@ -5,23 +5,32 @@ import com.rameses.rcp.annotations.*;
 import com.rameses.osiris2.client.*;
 import com.rameses.osiris2.common.*;
 import com.rameses.clfc.util.*;
+import com.rameses.clfc.borrower.BorrowerContext;
 
-class LoanAppJointBorrowerController 
-{
-    //feed by the caller
-    def loanapp, caller, selectedMenu;
-    
-    private def beforeSaveHandlers = [:];
-    private def dataChangeHandlers = [:];
+class LoanAppJointBorrowerController { 
     
     @Service('JointBorrowerService') 
     def service; 
     
+    //feed by the caller
+    def caller, loanapp, menuitem, handlers;
+    
+    private def beforeSaveHandlers = [:];
+    private def dataChangeHandlers = [:];
+    
+    def mode;
+    def snapshot;
+    def base64;
+        
     def borrowers = [];
     def selectedJointBorrower;
     
     void init() {
-        selectedMenu.saveHandler = { save(); }  
+        mode = 'read';
+        handlers.saveHandler = { save(); }
+        //menuitem.saveHandler = { save(); }  
+        base64 = new com.rameses.util.Base64Cipher();  
+        
         def data = service.open([objid: loanapp.objid]);
         loanapp.clear();
         loanapp.putAll(data);
@@ -34,9 +43,25 @@ class LoanAppJointBorrowerController
         borrowers.each { 
             it.remove('_isnew'); 
         }
+        mode = 'read'; 
+        snapshot = null; 
     }
+    void edit() {
+        snapshot = (borrowers ? base64.encode( borrowers ) : null ); 
+        mode = 'edit'; 
+    }
+    void cancelEdit() { 
+        if (MsgBox.confirm('Are you sure you want to cancel any changes made?')) { 
+            def o = ( snapshot ? base64.decode( snapshot ) : null ); 
+            if ( o ) {
+                borrowers = o; 
+                jointBorrowerHandler?.reload();
+            }
+            mode = 'read'; 
+        }
+    }    
 
-    def addJointBorrower() {
+    def addJointBorrower() { 
         def params = createOpenerParams()
         params.callBackHandler = {joint->
             joint._isnew = true;
@@ -46,14 +71,13 @@ class LoanAppJointBorrowerController
         return InvokerUtil.lookupOpener("jointborrower:create", params)
     }
     
-    def createOpenerParams() {
+    def createOpenerParams() { 
         return [
-            loanapp: [:],
-            caller: caller, 
-            service: service, 
+            loanapp: [:], 
+            caller: this, service: service, 
             beforeSaveHandlers: beforeSaveHandlers,
             dataChangeHandlers: dataChangeHandlers
-        ]
+        ];
     }
     
     def jointBorrowerHandler = [
@@ -77,8 +101,8 @@ class LoanAppJointBorrowerController
     }
             
     boolean removeJointBorrowerImpl(o) {
-        if (caller.mode == 'read') return false;
-        if (MsgBox.confirm("You are about to remove this joint borrower. Continue?")) {
+        if (mode == 'read') return false;
+        if (MsgBox.confirm("You are about to remove this joint borrower. Proceed?")) {
             borrowers.remove(o);
             return true;
         } else { 

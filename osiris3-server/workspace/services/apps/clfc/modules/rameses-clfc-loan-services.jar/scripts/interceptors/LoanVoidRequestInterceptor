@@ -1,0 +1,117 @@
+import com.rameses.annotations.*;
+
+class LoanVoidRequestInterceptor {
+	
+	@ActiveDB("voidrequest")
+	def em;
+
+	@ActiveDB("onlinecollection")
+	def onlinecollection;
+
+	@ActiveDB("loan_ledger_noncash")
+	def loan_ledger_noncash;
+
+	@ActiveDB("loan_ledger_proceeds")
+	def loan_ledger_proceeds;
+
+	@After(pattern="LoanVoidRequestService.create")
+	public void afterCreate( evt )  {
+		def result = evt.result;
+
+		if (result?.txncode=='ONLINE') {
+			processAfterCreateOnline( result );
+		}
+	}
+
+	void processAfterCreateOnline( data ) {
+		def dtl = onlinecollection.read( [objid: data?.paymentid], "oc-detail" );
+		def refid = dtl?.objid;
+
+		def item = loan_ledger_noncash.findCollectionNoncashByRefid( [refid: refid] );
+		if (item) {
+			def xi = loan_ledger_noncash.read( [objid: item.noncashid] );
+			if (xi) {
+				xi.txnstate = "VOID_PENDING";
+				loan_ledger_noncash.update( xi );
+			}
+		}
+
+		item = loan_ledger_proceeds.findCollectionProceedByRefid( [refid: refid] );
+		if (item) {
+			def xi = loan_ledger_proceeds.read( [objid: item?.proceedid] );
+			if (xi) {
+				xi.txnstate = "VOID_PENDING"
+				loan_ledger_proceeds.update( xi );
+			}
+		}
+	}
+
+	
+
+	@After(pattern="LoanVoidRequestService.approve")
+	public void afterApprove( evt ) {
+		def result = evt.result;
+
+		if (result?.txncode=='ONLINE') {
+			processAfterApproveOnline( result );
+		}
+	}
+
+	void processAfterApproveOnline( data ) {
+
+		def dtl = onlinecollection.read( [objid: data?.paymentid], "oc-detail" );
+		def refid = dtl?.objid;
+
+		def item = loan_ledger_noncash.findCollectionNoncashByRefid( [refid: refid] );
+		if (item) {
+			def xi = loan_ledger_noncash.read( [objid: item.noncashid] );
+			if (xi) {
+				xi.txnstate = "VOIDED";
+				loan_ledger_noncash.update( xi );
+			}
+		}
+
+		item = loan_ledger_proceeds.findCollectionProceedByRefid( [refid: refid] );
+		if (item) {
+			def xi = loan_ledger_proceeds.read( [objid: item?.proceedid] );
+			if (xi) {
+				xi.txnstate = "VOIDED"
+				loan_ledger_proceeds.update( xi );
+			}
+		}
+	}
+
+	@After(pattern="LoanVoidRequestService.disapprove")
+	public void afterDisapprove( evt ) {
+		def result = evt.result;
+
+		if (result?.txncode=='ONLINE') {
+			processAfterDisapproveOnline( result );
+		}
+	}
+
+	void processAfterDisapproveOnline( data ) {
+
+		def dtl = onlinecollection.read( [objid: data?.paymentid], "oc-detail" );
+		def refid = dtl?.objid;
+
+		def item = loan_ledger_noncash.findCollectionNoncashByRefid( [refid: refid] );
+		if (item) {
+			def xi = loan_ledger_noncash.read( [objid: item.noncashid] );
+			if (xi) {
+				xi.txnstate = "COLLECTED";
+				loan_ledger_noncash.update( xi );
+			}
+		}
+
+		item = loan_ledger_proceeds.findCollectionProceedByRefid( [refid: refid] );
+		if (item) {
+			def xi = loan_ledger_proceeds.read( [objid: item?.proceedid] );
+			if (xi) {
+				xi.txnstate = "SOLD"
+				loan_ledger_proceeds.update( xi );
+			}
+		}
+	}
+
+}

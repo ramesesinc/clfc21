@@ -20,6 +20,9 @@ class ChangeLoanAppDetailService
 	@ActiveDB("loan_product_type")
 	def producttype;
 
+	@ActiveDB("loan_producttype")
+	def loan_producttype;
+
 	@ActiveDB("loan_route")
 	def loan_route;
 
@@ -38,8 +41,210 @@ class ChangeLoanAppDetailService
 	@Service("LoanTypeService")
 	def loanTypeSvc;
 
+	@Service("NewLoanProductTypeService")
+	def productTypeSvc;
+
 	@ProxyMethod
 	public def save( params ) {
+
+		def app = loanapp_detail.read([objid: params.objid], "loanapp");
+		if (app) {
+			app.appno = params.appno;
+			app.apptype = params.apptype;
+			app.loanamount = params.loanamount;
+			app.loantype = params.loantype;
+			app.borrower = params.borrower;
+			app.route = params.route;
+			app.producttype = params.producttype;
+			loanapp_detail.update(app, "loanapp");
+			loanapp_detail.update([objid: params.objid, loanno: params.appno, dtreleased: params.dtreleased], "loanapp_capture");			
+
+			def lb = loanapp_borrower.findPrincipalBorrower([parentid: app.objid]);
+			if (!lb) {
+				lb = [
+					objid: 		  'LB' + new UID(), 
+					parentid: 	  app.objid, 
+					borrowerid:   app.borrower.objid, 
+					borrowername: app.borrower.name, 
+					principalid:  app.borrower.objid,
+					type:         'PRINCIPAL' 
+				];
+				loanapp_borrower.create(lb); 
+			} else {
+				lb.borrowerid = app.borrower.objid;
+				lb.borrowername = app.borrower.name;
+				lb.principalid = lb.borrowerid;
+				loanapp_borrower.update(lb);
+			}
+		}
+	
+		def search = loanapp.read([objid: app?.objid], "loanapp_search");
+		if (search) {
+			search.fullborrowername = params.borrower.name;
+			search.appno = params.appno;
+			search.loanamount = params.loanamount;
+			loanapp.update(search, "loanapp_search");
+
+			loanapp.removeBorrowerIndicesWithNoBorrowerid([appid: params.objid]);
+
+			def searchvalues = [params.appno, params.borrower.name]; 
+			for (sval in searchvalues) {
+				def o = [
+					objid: 'IDX' + new UID(), 
+					appid: params.objid, 
+					searchtext: sval 
+				];
+				loanapp.create(o, 'loanapp_search_index'); 		
+			} 
+
+		}
+
+		def dtreleased = parseDate(params.dtreleased);
+		def pt, dtmatured;
+		if (params.producttype?.version > 1) {
+			pt = params.producttype;
+		} else {
+			pt = producttype.read(params.producttype);
+			dtmatured = ledgerSvc.calculateMaturityDate(dtreleased, app?.loantype, pt);
+		}
+
+		def loan_app = loan_application.read([objid: params.objid]);
+		if (loan_app) {
+			loan_app.appno = params.appno;
+			loan_app.apptype = params.apptype;
+			loan_app.amount = params.loanamount;
+			loan_app.loantype = params.loantype;
+			loan_app.borrower.objid = params.borrower?.objid;
+			loan_app.borrower.name = params.borrower?.name;
+			loan_app.route = params.route;
+			loan_app.dtreleased = params.dtreleased;
+			loan_app.producttype = params.producttype;
+			loan_app.dtmatured = dtmatured;
+			if (params.producttype?.version > 1) {
+				def res = productTypeSvc.executeProductTypeRulesForLoanApplication(loan_app.producttype, [appid: loan_app.objid], "database", [:]);
+				res.each{ k, v->
+					loan_app[k] = v;
+				}
+			}
+			loan_application.update(loan_app);
+		}
+
+		def ledger = loan_ledger.findByAppId([appid: params.objid]);
+		if (ledger) {
+			ledger.acctname = params.borrower.name;
+
+			if (params.producttype?.version > 1) {
+				//def res = productTypeSvc.executeProductTypeRulesForLoanApplication(params.producttype, [:], "database", [:]);
+				def d = loan_app;
+				if (!d) {
+					d = [:];
+					def res = productTypeSvc.executeProductTypeRulesForLoanApplication(params.producttype, [appid: app.objid], "database", [:]);
+					res.each{ k, v->
+						d[k] = v;
+					}
+				}
+				ledger.dailydue = d.amtdue;
+				ledger.interestamount = d.interest;
+				ledger.absentpenalty = d.absentpenalty;
+				ledger.dtmatured = d.dtmatured;
+
+			} else {
+				def result = ledgerSvc.compute([appid: params.objid]);
+
+				if (app.loantype == 'BUSINESS') {
+					ledger.dailydue = result.dailydue;
+					ledger.interestamount = result.interest;
+					ledger.absentpenalty = result.absentpenalty;
+					ledger.dtmatured = dtmatured//ledgerSvc.calculateMaturityDate(dtreleased, app?.loantype, pt);
+				} else if (app.loantype == 'BRANCH') {
+					ledger.dailydue = 0;
+					ledger.interestamount = ledgerSvc.computeBranchLoanInterest(ledger);
+					ledger.absentpenalty = 0;
+					ledger.dtmatured = null;
+				}
+			}
+			
+			ledger.producttypeid = pt?.name;
+			ledger.term = pt?.term;
+			ledger.totalprincipal = params.loanamount;
+			ledger.dtstarted = ledgerSvc.calculateStartDate(dtreleased, app?.loantype, pt);//dateSvc.add(dtreleased, "1");
+			loanapp_detail.update(ledger, "ledger");
+
+		}
+
+		if (app) {
+			loanapp_detail.removeChargesByAppid([appid: app.objid]);
+
+			def chrg;
+			params?.charges?.each{ o->
+				chrg = loanapp_detail.read([objid: o.objid], "charge");
+				if (!chrg) {
+					chrg = [
+						objid 	: o.objid,
+						appid 	: app.objid,
+						acctid 	: o.acctid,
+						title 	: o.title,
+						amount 	: o.amount
+					];
+					loanapp_detail.create(chrg, "charge");
+				} else {
+					chrg.putAll(o);
+					loanapp_detail.update(chrg, "charge");
+				}
+			}
+
+			def ttlcharges = params.charges?.amount.sum();
+			if (!ttlcharges) ttlcharges = 0;
+
+			def netamount = app.loanamount - ttlcharges;
+
+			def extinfo = loanapp_detail.read([objid: app.objid], "extinfo");
+			if (!extinfo) {
+				extinfo = [
+					objid	 		: app.objid,
+					netamount		: netamount,
+					totalcharges	: ttlcharges,
+					assessmentinfo	: [
+						netamount 	: netamount,
+						totalcharges: ttlcharges,
+						charges 	: params.charges
+					]
+				];
+				loanapp_detail.create(extinfo, "extinfo");
+			} else {
+				extinfo.netamount = netamount;
+				extinfo.totalcharges = ttlcharges;
+				if (extinfo.assessmentinfo) {
+					extinfo.assessmentinfo.charges = params.charges;
+					extinfo.assessmentinfo.totalcharges = ttlcharges;
+					extinfo.assessmentinfo.netamount = netamount;
+				}
+				loanapp_detail.update(extinfo, "extinfo");
+			}
+
+			if (loan_app) {
+				loan_app.assessmentinfo?.netamount = netamount;
+				loan_app.assessmentinfo?.totalcharges = ttlcharges;
+				loan_app.assessmentinfo?.charges = params.charges;
+				loan_application.update(loan_app);
+			}
+		}
+
+		def item = [
+			objid 		: "LOG" + new UID(),
+			loanappid 	: params.objid,
+			dtfiled 	: dateSvc.serverDate,
+			author 		: [objid: env.USERID, name: env.NAME],
+			remarks 	: params.remarks
+		];
+		loanapp_detail.create(item);
+
+		//throw new RuntimeException("stopping");
+	}
+
+
+	@ProxyMethod
+	public def xsave( params ) {
 		//println 'params-> ' + params;
 		/*def prm = [
 			objid 		: params.objid,
@@ -49,11 +254,8 @@ class ChangeLoanAppDetailService
 			routecode 	: params.route.code
 		];*/
 
-		def pt = producttype.read(params.producttype);
-
 		loanapp_detail.update(params, "loanapp");
 		loanapp_detail.update([objid: params.objid, loanno: params.appno, dtreleased: params.dtreleased], "loanapp_capture");
-
 
 		def search = loanapp.read([objid: params.objid], "loanapp_search");
 		if (search) {
@@ -94,6 +296,8 @@ class ChangeLoanAppDetailService
 			//ledger.absentpenalty = ledgerSvc.computeAbsentPenalty([dailydue: ledger.dailydue, absentrate: pt?.absentpenalty]);
 			def result = ledgerSvc.compute([appid: params.objid]);
 
+			def pt = producttype.read(params.producttype);
+
 			ledger.producttypeid = pt.name;
 			ledger.term = pt.term;
 			ledger.totalprincipal = params.loanamount;
@@ -110,34 +314,16 @@ class ChangeLoanAppDetailService
 				ledger.absentpenalty = 0;
 				ledger.dtmatured = null;
 			}
+			
 			//dateSvc.add(dtreleased, params.producttype.term+"");//dateSvc.parseDate(params.dtreleased, null).date;
 				
 			loanapp_detail.update(ledger, "ledger");
 
 
 		}
+
 		if (app) {
 			loanapp_detail.removeChargesByAppid([appid: app.objid]);
-
-			def lb = loanapp_borrower.findPrincipalBorrower([parentid: app.objid]);
-			if (!lb) {
-				lb = [
-					objid: 		  'LB' + new UID(), 
-					parentid: 	  app.objid, 
-					borrowerid:   app.borrower.objid, 
-					borrowername: app.borrower.name, 
-					principalid:  app.borrower.objid,
-					type:         'PRINCIPAL' 
-				];
-				loanapp_borrower.create(lb); 
-			} else {
-				lb = loanapp_borrower.read([objid: lb.lbid]);
-
-				lb.borrowerid = app.borrower.objid;
-				lb.borrowername = app.borrower.name;
-				lb.principalid = lb.borrowerid;
-				loanapp_borrower.update(lb);
-			}
 
 			def chrg;
 			params?.charges?.each{ o->
@@ -191,7 +377,7 @@ class ChangeLoanAppDetailService
 				loan_application.update(lapp);
 			}
 		}
-		
+
 		def item = [
 			objid 		: "LOG" + new UID(),
 			loanappid 	: params.objid,
@@ -232,11 +418,8 @@ class ChangeLoanAppDetailService
 		def cap = loanapp_detail.read(params, 'loanapp_capture');
 		if (cap) data.dtreleased = cap.dtreleased;
 
-		def pt = producttype.read(data.producttype);
-		if (pt) data.producttype = pt;
 
-		def r = loan_route.read(data.route);
-		if (r) data.route = r;
+		data.route = loan_route.read(data.route);
 
 		def charges = [];
 		def app = loan_application.read([objid: data.objid]);
@@ -247,6 +430,23 @@ class ChangeLoanAppDetailService
 		}
 		data.charges = charges;
 
+		if (app?.producttype?.version > 1) {
+			def pt = loan_producttype.read([code: data.producttype.name]);
+			data.producttype = [code: pt.code, title: pt.title, name: pt.code, term: 0, version: 2];
+		} else {
+			def pt = producttype.read(data.producttype);
+			pt.title = pt.name;
+			data.producttype = pt;
+		}
+
 		return data;
+	}
+
+	@ProxyMethod
+	public def getProductTypeInfo( params ) {
+		def data = loan_producttype.read([code: params.code]);
+		if (!data) throw new RuntimeException("Product Type record does not exist or has already been deleted.");
+
+		return [code: data.code, title: data.title, name: data.code, term: 0, version: 2];
 	}
 }

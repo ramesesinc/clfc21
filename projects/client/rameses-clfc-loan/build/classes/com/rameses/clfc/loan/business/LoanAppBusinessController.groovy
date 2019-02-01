@@ -9,7 +9,11 @@ import com.rameses.clfc.util.*;
 class LoanAppBusinessController 
 {
     //feed by the caller
-    def loanapp, caller, selectedMenu;
+    def loanapp, caller, menuitem, handlers;
+    
+    def mode;
+    def snapshot;
+    def base64;
     
     @Binding
     def binding;
@@ -21,8 +25,13 @@ class LoanAppBusinessController
     def businesses = [];
         
     void init() {
-        selectedMenu.saveHandler = { save(); }
-        selectedMenu.dataChangeHandler = { dataChange(); }
+        mode = 'read';
+        handlers.saveHandler = { save(); }
+        handlers.dataChangeHandler = { dataChange(); }
+        //menuitem.saveHandler = { save(); }
+        //menuitem.dataChangeHandler = { dataChange(); }
+        base64 = new com.rameses.util.Base64Cipher(); 
+        
         def data = service.open([objid: loanapp.objid]);
         loanapp.clear();
         loanapp.putAll(data);
@@ -37,6 +46,22 @@ class LoanAppBusinessController
         
         def data = [objid: loanapp.objid, businesses: businesses]
         loanapp.state = service.update(data).state;
+        mode = 'read'; 
+        snapshot = null; 
+    }
+    void edit() {
+        snapshot = (businesses ? base64.encode( businesses ) : null ); 
+        mode = 'edit'; 
+    }
+    void cancelEdit() { 
+        if (MsgBox.confirm('Are you sure you want to cancel any changes made?')) { 
+            def o = ( snapshot ? base64.decode( snapshot ) : null ); 
+            if ( o ) {
+                businesses = o; 
+                businessHandler?.reload();
+            }
+            mode = 'read'; 
+        }
     }
 
     void dataChange() {
@@ -54,7 +79,14 @@ class LoanAppBusinessController
             return removeBusinessImpl(o);
         },
         getOpenerParams: {o->
-            return [mode: caller.mode, caller:this]
+            def handler = { b->
+                def data = businesses?.find{ it.objid == b.objid }
+                if (data) {
+                    data.putAll( b );
+                    businessHandler?.reload();
+                }
+            }
+            return [mode: mode, caller:this, handler: handler]
         }
     ] as EditorListModel;
     
@@ -72,7 +104,6 @@ class LoanAppBusinessController
     }
     
     boolean removeBusinessImpl(o) {
-        if (caller.mode == 'read') return false;
         if (MsgBox.confirm("You are about to remove this business. Continue?")) {
             businesses.remove(o);
             return true;
@@ -88,7 +119,7 @@ class LoanAppBusinessController
         }
         def params = [
             handler: { selectedBusiness.ci = it },
-            mode: caller.mode,
+            mode: mode,
             entity: [ filedby: OsirisContext.env.USER ],
             caller: this
         ]

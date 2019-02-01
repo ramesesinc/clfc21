@@ -245,6 +245,12 @@ SELECT r.*
 FROM borrower_loan_resolved r
 WHERE r.loanid = $P{loanid}
 
+[findLastLoanByBorrowerid]
+select *
+from loan 
+where trim(borrowerid)=$P{borrowerid}
+order by loandate desc 
+
 [getBorrowerResolvedLoans]
 SELECT l.*
 FROM borrower_loan_resolved a
@@ -284,7 +290,8 @@ FROM (
 ORDER BY l.objid
 
 [updateResolvedLoanKey]
-UPDATE loan_resolved SET taskkey = $P{taskkey}
+UPDATE loan_resolved SET t
+askkey = $P{taskkey}
 WHERE taskkey IS NULL
 LIMIT 15
 

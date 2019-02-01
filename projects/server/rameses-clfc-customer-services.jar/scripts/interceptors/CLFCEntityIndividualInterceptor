@@ -1,0 +1,26 @@
+import com.rameses.annotations.*;
+
+class CLFCEntityIndividualInterceptor {
+	
+	@Service('EntityService') 
+	def entitySvc;
+
+	@Service('CustomerService') 
+	def customerSvc;
+
+	@Before( pattern="PersistenceService.create", eval="#{args[0]._schemaname == 'entityindividual'}") 
+	void beforeCreateIndividual( evt ) {
+		def param = evt.args[0]; 
+		customerSvc.initCreate( param );  
+	} 
+
+	@After( pattern="PersistenceService.create", eval="#{args[0]._schemaname == 'entityindividual'}") 
+	void afterCreateIndividual( evt ) {
+		def param = evt.args[0]; 
+		def o = entitySvc.open([ objid: evt.result.objid ]); 
+		if ( !o.dtcreated ) o.dtcreated = param.dtcreated; 
+		if ( !o.createdby ) o.createdby = param.createdby;
+		customerSvc.create( o ); 
+	}
+
+}

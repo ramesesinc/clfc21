@@ -118,6 +118,7 @@ class LoanLedgerPaymentListController
     }
 
     def paymentsHandler = [
+        isPagingEnabled: { return false; },
         fetchList: {
             //println 'removed ' + entity._removed;
             //println 'added ' + entity._added;
@@ -164,7 +165,7 @@ class LoanLedgerPaymentListController
             if (itm.isproceedcollection == 1 || itm.isonline == 1) return false;
             return true;
         }
-    ] as EditorListModel;
+    ] as BasicListModel;
 
     def getTotal() {
         if (!entity.payments) return 0;

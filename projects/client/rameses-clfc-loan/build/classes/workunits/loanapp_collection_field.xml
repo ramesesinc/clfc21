@@ -1,9 +1,11 @@
 <workunit>
     <invokers>
+        <!--
         <invoker folderid="/menu/txn/collection" action="init" caption="Post Field Collection" role="CASHIER,ACCT_ASSISTANT" index="5"/>
         <invoker type="quick_launcher" code="FCOL" action="init" caption="Post Field Collection" role="CASHIER,ACCT_ASSISTANT" /> 
                 
         <invoker folderid="/home/online/collection" action="init" caption="Post Field Collection" role="CASHIER,ACCT_ASSISTANT" />
+        -->
         
         <invoker type="formActions" action="close" caption="Close" mnemonic="c" shortcut="ctrl w"
             visibleWhen="${action=='init'}" immediate="true" />

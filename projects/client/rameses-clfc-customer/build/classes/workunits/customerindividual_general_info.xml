@@ -1,5 +1,9 @@
 <workunit>
     <invokers>
+        <!--
+        <invoker type="customer:individual:create" caption="General Information" action="init" target="popup" />
+        <invoker type="customer:individual:open" caption="General Information" target="popup" />
+        -->
         <invoker type="customerindividual:plugin" caption="General Information" action="init" index="-1000"/>
    </invokers>
    

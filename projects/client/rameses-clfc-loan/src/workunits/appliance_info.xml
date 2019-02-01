@@ -1,9 +1,9 @@
 <workunit>
     <invokers>
-        <invoker type="appliance:create" action="create" caption="Appliance Information" 
-            target="popup" resizable="false"/>
+        <invoker type="appliance:create" caption="Appliance Information" 
+                 action="create" target="popup" resizable="false"/>
         <invoker type="appliance:open" caption="Appliance Information" 
-            target="popup" resizable="false"/>
+                 action="open" target="popup" resizable="false"/>
     </invokers>
     
     <code class="com.rameses.clfc.loan.collateral.ApplianceFormController"/>

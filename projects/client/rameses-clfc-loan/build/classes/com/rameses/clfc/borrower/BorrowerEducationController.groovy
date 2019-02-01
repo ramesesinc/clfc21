@@ -31,7 +31,14 @@ class BorrowerEducationController
             return removeItemImpl(o); 
         },
         getOpenerParams: {o->
-            return [ mode: borrowerContext.mode, caller:this ]
+            def handler = { e->
+                def item = borrowerContext.borrower.educations.find{ it.objid == e.objid }
+                if (item) {
+                    item.putAll( e );
+                    educationHandler?.reload();
+                }
+            }
+            return [ mode: borrowerContext.mode, caller:this, handler: handler ];
         }
     ] as EditorListModel;
     

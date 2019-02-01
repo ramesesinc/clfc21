@@ -108,31 +108,41 @@ public class RouteListActivity extends ControlActivity
 					MapProxy item;
 					TextView tv_description, tv_area, tv_billdate;
 					RelativeLayout.LayoutParams layoutParams;
-					String downloaded, remitted, posted, state;
+//					String downloaded, remitted, posted, state;
+					String state;
+					boolean allowdownload;
 					for (int i=0; i<size; i++) {
 						item = new MapProxy((Map) routes.get(i));
-						
-						downloaded = item.getString("downloaded");
-						remitted = item.getString("remitted");
-						posted = item.getString("posted");
-						child = inflater.inflate(R.layout.item_route, null);
+						allowdownload = false;
+						if (item.containsKey("allowdownload")) {
+							allowdownload = item.getBoolean("allowdownload");
+						}
 
 						state = "";
-						if (!"1".equals(downloaded)) {
+						if (item.containsKey("itemstate")) {
+							state = item.getString("itemstate");
+						}
+//						downloaded = item.getString("downloaded");
+//						remitted = item.getString("remitted");
+//						posted = item.getString("posted");
+						child = inflater.inflate(R.layout.item_route, null);
+
+//						if (!"1".equals(downloaded)) {
+						if (allowdownload==true) {
 							child.setClickable(true);
 							child.setOnClickListener(routeOnClickListener);
 							child.setOnLongClickListener(routeOnLongClickListener);
 							child.setTag(POSITION_KEY, i);
 						} else {
-							if ("1".equals(downloaded)) {
-								state = "DOWNLOADED";
-							}
-							if ("1".equals(remitted)) {
-								state = "REMITTED";
-							}
-							if ("1".equals(posted)) {
-								state = "POSTED";
-							}
+//							if ("1".equals(downloaded)) {
+//								state = "DOWNLOADED";
+//							}
+//							if ("1".equals(remitted)) {
+//								state = "REMITTED";
+//							}
+//							if ("1".equals(posted)) {
+//								state = "POSTED";
+//							}
 							addOverlay(child, state);
 						}
 						
@@ -189,34 +199,46 @@ public class RouteListActivity extends ControlActivity
 					View child;
 					MapProxy item;
 					TextView tv_description, tv_date;
-					String downloaded, remitted, posted, state;
+//					String downloaded, remitted, posted, state;
+					String state;
+					boolean allowdownload;
 					RelativeLayout.LayoutParams layoutParams;// = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
 					for (int i=0; i<size; i++) {
 						item = new MapProxy((Map) followups.get(i));
+						allowdownload = false;
+						if (item.containsKey("allowdownload")) {
+							allowdownload = item.getBoolean("allowdownload");
+						}
 						
-						downloaded = item.getString("downloaded");
-						remitted = item.getString("remitted");
-						posted = item.getString("posted");
+						state = "";
+						if (item.containsKey("itemstate")) {
+							state = item.getString("itemstate");
+						}
+						
+//						downloaded = item.getString("downloaded");
+//						remitted = item.getString("remitted");
+//						posted = item.getString("posted");
 						
 //						child = inflater.inflate(R.layout.item_string, null);
 						child = inflater.inflate(R.layout.item_route, null);
 						
-						state = "";
-						if (!"1".equals(downloaded)) {
+//						state = "";
+//						if (!"1".equals(downloaded)) {
+						if (allowdownload==true) {
 							child.setClickable(true);
 							child.setOnClickListener(followupOnClickListener);
 							child.setOnLongClickListener(routeOnLongClickListener);
 							child.setTag(POSITION_KEY, i);
 						} else {
-							if ("1".equals(downloaded)) {
-								state = "DOWNLOADED";
-							}
-							if ("1".equals(remitted)) {
-								state = "REMITTED";
-							}
-							if ("1".equals(posted)) {
-								state = "POSTED";
-							}
+//							if ("1".equals(downloaded)) {
+//								state = "DOWNLOADED";
+//							}
+//							if ("1".equals(remitted)) {
+//								state = "REMITTED";
+//							}
+//							if ("1".equals(posted)) {
+//								state = "POSTED";
+//							}
 							addOverlay(child, state);
 						}
 						
@@ -274,34 +296,44 @@ public class RouteListActivity extends ControlActivity
 					View child;
 					MapProxy item;
 					TextView tv_description, tv_date;
-					String downloaded, remitted, posted, state;
+//					String downloaded, remitted, posted, state;
+					String state;
+					boolean allowdownload;
 					RelativeLayout.LayoutParams layoutParams;// = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
 					for (int i=0; i<size; i++) {
 						item = new MapProxy((Map) specials.get(i));
-												
-						downloaded = item.getString("downloaded");
-						remitted = item.getString("remitted");
-						posted = item.getString("posted");
+						allowdownload = false;
+						if (item.containsKey("allowdownload")) {
+							allowdownload = item.getBoolean("allowdownload");
+						}
+
+						state = "";
+						if (item.containsKey("itemstate")) {
+							state = item.getString("itemstate");
+						}
+//						downloaded = item.getString("downloaded");
+//						remitted = item.getString("remitted");
+//						posted = item.getString("posted");
 						
 //						child = inflater.inflate(R.layout.item_string, null);
 						child = inflater.inflate(R.layout.item_route, null);
 						
-						state = "";
-						if (!"1".equals(downloaded)) {
+//						if (!"1".equals(downloaded)) {
+						if (allowdownload==true) {
 							child.setClickable(true);
 							child.setOnClickListener(specialOnClickListener);
 							child.setOnLongClickListener(routeOnLongClickListener);
 							child.setTag(POSITION_KEY, i);
 						} else {
-							if ("1".equals(downloaded)) {
-								state = "DOWNLOADED";
-							}
-							if ("1".equals(remitted)) {
-								state = "REMITTED";
-							}
-							if ("1".equals(posted)) {
-								state = "POSTED";
-							}
+//							if ("1".equals(downloaded)) {
+//								state = "DOWNLOADED";
+//							}
+//							if ("1".equals(remitted)) {
+//								state = "REMITTED";
+//							}
+//							if ("1".equals(posted)) {
+//								state = "POSTED";
+//							}
 							addOverlay(child, state);
 						}
 						

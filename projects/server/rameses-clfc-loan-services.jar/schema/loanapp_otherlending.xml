@@ -1,6 +1,6 @@
 <schema>
 
-	<element name="loanapp_otherlending" tablename="loanapp_otherlending">
+	<element tablename="loanapp_otherlending">
 		<field name="objid" primary="true"/>
 		<field name="parentid" required="true"/> 
 		<field name="name" required="true"/> 
@@ -12,9 +12,8 @@
 		<field name="term"/> 
 		<field name="interest"/> 
 		<field name="paymentmode"/> 
-		<field name="paymentamount" required="true"/> 
-		<field name="collateral"/> 
-		<field name="remarks"/> 
+		<field name="paymentamount"/> 
+		<field name="otherinfo"/> 
 	</element>
 	
 </schema>

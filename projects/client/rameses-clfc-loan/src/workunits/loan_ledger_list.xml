@@ -1,6 +1,10 @@
 <workunit extends='wtemplates/ExplorerViewController.xml' defaultFileType='loanledger' >
     <invokers>
         <invoker folderid='/home/online/loan' caption='Ledgers' role='ACCT_OFFICER' />
+        <!--
+        <invoker folderid='/home/online/loan' caption='Ledgers' role='ACCT_OFFICER' />
+        <invoker folderid="/home/online/collection" caption="Add Payment" role="CASHIER" />
+        -->
     </invokers>
     
     <code class='com.rameses.clfc.ledger.LoanLedgerExplorerViewController' />

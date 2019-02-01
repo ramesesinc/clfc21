@@ -45,6 +45,7 @@ class LoanAppBusinessService
 			business.create(o); 
 		} 
 
+		/*
 		if (data.appmode=='CAPTURE' && data.state=='RELEASED') {
 			//do not change the state 
 		} else if (data.businesses.isEmpty()) {
@@ -57,7 +58,8 @@ class LoanAppBusinessService
 			loanapp.changeState(stateinfo); 
 			data.state = stateinfo.state;
 		} 
-
+		*/
+		
 		def o = loanapp.findSearchIndex(data); 
 		o.state = data.state; 
 		loanapp.update(o, 'loanapp_search'); 

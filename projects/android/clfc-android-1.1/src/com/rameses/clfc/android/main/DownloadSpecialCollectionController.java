@@ -73,7 +73,11 @@ public class DownloadSpecialCollectionController
 	private Handler successhandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
-			collection.put("downloaded", 1);
+//			collection.put("downloaded", 1);
+			if (collection != null) {
+				collection.put("allowdownload", false);
+				collection.put("itemstate", "DOWNLOADED");
+			}
 			activity.getHandler().post(new Runnable() {
 				public void run() {
 					((RouteListActivity) activity).loadSpecialCollections();

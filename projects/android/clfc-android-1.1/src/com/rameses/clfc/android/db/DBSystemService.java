@@ -21,6 +21,18 @@ public class DBSystemService extends AbstractDBMapper
 		}
 	}
 	
+	public boolean hasBillingByCollector( String collectorid ) throws Exception {
+		DBContext ctx = createDBContext();
+		try {
+			String sql = "SELECT name FROM " + getTableName() + " WHERE name=? LIMIT 1";
+			return (ctx.getCount(sql, new Object[]{ collectorid }) > 0);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (isCloseable()) ctx.close();
+		}
+	}
+	
 	public String getBillingid(String collectorid, String date) throws Exception {
 		DBContext ctx = createDBContext();
 		try {

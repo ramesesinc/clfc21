@@ -6,13 +6,16 @@
 
 package com.rameses.clfc.loan.comaker;
 
+import com.rameses.osiris2.themes.FormPage;
 import com.rameses.rcp.ui.annotations.StyleSheet;
+import com.rameses.rcp.ui.annotations.Template;
 
 /**
  *
  * @author  wflores
  */
 @StyleSheet
+@Template(FormPage.class)
 public class LoanAppCoMakerPage extends javax.swing.JPanel {
     
     public LoanAppCoMakerPage() {
@@ -52,7 +55,6 @@ public class LoanAppCoMakerPage extends javax.swing.JPanel {
         xButton1.setText("Add");
 
         xButton2.setDepends(new String[] {"selectedCoMaker"});
-        xButton2.setDisableWhen("#{selectedCoMaker == null || caller.mode == 'read'}");
         xButton2.setName("removeCoMaker"); // NOI18N
         xButton2.setText("Remove");
 
@@ -94,6 +96,8 @@ public class LoanAppCoMakerPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.UPPER}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             }),
@@ -107,6 +111,8 @@ public class LoanAppCoMakerPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.UPPER}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             }),
@@ -120,6 +126,8 @@ public class LoanAppCoMakerPage extends javax.swing.JPanel {
                 , new Object[]{"resizable", true}
                 , new Object[]{"nullWhenEmpty", true}
                 , new Object[]{"editable", false}
+                , new Object[]{"visible", true}
+                , new Object[]{"visibleWhen", null}
                 , new Object[]{"textCase", com.rameses.rcp.constant.TextCase.UPPER}
                 , new Object[]{"typeHandler", new com.rameses.rcp.common.TextColumnHandler()}
             })

@@ -1,0 +1,37 @@
+<workunit>
+    <invokers>
+        <invoker folderid="/menucategory/loan/app" caption="Create Application" action="init" target="window" />
+        
+        <invoker type="formActions" caption="Cancel" action="doCancel" 
+                 mnemonic="C" immediate="true" visibleWhen="#{mode=='init'}"/>
+        <invoker type="formActions" caption="New" action="doNewApp" 
+                 depends="borrower" visibleWhen="#{canNewApp == true}" 
+                 icon="images/toolbars/create.png"/>
+        <invoker type="formActions" caption="Renew" action="doRenewApp" 
+                 depends="borrower" visibleWhen="#{canRenewApp == true}" 
+                 icon="images/toolbars/create.png"/>
+
+        <invoker type="formActions" caption="Cancel" action="doCancel" 
+                 mnemonic="C" immediate="true" visibleWhen="#{mode=='info'}"/>        
+        <invoker type="formActions" caption="Back" action="doBackToInitial" mnemonic="B" 
+                 visibleWhen="#{mode == 'info'}" immediate="true"/>
+        <invoker type="formActions" caption="Submit" action="doSubmit" mnemonic="S" 
+                 visibleWhen="#{mode == 'info'}"/>
+        
+        <invoker type="formActions" caption="Close" action="doClose" mnemonic="C" 
+                 visibleWhen="#{mode == 'success'}" immediate="true"/>
+        <invoker type="formActions" caption="Add Another" action="doAddAnother" 
+                 visibleWhen="#{mode == 'success'}" immediate="true" mnemonic="A"/>
+        <invoker type="formActions" caption="Open Application" action="doOpen" 
+                 visibleWhen="#{mode == 'success'}" immediate="true" mnemonic="O"/>
+    </invokers>
+    
+    <code class="com.rameses.clfc.loan.models.LoanApplicationCreateModel" />
+    
+    <pages>
+        <page template="com.rameses.clfc.loan.views.LoanAppCreateInitialPage"/>
+        <page name="info" template="com.rameses.clfc.loan.views.LoanAppCreateInfoPage"/>
+        <page name="success" template="com.rameses.clfc.loan.views.LoanAppSuccessPage"/>
+    </pages>
+    
+</workunit>

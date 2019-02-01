@@ -29,6 +29,7 @@ class LoanLedgerNoncashController extends CRUDController {
             //entity.ledger = o;
             entity.borrower = o.borrower;
             entity.parentid = o.objid;
+            entity.appno = o.loanapp.appno;
         }
     ]);
     
