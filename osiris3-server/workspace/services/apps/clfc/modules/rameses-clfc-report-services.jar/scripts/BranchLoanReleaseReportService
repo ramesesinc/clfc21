@@ -91,6 +91,8 @@ class BranchLoanReleaseReportService
 						if (xlist2) {
 							br.value = xlist2;
 							branch_report.update(br);
+						} else {
+							branch_report.delete( br );
 						}
 					}
 				}

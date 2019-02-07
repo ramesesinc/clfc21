@@ -23,6 +23,9 @@ class LoanFieldCollectionService
 	@ActiveDB("collection_cb")
 	def collection_cb;
 
+	@ActiveDB("loan_route")
+	def loan_route;
+
 	@ActiveDB("datatxnlog")
 	def txnlog; 
 
@@ -78,6 +81,9 @@ class LoanFieldCollectionService
 		if (!params.itemid) throw new Exception('Please specify itemid.');
 
 		def entity = collection.read([objid: params.itemid], 'fc-item');
+		//if (!params.collection) throw new RuntimeException("Please specify collection.");
+	
+		//def entity = collection.read( params.collection, "fc-item" );
 		if (!entity) throw new Exception('No collection for this route.');
 
 		def prm = [
@@ -88,9 +94,16 @@ class LoanFieldCollectionService
 
 
 		def cb;
-		def rem  = remittance.findCollectionRemittance(prm);
+		def rem = remittance.findCollectionRemittance(prm);
 		if (rem) {
+
 			entity.totalcollection = rem.totalcollection;
+			entity.billdate = rem.txndate;
+
+			if (rem.group.type == 'route') {
+				def route = loan_route.read( [code: rem.group.objid] );
+				entity.route = [objid: route.code, description: route.description, area: route.area, type: 'route'];
+			}
 			
 			def amt = rem.totalcollection + rem.others;
 			if (!amt) amt = 0;
@@ -184,6 +197,11 @@ class LoanFieldCollectionService
 			entity.cashbreakdown = cb;
 		}
 		//println 'allow cbs submit for verification ' + entity?.cashbreakdown?.allowcbssubmitforverification;
+
+
+		//println 'entity';
+		//entity.each{ println it }
+
 
 		return entity;
 	}
@@ -499,12 +517,18 @@ class LoanFieldCollectionService
 		cb = collection_cb.read([objid: params.objid]);
 		cb.items = collection_cb.getDetails(cb);
 
+		if (sb) {
+			cb.sendbackremarks = sb.remarks;
+			cb.allowcbssubmitforverification = true;
+		}
 
+		/*
 		if (cb.state == 'SEND_BACK') {
 			def s = collection_cb.findCurrentSendback(cb);
 			if (s) cb.sendbackremarks = s.remarks;
 			cb.allowcbssubmitforverification = true;
 		}
+		*/
 
 
 		return cb;
@@ -767,7 +791,6 @@ class LoanFieldCollectionService
 		params.remittance.dtposted = dateSvc.serverDate;
 		params.remittance.poster = [objid: env.USERID, name: env.NAME];
 		remittance.update(params.remittance, "post-remittance");
-		remittance.delete(params.remittance, "pending-remittance");
 
 		/*
 		def billing = ledger_billing.read(params, "billing-item");

@@ -41,18 +41,42 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 	@Service("DateService")
 	def dateSvc;
-
-	@Service("LOVService")
-	def lovSvc;
-
+	
 	@Service("NumberService")
 	def numSvc;
 
 	@Service
 	def selfSvc;
 
-	private final def POSTING_RULESET = ["postprepaid", "postperitem", "postonlastitem"];
-	private final def POSTING_RULEGROUP = ["before", "during", "after"];
+	/*
+	private final def POSTING_RULESET = [
+		[idx: 0, name: "postprepaid", incrementDays: false, addToPostingList: true], 
+		[idx: 1, name: "postperitem", incrementDays: true, addToPostingList: true],
+		[idx: 2, name: "postonlastitem"]
+	];
+	private final def POSTING_GROUP = [
+		[idx: 0, name: "PREPAID", incrementDays: false],
+		[idx: 1, name: "NORMAL", incrementDays: true]
+	]
+	*/
+	//private final def POSTING_GROUP = ["PREPAID", "NORMAL"];
+	private final def POSTING_GROUP = [
+		[idx: 0, name: "PREPAID", addToPostingList: true],
+		[idx: 1, name: "NORMAL", allowIncrementDays: true, addToPostingList: true],
+		[idx: 2, name: "ADVANCE", allowAdvancePosting: true, addToPostingList: true],
+		[idx: 3, name: "PASTDUE", isPastDue: true, addToPostingList: true],
+		[idx: 4, name: "LAST", getLastItem: true]
+	];
+	private final def POSTING_RULESET = [
+		[idx: 0, name: "postperitem", incrementDays: true, allowPosting: true],
+		[idx: 1, name: "postonlastitem", getLastItem: true]
+	];
+	//private final def POSTING_RULESET = ["postperitem", "postonlastitem"];
+	private final def POSTING_RULEGROUP = [
+		[idx: 0, name: "before"], 
+		[idx: 1, name: "during"], 
+		[idx: 2, name: "after"]
+	];
 
 	/*
 	private def DEFAULT_LOAN_VARLIST = ["AMOUNT", "BALANCE", "TOTAL_PAYMENT", "TOTAL_DUE"]
@@ -126,9 +150,9 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		}
 
 		if (mode == 'create') {
-			em.create(data);
+			em.create( data );
 		} else if (mode == 'update') {
-			em.update(data);
+			em.update( data );
 		}
 			
 		saveAttributes(data, _genattr, _addedgenattr, _removedgenattr, "GENERAL");
@@ -225,7 +249,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		if (!params.factid) throw new RuntimeException("Please specify factid.");
 		//if (!params.category) throw new RuntimeException("Please specify category.");
 		//return [];
-		return em.getFieldListByFactid(params).collect{ [objid: it.objid, name: it.name, title: it.name, handler: it.handler] };
+		return em.getFieldListByFactid( params ).collect{ [objid: it.objid, name: it.name, title: it.title, handler: it.handler] };
 	}
 
 	@ProxyMethod
@@ -235,7 +259,16 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 	@ProxyMethod
 	public def getPostingRuleSet() {
+		//def list = POSTING_RULESET.sort{ it.idx }.collect{ it.name }
+		//return list;
 		return POSTING_RULESET;
+	}
+
+	@ProxyMethod
+	public def getPostingGroup() {
+		//def list = POSTING_GROUP.sort{ it.idx }.collect{ it.name }
+		//return list;
+		return POSTING_GROUP;
 	}
 
 	@ProxyMethod
@@ -312,12 +345,6 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		return list;
 	}
 
-	@ProxyMethod
-	public def getPostingGroup() {
-		def list = lovSvc.getKeyValues("POSTING_GROUP");
-		return list;
-	}
-
 	def getDefaultAttributes( params ) {
 		if (!params.category) throw new RuntimeException("Please specify category.");
 
@@ -371,11 +398,63 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 
 	@ProxyMethod
-	public def getFields( params ) {
-		def list = []; //postingheader.getFields([objid: params.objid]);
+	public def getFields( params ) {	
+		//def list = postingheader.getFields([objid: params.objid]);
+		if (!params.category) params.category = 'producttype';
+		params.category = params.category.toLowerCase();
 
-		println 'fields ' + list;
+		def list = [];
 
+		/*
+		ils_fact.getFactsByCategory( params )?.each{ f->
+			ils_fact.getFields( f )?.each{ 
+				//println 'fields ' + it;
+				def item = [
+					factid 	: f.objid, 
+					fieldid : it.objid, 
+					name 	: f.defaultvarname + "_" + it.name, 
+					handler : it.handler
+				]; 
+				item.title = item.name;
+				list << item;
+			};
+		};
+		*/
+
+		if (params.group) {
+			def idx = params.index;
+			if (!idx) {
+	            def mlist = params.sequence?.findAll{ it.group==params.group }
+	            idx = mlist?.size();
+			}
+			if (!idx) idx = 0;
+
+			def xlist = params.sequence?.findAll{ it.group==params.group && it.index < idx && it.varname != null }
+		
+			def plist = ["total", "paid"];
+			xlist?.each{ o->
+				def item = [
+					caption 	: o.varname,
+					title 		: o.varname,
+					signature 	: o.name,
+					handler 	: o.datatype,
+					description : o.datatype
+				];
+				if (o.datatype == 'decimal') {
+					plist.each{ p->
+						def xitem = [:];
+						xitem.putAll( item );
+
+						xitem.caption = p + '_' + o.varname + ' (per item)';
+						xitem.title = p + '_' + o.varname + ' (per item)';
+						xitem.signature = p + '_' + o.name + "f";
+						list << xitem;
+					}
+				} else {
+					list << item;
+				}
+	        }
+		}
 
 		return list;
 	}
@@ -581,7 +660,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 	@ProxyMethod
 	public def testExpression( params ) {
-		def data = open(params);
+		def data = open( params );
 
 		def bindings = [:];
 		def bindings2 = [:];
@@ -593,9 +672,37 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			payments 	: [
 				[paymentid: "LLP-4da142a:145c7c7e749:1632"],
 				[paymentid: "LLP70b6b5f0:145ebcbaa08:-d71"],
-				[paymentid: "LLP70b6b5f0:145ebcbaa08:-d6f"]
+				//[paymentid: "LLP70b6b5f0:145ebcbaa08:-d6f"]
 			]
 		];
+
+
+		xparams.payments?.each{
+			def i = loan_ledger.read([objid: it.paymentid], "payment");
+			if (i) {
+				i.totalpaid = [:];
+				i.lacking = [:];
+				i.current = [:];
+				loan_ledger.update(i, "payment");
+			}
+		}
+
+		def appc = loanapp.read([objid: xparams.appid], "loanapp_capture");
+
+		def appextinfo = loanapp.read( [objid: xparams.appid], "extinfo" );
+		if (appextinfo) {
+			appextinfo.loaninfo = [:];
+			loanapp.update( appextinfo, "extinfo" );
+		}
+
+		def ledger = loan_ledger.read([objid: xparams.ledgerid]);
+		if (ledger) {
+			def dt = incrementDate( appc?.dtreleased, 1, data.paymentschedule );
+			if (dt) {
+				ledger.dtcurrentschedule = dt;
+				loan_ledger.update( ledger );
+			}
+		}
 
 		//LLP-4da142a:145c7c7e749:1632 2000-03-17
 		//LLP70b6b5f0:145ebcbaa08:-d71 2000-03-21
@@ -612,15 +719,16 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 				loanbindings[o.attribute.varname] = o.value;
 			}
 
+
 			info.fields.each{ o->
 				def factfield = ils_fact.read([objid: o.field.objid], "factfield");
-				if (factfield && factfield.source=='database') {					
+				if (factfield && xparams[factfield.paramkey] && factfield.source=='database') {					
 					def schema  = db.lookup("main", factfield.schemaname);
-
+			
 					def xprm = [:];
 					xprm[factfield.primarykey] = xparams[factfield.paramkey];
 
-					def f = schema.read(xprm);
+					def f = schema.read( xprm );
 					if (factfield.subschemaname) {
 						f = schema.read(xprm, factfield.subschemaname);
 					}
@@ -645,11 +753,11 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 				app[it.attribute.fieldname] = bindings[it.attribute.varname]
 			}
 
-			bindings = [:];
+			//bindings = [:];
 			info.attributes?.each{ 
-				bindings[it.attribute.varname] = null;
+				//bindings[it.attribute.varname] = null;
 				if (app[it.attribute.fieldname]) {
-					bindings[it.attribute.varname] = app[it.attribute.fieldname];
+					//bindings[it.attribute.varname] = app[it.attribute.fieldname];
 					bindings2["LOANINFO_" + it.attribute.varname] = app[it.attribute.fieldname];
 					loanbindings[it.attribute.varname] = app[it.attribute.fieldname];
 				}
@@ -657,23 +765,48 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			}
 		}
 
+		//println 'loanbindings';
+		//loanbindings?.each{ println it }
+		//println '';
+
 		//println 'bindings';
 		//bindings.each{ println it }
 
+		//println 'binding2';
+		//bindings?.each{ println it }
+
 		//println 'application';
 		//app.each{ println it }
+
+		/*
+		println 'bindings';
+		bindings?.each{ println it };
+		println '\n';
+		println 'loan bindings';
+		loanbindings?.each{ println it }
+		println '';
+		*/
 
 		info = data.postinginfo;
 		def appinfo = data.loaninfo;
 		def geninfo = data.generalinfo;
 		if (info) {
 			appinfo.loanbindings = loanbindings;
-			//println 'bindings';
-			//loanbindings.each{ println it }
+			//println 'loan bindings';
+			//loanbindings?.each{ println it }
 			//println '';
+
+			def posting = [];
+			def prevpaymentid;
 			xparams.payments?.each{ p->
-				def xprm = [appid: xparams.appid, ledgerid: xparams.ledgerid, paymentid: p.paymentid]; 
-				def result = executePostingRule( bindings2, geninfo, appinfo, info, xprm );
+
+				def xprm = [appid: xparams.appid, ledgerid: xparams.ledgerid, paymentid: p.paymentid, prevpaymentid: prevpaymentid]; 
+				def bc = copyMap( bindings2 );
+				def result = executePostingRule( data, bc, geninfo, appinfo, info, xprm );
+				//if (p.paymentid=="LLP70b6b5f0:145ebcbaa08:-d6f" && result.list) {
+					posting.addAll( result.list );
+				//}
+				prevpaymentid = p.paymentid;
 				/*
 				info.postingsequence.each{
 					//println 'ps ' + it;
@@ -687,6 +820,10 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 				}
 				*/
 			}
+
+			println 'posting';
+			posting?.each{ println it }
+
 		}
 
 	}
@@ -694,6 +831,10 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 
 	def executeApplicationRule( bindings, item ) {
+
+		//println 'bindings';
+		//bindings?.each{ println it }
+		//println '';
 
 		def result = [:];
 
@@ -714,9 +855,11 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		req.addGlobal("fieldname", item.attribute.fieldname);
 		req.addGlobal("expr", item.expr);
 
+		//println 'expr->' + item.expr;
+
 		try {
 
-			ruleSvc.execute(req);
+			ruleSvc.execute( req );
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
@@ -727,7 +870,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		return result;
 	}
 
-	def executePostingRule( bindings, geninfo, appinfo, item, params ) {
+	def executePostingRule( data, bindings, geninfo, appinfo, item, params ) {
 
 		/*
 		def method = "test";
@@ -749,26 +892,57 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			e.printStackTrace();
 		}
 		*/
+
+		if (!item.advanceposting) item.advanceposting = [:];
+		if (item.advanceposting.allow == null) item.advanceposting.allow = false;
 		
+		def appextinfo = loanapp.read([objid: params.appid], "extinfo");
+
 
 		//throw new RuntimeException("stop");
 		def pyt = loan_ledger.read([objid: params.paymentid], "payment");
+
+		switch (params.paymentid) {
+			case "LLP70b6b5f0:145ebcbaa08:-d71":
+				if (!params.prevpaymentid) {
+					params.prevpaymentid = "LLP-4da142a:145c7c7e749:1632";
+				}
+				break;
+			case "LLP70b6b5f0:145ebcbaa08:-d6f":
+				if (!params.prevpaymentid) {
+					params.prevpaymentid = "LLP70b6b5f0:145ebcbaa08:-d71";
+				}
+				break;
+		}
+
+		def prevpayment;
+		if (params.prevpaymentid) {
+			prevpayment = loan_ledger.read([objid: params.prevpaymentid], "payment");
+		}
+		//println 'prevpayment';
+		//println prevpayment;
+		//println '';
 		//println 'payment';
 		//println pyt;
 		//println '';
-		def ledger = loan_ledger.read([objid: params.ledgerid]);
+		def ledger = loan_ledger.read( [objid: params.ledgerid] );
 		ledger.dtlastpaid = pyt.txndate;
+
+		println 'current schedule ' + ledger?.dtcurrentschedule + ' payment date->' + pyt.txndate;
 
 		pyt.previous = [
 			balance 	: ledger.balance,
 			dtschedule 	: ledger.dtcurrentschedule
 		];
 
+		//println 'before get total days params->' + params;
 		def totaldays = getTotalDays( params );
 		//println 'total days ' +  totaldays;
 
+		def postinggroup = [index: 0, sequence: POSTING_GROUP];
 		def ruleset = [index: 0, sequence: POSTING_RULESET];
 		def rulegroup = [index: 0, sequence: POSTING_RULEGROUP];
+
 
 		//def postingsequence = [];
 		//item.postingsequence.each{ 
@@ -780,9 +954,43 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		//appinfo?.fields?.each{ println it }
 		//throw new RuntimeException("stopping");
 
-		def applist = appinfo?.attributes?.findAll{ it.computeduringposting==1 && it.attribute.varname != null }
-		
+
 		def loanBindings = [:];
+		if (appinfo.loanbindings) loanBindings.putAll( appinfo.loanbindings );
+
+		def applist = appinfo?.attributes?.findAll{ it.computebeforeposting==1 && it.attribute.varname != null }
+		//println 'before posting->' + applist?.size();
+		if (applist) {
+			def xbindings = [:]
+			xbindings.putAll( copyMap( loanBindings ) );
+
+			def bd = buildBindings( appinfo?.fields, params );
+			if (bd) xbindings.putAll( bd );
+
+			applist.sort{ it.index }
+			applist.each{ o->
+
+				def res = executeApplicationRule(xbindings, o);
+				def val = res[o.attribute.fieldname];
+				def varname = o.attribute.varname;
+				xbindings[varname] = val;
+				loanBindings[varname] = val;
+				bindings["LOANINFO_" + varname] = val;
+				//println 'varname->' + varname + ' val->' + val;
+			}
+
+
+		}
+		//println 'after before posting';
+
+		def isPastDue = getIsPastDue( pyt?.txndate );
+		applist = appinfo?.attributes?.findAll{ it.computeduringposting==1 && it.attribute.varname != null }
+		
+		if (isPastDue) {
+			def l = appinfo?.attributes?.findAll{ it.computeuponmaturity==1 && it.attribute.varname != null }
+			if (l) applist.addAll( l );
+		}
+
 		if (applist) {
 
 			def fields = appinfo.fields;
@@ -792,11 +1000,12 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 				if (!it.fields) it.fields = [];
 				it.fields.addAll( fields );
 			}
-
-			if (appinfo.loanbindings) loanBindings.putAll(appinfo.loanbindings);
 		}
 
+		//println 'loanbindings';
+		//loanBindings?.each{ println it }
 
+		//println 'attributes->' + applist?.size();
 		//println 'app attributes';
 		//applist?.each{ println it }
 		//throw new RuntimeException("stopping");
@@ -804,33 +1013,97 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		//postingsequence.each{ println it }
 		if (!bindings) bindings = [:];
 		def bindingsCopy = [:];
-		bindingsCopy.putAll(bindings);
+		bindingsCopy.putAll( bindings );
 		def result = [:];
 
 		def ref = [
-			executingRulegroup		: true,
+			executingGroup 			: true,
+			executingRulegroup		: false,
 			executingRuleset 		: false,
+			executingAdvancePosting : false,
 			allowPosting			: false, 
 			allowRepost 			: false,
 			buildBindings 			: false, 
 			onSupplyValue 			: false, 
 			onPostItem 				: false,
-			//onPostPerItem 			: false,
-			//onPostLastItem 			: false,
 			loanAppSupplyOnPosting 	: false,
+			isPastDue 				: isPastDue,
+			allowAdvancePosting 	: false, //item.advanceposting?.allow,
 			dbParams				: params,
 			totalDays 				: totaldays
 		];
 
+		//println 'is past due->' + ref.isPastDue;
+		println 'allow advance posting->' + ref.allowAdvancePosting;
+
 		//println 'posting sequence';
 		//item.postingsequence?.each{ println it }
 
-		def posting = [index: 0, sequence: item.postingsequence, postingItems: [], daysCount: 1, incrementAfterPosting: [:]];
-		def loan = [index: 0, attributes: applist, bindings: loanBindings];
-		def payment = [amount: 0.0d, deductableToAmount: 0.0d, date: pyt?.txndate, current: [:], totalPaid: [:], total: [:], lacking: [:]];
+		def posting = [
+			index 					: 0, 
+			sequence 				: item.postingsequence, 
+			postingItems 			: [], 
+			daysCount				: 1, 
+			incrementAfterPosting 	: [:], 
+			incrementDays 			: false
+		];
+
+		def loan = [
+			index 		: 0, 
+			attributes 	: applist, 
+			bindings 	: loanBindings,
+			info 		: [:]
+		];
+
+		if (appextinfo?.loaninfo) {
+			loan.info = appextinfo.loaninfo;
+		}
+
+		def payment = [
+			amount 				: 0.0d, 
+			deductableToAmount 	: 0.0d, 
+			date 				: pyt?.txndate, 
+			current 			: [:], 
+			totalPaid 			: [:], 
+			total 				: [:], 
+			lacking 			: [:],
+			balance 			: 0.0d
+		];
+
+		def ap = [:];
+		if (item.advanceposting) ap = item.advanceposting;
+
+		def advancePosting = [
+			amount 		: 0.0d,
+			amountExpr 	: ap?.expr,
+			datatype 	: ap?.datatype,
+			varname 	: ap?.varname,
+			fields 		: ap?.fields,
+			constraints : ap?.constraints,
+			expressions : ap?.expressions,
+			allowPost 	: ap?.allow
+		]
+		//println 'advance posting';
+		//advancePosting?.each{ println it }
+
+		//def payment = [amount: 0.0d, deductableToAmount: 0.0d, date: pyt?.txndate, current: [:], totalPaid: [:], total: [:], lacking: []]
 		if (pyt?.amount) {
 			payment.amount = ((BigDecimal) pyt.amount).toDouble();
+			payment.balance = payment.amount;
 		}
+
+		println 'prevpayment'
+
+		if (prevpayment) {
+			//println 'total paid->' + prevpayment.totalpaid;
+			payment.totalPaid = prevpayment.totalpaid;
+			payment.lacking = prevpayment.lacking;
+			payment.current = prevpayment.current;
+
+			//println 'prevpayment->' + prevpayment;
+			//println 'lacking-> ' + payment.lacking;
+		}
+
 
 		/*
 		println 'ref';
@@ -846,6 +1119,13 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		req.addFact( "product_type_rules", "Loan", loan );
 		req.addFact( "product_type_rules", "Ruleset", ruleset );
 		req.addFact( "product_type_rules", "Rulegroup", rulegroup );
+		req.addFact( "product_type_rules", "Group", postinggroup );
+		req.addFact( "product_type_rules", "AdvancePosting", advancePosting );
+
+		//println '';
+		//println 'posting';
+		//posting?.each{ println 'kv-> ' + it }
+		//println '';
 
 		/*
 		println 'ref';
@@ -859,21 +1139,49 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 		def actions = new RuleAction(); 
 		actions.addCommand( "buildBindings", new ils_rules.general.actions.BuildBindings( SERVICE: selfSvc ) );
+		actions.addCommand( "buildAppBindings", new ils_rules.general.actions.BuildAppBindings( SERVICE: selfSvc ) );
+		actions.addCommand( "validateConstraintExpression", new ils_rules.general.actions.ValidateConstraintExpression( SERVICE: selfSvc ) )
 		actions.addCommand( "supplyFieldValue", new ils_rules.general.actions.SupplyFieldValue( NS: numSvc ) );
 		actions.addCommand( "postItem", new ils_rules.general.actions.PostItem( NS: numSvc ) );
+
+		def postingItems = [];
 
 		req.addGlobal("action", actions);
 		req.addGlobal("bindings", bindings);
 		req.addGlobal("bindingsCopy", bindingsCopy);
+		req.addGlobal("items", postingItems);
+
+		//println 'payment';
+		//payment?.each{ println it }
+		def paymentCopy = copyMap( payment );
+		req.addGlobal("paymentCopy", paymentCopy);
+
+		def postingCopy = copyMap( posting );
+		req.addGlobal("postingCopy", postingCopy);
+
+		def loanCopy = copyMap( loan );
+		req.addGlobal("loanCopy", loanCopy);
+
+		println '';
+		//println 'loan';
+		//loan?.each{ println it }
+
+		//println 'payment';
+		//payment?.each{ println it }
+		//println '';
+
+		//println 'references';
+		//ref?.each{ println it }
+		//println '';
 
 		try {
-
-			ruleSvc.execute(req);
+			ruleSvc.execute( req );
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
 		}
 
+		/*
 		def items = posting.postingItems;
 
 		items.sort{ it.idx };
@@ -882,10 +1190,17 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			//if (i) {
 			//}
 		}
+		*/
 
 
+		println '';
+		println 'totalpaid->' + payment.totalPaid;
+		println 'total->' + payment.total;
+		println 'lacking->' + payment.lacking;
+		println 'current->' + payment.current;
+		println '';
 
-		pyt.totalpaid = payment.totalPayment;
+		pyt.totalpaid = payment.totalPaid;
 		pyt.lacking = payment.lacking;
 		pyt.current = payment.current;
 
@@ -894,7 +1209,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			def cal = Calendar.getInstance();
 			cal.setTime( parseDate(ledger.dtcurrentschedule) );
 
-			cal.add(Calendar.DATE, posting.incrementAfterPosting.dtschedule);
+			cal.add( Calendar.DATE, posting.incrementAfterPosting.dtschedule );
 			ledger.dtcurrentschedule = parseDate( new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime()) );
 			//edger.dtcurrentschedule = pyt.current?.dtschedule;
 		}
@@ -908,8 +1223,27 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		//println 'balance-> ' + ledger.balance;
 		//println 'dtcurrentschedule-> ' + ledger.dtcurrentschedule;
 
-		//loan_ledger.update(pyt, "payment");
-		//loan_ledger.update(ledger);
+		if (postingCopy?.incrementAfterPosting?.dtschedule) {
+			ledger.dtcurrentschedule = incrementDate( ledger.dtcurrentschedule, postingCopy.incrementAfterPosting.dtschedule, data.paymentschedule);
+		}
+
+		loan_ledger.update(pyt, "payment");
+		loan_ledger.update( ledger );
+
+		//println 'loan info1';
+		//loan.info?.each{ println it }
+		//println '';
+
+		//println 'loan info';
+		//loanCopy.info?.each{ println it }
+		//println '';
+		
+		appextinfo.loaninfo = loanCopy.info;
+		loanapp.update(appextinfo, "extinfo");
+
+		postingItems?.each{
+			if (!it.paymentid) it.paymentid = params.paymentid;
+		}
 
 		/*
 		println 'payment';
@@ -929,15 +1263,74 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		println '';
 		*/
 
-		println 'posting items ';
-		posting.postingItems.each{ println it };
-		println '';
+		//println 'posting items ';
+		//posting.postingItems.each{ println it };
+		//println '';
+
+		//println 'posting items->' + postingItems;
+		//postingItems?.each{ println it }
+		//println '';
+
+		result.list = postingItems;
+		//result.list = posting.postingItems;
+
+		//println '';
+		//println 'payment';
+		//payment?.each{ println it }
+		//println '';
+		//println 'payment copy';
+		//paymentCopy?.each{ println it }
+		//println '';
+		//println 'lacking->' + payment.lacking;
+		//println 'amount->' + payment.amount + ' deductable to amount->' + payment.deductableToAmount;
 
 		//println 'result-> ' + result;
 
 
 		//throw new RuntimeException("stopping");
 		return result;
+	}
+
+	def copyMap( src ) {
+		def item = [:];
+		src?.each{ k, v->
+			if (v instanceof Map) {
+				//println 'instanceof Map-> ' + k + ' ' + v;
+				item[k] = copyMap( v );
+			} else {
+				item[k] = v;
+			}
+		}
+
+		return item;
+	}
+
+	def incrementDate( date, addToDate, type ) {
+		if (!date) return;
+		Calendar cal = Calendar.getInstance();
+		cal.setTime( date );
+		
+		switch (type) {
+			case 'DAILY'	: cal.add(Calendar.DATE, addToDate); break;
+		}
+
+		date = parseDate("yyyy-MM-dd", cal.getTime());
+		return date;
+	}
+
+	def getIsPastDue( date ) {
+		def flag = false;
+
+		if (date != null) {
+			def dt = parseDate( date );
+			def dt2 = parseDate( dateSvc.serverDate.toString().split(' ')[0] )
+
+			if (dt > dt2) {
+				flag = true;
+			}
+		}
+
+		return flag;
 	}
 
 	@ProxyMethod
@@ -980,6 +1373,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 
 	@ProxyMethod
 	public def getTotalPayment( params ) {
+		//println 'paymentid->' + params.paymentid;
 		def payment = loan_ledger.read([objid: params.paymentid], "payment");
 
 
@@ -995,6 +1389,8 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 				break;
 			}
 		}
+
+		//println 'total payment->' + amt;
 
 
 		return amt;
@@ -1015,6 +1411,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 				break;
 		}
 		*/
+		//println 'total->' + params.total;
 		if (params.total[type]) {
 			amt = params.total[type];
 		}
@@ -1064,6 +1461,12 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 	}
 
 	@ProxyMethod
+	public def buildAppBindings() {
+
+	}
+
+
+	@ProxyMethod
 	public def buildBindings( fields, params ) { 
 		//println 'fields';
 
@@ -1074,6 +1477,8 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		fields.each{ f->
 			def field = ils_fact.read([objid: f.field.objid], "factfield");
 			if (field) {
+				//println 'f->' + f;
+				//println 'field->' + field;
 				if (field?.source=="database") {	
 					def schema  = db.lookup("main", field.schemaname);
 
@@ -1108,6 +1513,7 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 							bindings[f.title] = val;
 							break;
 						case 'totalinterest':
+							//println 'title->' + f.title + ' total->' + params.total;
 							bindings[f.title] = getTotal( params, "interest" );
 							break;
 						case 'totalpenalty':
@@ -1115,6 +1521,9 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 							break;
 						case 'remarks':
 							bindings[f.title] = getRemarks( params );
+							break;
+						case 'balance':
+							bindings[f.title] = params.PAYMENT.balance;
 							break;
 					}
 
@@ -1130,6 +1539,210 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 		return bindings;
 	}
 
+	@ProxyMethod
+	public def buildConstraintExpressionList( params ) {
+		def bindings = [:]
+		if (params.bindings) bindings = copyMap( params.bindings );
+
+		def item = [:];
+		if (params.postingitem) item = copyMap( params.postingitem );
+
+		def exprList = [];
+		params.constraints?.each{ c->
+			if (c.field?.signature) {
+				def f = c.field?.signature;
+				def val;
+				if (bindings[ f ]) {
+					val = bindings[ f ];
+				} else {
+					if (item[ f ]) {
+						val = item[ f ];
+					}
+				}
+				if (c.varname) {
+					bindings[ c.varname ] = val;
+				} else {
+					if (!bindings[ f ]) {
+						bindings[ f ] = val;
+					}
+				}
+
+				if (c.operator?.symbol) {
+					def expr = f;
+					if (c.varname) {
+						expr = c.varname;
+					} 
+
+					expr += " " + c.operator.symbol;
+					if (c.usevar == 1) {
+						
+						//def val2 = 0;
+						//if (bindings[ c.var?.name ]) {
+						//	val2 = bindings[ c.var?.name ];
+						//}
+						//expr += " " + val2;
+
+						if (c.var?.name) {
+							expr += " " + c.var.name;
+						}
+					} else {
+						def val2;
+						switch (c.field?.handler) {
+							case 'decimal':
+								if (!c.decimalvalue) c.decimalvalue = 0;
+								val2 = c.decimalvalue;
+								break;
+							case 'date':
+								if (!c.datevalue) c.datevalue = "";
+								val2 = c.datevalue;
+								break;
+							case 'integer':
+								if (!c.intvalue) c.intvalue = 0;
+								val2 = c.intvalue;
+								break;
+						}
+
+						expr += " " + val2;
+					}
+					exprList << [expr: "return (" + expr + ");", bindings: bindings];
+				}
+			}
+
+
+
+			/*
+			if (c.field?.handler) {
+
+				def f = c.field?.signature;
+				def val = 0;
+				if (bindings[ f ]) {
+					val = bindings[ f ];
+				} else {
+					if (item[ f ]) {
+						val = item[ f ];
+					}
+				}
+				if (c.varname) {
+					bindings[ c.varname ] = val;
+				}
+
+				if (c.operator?.symbol) {
+					def expr = val + " " + c.operator.symbol;
+					if (c.usevar == 1) {
+						def val2 = 0;
+						if (bindings[ c.var?.name ]) {
+							val2 = bindings[ c.var?.name ];
+						}
+						expr += " " + val2;
+					} else {
+						if (!c.decimalvalue) c.decimalvalue = 0;
+						expr += " " + c.decimalvalue;
+					}
+					exprList << "return (" + expr + ");";
+				}
+			}
+			*/
+
+			//println 'cons->' + c;
+			/*
+			switch (c.field?.handler) {
+				case 'decimal':
+					def f = c.field?.signature;
+					def val = 0;
+					if (bindings[ f ]) {
+						val = bindings[ f ];
+					} else {
+						if (item[ f ]) {
+							val = item[ f ];
+						}
+					}
+					if (c.varname) {
+						bindings[ c.varname ] = val;
+					} else {
+						if (!bindings[ f ]) {
+							bindings[ f ] = val;
+						}
+					}
+
+					if (c.operator?.symbol) {
+						def expr = val;
+						if (c.varname) {
+							expr = c.varname;
+						} 
+
+						expr += " " + c.operator.symbol;
+						if (c.usevar == 1) {
+							
+							//def val2 = 0;
+							//if (bindings[ c.var?.name ]) {
+							//	val2 = bindings[ c.var?.name ];
+							//}
+							//expr += " " + val2;
+
+							if (c.var?.name) {
+								expr += " " + c.var.name;
+							}
+						} else {
+							if (!c.decimalvalue) c.decimalvalue = 0;
+							expr += " " + c.decimalvalue;
+						}
+						exprList << [expr: "return (" + expr + ");", bindings: bindings];
+					}
+					break;
+				case 'date':
+					def f = c.field?.signature;
+					def val = '';
+					if (bindings[ f ]) {
+						val = bindings[ f ];
+					} else {
+						if (item[ f ]) {
+							val = item[ f ];
+						}
+					}
+					if (c.varname) {
+						bindings[ c.varname ] = val;
+					} else {
+						if (!bindings[ f ]) {
+							bindings[ f ] = val;
+						}
+					}
+
+					if (c.operator?.symbol) {
+						def expr = val.toString();
+						if (c.varname) {
+							expr = c.varname;
+						}
+						expr += " " + c.operator.symbol;
+						//def expr = val.toString() + " " + c.operator.symbol;
+						if (c.usevar == 1) {
+							if (c.var?.name) {
+								expr += " " + c.var.name;
+							}
+
+							//def val2 = 0;
+							//if (bindings[ c.var?.name ]) {
+							//	val2 = bindings[ c.var?.name ];
+							//}
+							//expr += " " + val2;
+
+						} else {
+							if (!c.datevalue) c.datevalue = "";
+							expr += " " + c.datevalue;
+						}
+						exprList << [expr: "return (" + expr + ");", bindings: bindings];
+					}
+					break;
+			}
+			*/
+
+		}
+
+		//println 'expr list';
+		//exprList?.each{ println it }
+
+		return exprList;
+	}
+
 	private def parseDate( date ) {
 		if (!date) return null;
 
@@ -1139,4 +1752,11 @@ class NewLoanProductTypeService extends ActiveCrudListService {
 			return java.sql.Date.valueOf( date );
 		}
 	}
+
+	private def parseDate( def pattern, def date ) {
+		if (!pattern) pattern = "yyyy-MM-dd";
+
+		return parseDate(new SimpleDateFormat(pattern).format(parseDate(date)));
+	}
+
 }

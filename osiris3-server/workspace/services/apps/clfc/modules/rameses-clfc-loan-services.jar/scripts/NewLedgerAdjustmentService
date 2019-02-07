@@ -138,7 +138,6 @@ class NewLedgerAdjustmentService extends ActiveCrudListService {
 	@ProxyMethod
 	public def getTypeList() {
 		def list = [
-			[caption: 'Interest', name: 'interest'],
 			[caption: 'Penalty', name: 'penalty'],
 			[caption: 'Partial Payment', name: 'partialpayment']
 		];

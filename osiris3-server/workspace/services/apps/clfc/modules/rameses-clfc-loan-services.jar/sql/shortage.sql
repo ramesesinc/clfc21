@@ -68,7 +68,7 @@ WHERE state IN ('DRAFT', 'FOR_APPROVAL')
 
 [findUnnotedShortageByRemittanceid]
 SELECT * FROM shortage
-WHERE state IN ('DRAFT', 'FOR_SIGNATORY')
+WHERE state IN ('DRAFT', 'FOR_NOTING')
 	AND remittanceid = $P{remittanceid}
 
 [findApprovedShortageWithoutBreakdownByRemittanceid]

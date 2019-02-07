@@ -58,6 +58,77 @@ ORDER BY dtpaid DESC
 LIMIT 1
 
 [getList]
+select l.objid as ledgerid, a.borrower_objid, a.borrower_name, a.objid as appid,
+	a.appno, ac.dtreleased, l.dtmatured, l.state,
+	case when curdate() > l.dtmatured then 1 else 0 end as ismatured,
+	case when r.code is not null then concat(ifnull(r.description, ""), " - ", ifnull(r.area, "")) else "" end as route
+from (
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	where a.appno like $P{searchtext}
+	union
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	where a.borrower_name like $P{searchtext}
+) q inner join loan_ledger l on q.objid=l.objid
+inner join loanapp a on l.appid=a.objid
+inner join loanapp_capture ac on a.objid=ac.objid
+inner join loan_route r on a.route_code=r.code
+order by a.borrower_name, ac.dtreleased desc, a.appno desc
+
+[getListByState]
+select l.objid as ledgerid, a.borrower_objid, a.borrower_name, a.objid as appid,
+	a.appno, ac.dtreleased, l.dtmatured, l.state,
+	case when curdate() > l.dtmatured then 1 else 0 end as ismatured,
+	case when r.code is not null then concat(ifnull(r.description, ""), " - ", ifnull(r.area, "")) else "" end as route
+from (
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	where a.appno like $P{searchtext}
+		and l.state=$P{state}
+	union
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	where a.borrower_name like $P{searchtext}
+		and l.state=$P{state}
+) q inner join loan_ledger l on q.objid=l.objid
+inner join loanapp a on l.appid=a.objid
+inner join loanapp_capture ac on a.objid=ac.objid
+inner join loan_route r on a.route_code=r.code
+order by a.borrower_name, ac.dtreleased desc, a.appno desc
+
+[getListByStateAndSegregationid]
+select l.objid as ledgerid, a.borrower_objid, a.borrower_name, a.objid as appid,
+	a.appno, ac.dtreleased, l.dtmatured, l.state,
+	case when curdate() > l.dtmatured then 1 else 0 end as ismatured,
+	case when r.code is not null then concat(ifnull(r.description, ""), " - ", ifnull(r.area, "")) else "" end as route
+from (
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join loan_ledger_segregation s on l.objid=s.refid
+	where a.appno like $P{searchtext}
+		and l.state=$P{state}
+		and s.typeid=$P{segregationid}
+	union
+	select l.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join loan_ledger_segregation s on l.objid=s.refid
+	where a.borrower_name like $P{searchtext}
+		and l.state=$P{state}
+		and s.typeid=$P{segregationid}
+) q inner join loan_ledger l on q.objid=l.objid
+inner join loanapp a on l.appid=a.objid
+inner join loanapp_capture ac on a.objid=ac.objid
+inner join loan_route r on a.route_code=r.code
+order by a.borrower_name, ac.dtreleased desc, a.appno desc
+
+[xxgetList]
 SELECT ll.objid AS ledgerid, la.borrower_objid, la.objid AS appid, 
 	la.borrower_name, ll.producttypeid, la.appno, la.route_code, ll.dailydue, 
 	lr.description AS route_description, lr.area AS route_area, ll.dtstarted, 
@@ -77,7 +148,7 @@ INNER JOIN loan_ledger ll ON la.objid = ll.appid
 INNER JOIN loan_route lr ON la.route_code = lr.code
 ORDER BY la.borrower_name, la.appno DESC, ll.dtstarted DESC
 
-[getListByState]
+[xxgetListByState]
 SELECT ll.objid AS ledgerid, la.borrower_objid, la.objid AS appid, 
 	la.borrower_name, ll.producttypeid, la.appno, la.route_code, ll.dailydue, 
 	lr.description AS route_description, lr.area AS route_area, ll.dtstarted, 
@@ -416,6 +487,42 @@ ORDER BY ll.acctname, ll.dtstarted DESC
 SELECT s.*
 FROM loan_ledger_segregation s
 WHERE s.refid = $P{ledgerid}
+
+[findTotalAccountsByState]
+select count(distinct a.borrower_objid) as totalaccounts
+from (
+	select a.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	where a.appno like $P{searchtext}
+		and l.state=$P{state}
+	union
+	select a.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	where a.borrower_name like $P{searchtext}
+		and l.state=$P{state}
+) q inner join loanapp a on q.objid=a.objid
+
+[findTotalAccountsByStateAndSegregationid]
+select count(distinct a.borrower_objid) as totalaccounts
+from (
+	select a.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join loan_ledger_segregation s on l.objid=s.refid
+	where a.appno like $P{searchtext}
+		and l.state=$P{state}
+		and s.typeid=$P{segregationid}
+	union
+	select a.objid
+	from loan_ledger l
+	inner join loanapp a on l.appid=a.objid
+	inner join loan_ledger_segregation s on l.objid=s.refid
+	where a.borrower_name like $P{searchtext}
+		and l.state=$P{state}
+		and s.typeid=$P{segregationid}
+) q inner join loanapp a on q.objid=a.objid
 
 [findTotalList]
 SELECT COUNT(DISTINCT la.borrower_objid) AS totalaccount

@@ -9,6 +9,7 @@
 		<field name="author_name" required="true" />
 		<field name="collector_objid" required="true" />
 		<field name="collector_name" required="true" />
+		<field name="remittanceid" required="true" />
 	</element>
 
 	<element name="oc-detail" tablename="onlinecollection_detail">

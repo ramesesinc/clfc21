@@ -18,6 +18,13 @@ from mobile_tracker_detail d
 where d.parentid=$P{objid}
 order by d.txndate
 
+[getLogsWithLimit]
+select d.*
+from mobile_tracker_detail d
+where d.parentid=$P{objid}
+order by d.txndate
+limit $P{start}, $P{limit}
+
 [getItems]
 select *
 from mobile_tracker_item

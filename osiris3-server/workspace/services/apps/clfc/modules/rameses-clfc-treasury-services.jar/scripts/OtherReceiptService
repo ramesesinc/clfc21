@@ -19,6 +19,9 @@ class OtherReceiptService
 	@Service('DateService')
 	def dateSvc;
 
+	@Service("CollectionCashbreakdownService")
+	def cashbreakdownSvc;
+
 	@Service('SequenceService')
 	def seqSvc;
 
@@ -115,11 +118,19 @@ class OtherReceiptService
 		def data = em.read(params);
 		if (!data) throw new Exception('Other receipt record does not exist or has already been deleted.');
 
-		data.payments = getPayments(data);
+
+		data.payments = getPayments( data );
 
 		data.hascash = false;
 		if (data?.payments?.find{ it.payoption == 'cash' && it.state != 'VOIDED'}) {
 			data.hascash = true;
+		}
+
+		data.alloweditbreakdown = false;
+		data.allowposting = false;
+		if (data.txnstate.matches("REMITTED")) {
+			data.alloweditbreakdown = true;
+			data.allowposting = true
 		}
 
 		data.cashbreakdown = [items: []];
@@ -127,10 +138,31 @@ class OtherReceiptService
 		def cb = collection_cb.findCashbreakdown([collectionid: data?.objid, groupid: data?.objid, grouptype: 'OTHER_RECEIPT']);
 		if (cb) {
 			cb.items = collection_cb.getDetails(cb);
+			def s = collection_cb.findCurrentSendbackByState([objid: cb.objid, state: 'DRAFT']);
+			if (s) {
+				data.alloweditbreakdown = true;
+				cb.sendbackremarks = s.remarks;
+				cb.allowcbssubmitforverification = true;
+				data.hassendback = true;
+			}
 			data.cashbreakdown = cb;
 		}
 
 		data.state = data.txnstate;
+
+		def pyt = data.payments;
+
+		def tc = pyt?.findAll{ it.state != 'VOIDED' }?.amount?.sum();
+		if (!tc) tc = 0;
+		data.totalcollection = tc;
+
+		tc = pyt?.findAll{ it.payoption == 'cash' && it.state != 'VOIDED'}?.amount?.sum();
+		if (!tc) tc = 0;
+		data.totalcash = tc;
+
+		tc = pyt?.findAll{ it.payoption != 'cash' && it.state != 'VOIDED'}?.amount?.sum();
+		if (!tc) tc = 0;
+		data.totalnoncash = tc;
 
 
 		return data;
@@ -275,6 +307,52 @@ class OtherReceiptService
 		}
 
 		cb.items = collection_cb.getDetails(cb);
+
+		def s = collection_cb.findCurrentSendbackByState([objid: cb.objid, state: 'DRAFT']);
+		if (s) {
+			cb.sendbackremarks = s.remarks;
+			cb.allowcbssubmitforverification = true;
+		}
+
+		return cb;
+	}
+
+
+	@ProxyMethod
+	public def submitCbsForVerification( params ) {
+		if (!params.cashbreakdown?.objid) throw new RuntimeException("Please specify cashbreakdownid.");
+
+		def cashbreakdownid = params.cashbreakdown.objid;
+
+		def cb = collection_cb.read([objid: cashbreakdownid]);
+		if (!cb) throw new Exception('Cash breakdown record does not exist or has already been deleted.');
+
+		if (cb.state != 'FOR_VERIFICATION') {
+			cb = cashbreakdownSvc.submitForVerification( cb );
+		}
+
+		def c = collection_cb.read(cb, "cb-forverification");
+		if (!c) {
+			collection_cb.create(cb, "cb-forverification");
+		}
+
+		def sb = collection_cb.findCurrentSendbackByState([objid: cb.objid, state: 'DRAFT']);
+		if (sb) {
+			sb.state = 'CLOSED';
+			collection_cb.update(sb, 'cb-sendback');
+		}
+
+		def msginfo = [ 
+			objid 		: cb.objid, 
+			dtcreated	: dateSvc.serverDate, 
+			refid 		: cb.objid, 
+			filetype 	: 'cashbreakdown', 
+			message 	: 'For verification of Cash Breakdown Sheet with CBS No. '+ cb.cbsno, 
+			senderid	: env.USERID, 
+			sendername 	: env.NAME, 
+			recipientid : 'ACCT_ASSISTANT' 
+		]; 
+		inboxSvc.addMessage( msginfo );
 
 		return cb;
 	}

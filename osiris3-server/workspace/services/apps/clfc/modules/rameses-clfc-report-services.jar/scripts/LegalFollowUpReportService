@@ -52,7 +52,7 @@ class LegalFollowUpReportService extends ActiveCrudListService {
 		validate( entity );
 	}
 
-	void beforeUpdate(entity){
+	void beforeUpdate( entity ){
 		entity.dtmodified = dateService.serverDate;
 		entity.modifiedby = [objid: env.USERID, name: env.NAME];
 		validate( entity );

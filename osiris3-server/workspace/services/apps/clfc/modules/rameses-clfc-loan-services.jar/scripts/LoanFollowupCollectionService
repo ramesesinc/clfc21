@@ -100,7 +100,11 @@ class LoanFollowupCollectionService extends ActiveListService
 	@ProxyMethod
 	public def create( data ) {
 		data = specialColSvc.create(data);
-		em.create(data);
+		def list = em.getListByCollectoridAndDate([collectorid: data.collector.objid, date: data.txndate]);
+		if (!list) list = [];
+		data.name = "Follow-up " + (list.size() + 1);
+		specialcollection.update( data )
+		em.create( data );
 		return data;
 	}
 
@@ -125,9 +129,10 @@ class LoanFollowupCollectionService extends ActiveListService
 		return specialColSvc.submitForApproval(params);
 	}
 
+	@Async
 	@ProxyMethod
 	public def approveDocument( params ) {
-		return specialColSvc.approveDocument(params);
+		return specialColSvc.approveDocumentImpl( params );
 	}
 
 	@ProxyMethod

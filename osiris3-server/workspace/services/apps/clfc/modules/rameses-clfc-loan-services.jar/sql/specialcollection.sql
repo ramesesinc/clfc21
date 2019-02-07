@@ -7,6 +7,16 @@ WHERE f.objid IS NULL
 	AND s.collector_name LIKE $P{searchtext}
 ORDER BY s.dtfiled DESC
 
+[getListByCollectoridAndDate]
+select s.*
+from specialcollection s
+left join followupcollection f on s.objid=f.objid
+where f.objid is null
+	and s.collector_objid=$P{collectorid}
+	and s.txndate=$P{date}
+	and s.txntype='ONLINE'
+order by s.dtfiled desc
+
 [getRequestList]
 SELECT s.*,
 	CASE WHEN f.objid IS NULL THEN 'Special' ELSE 'Follow-up'
@@ -112,6 +122,12 @@ WHERE ll.state = 'OPEN'
 				INNER JOIN ledger_billing_detail lbd ON lb.objid = lbd.billingid
 				WHERE lb.collector_objid = $P{collectorid}
 					AND lb.billdate = $P{billdate})
+
+[findBillingByCollectoridAndDate]
+select b.* 
+from ledger_billing b
+where b.billdate=$P{date}
+	and b.collector_objid=$P{collectorid}
 
 [findBillingDetailByLedgeridAndBilldate]
 SELECT d.*, b.collector_name AS collectorname

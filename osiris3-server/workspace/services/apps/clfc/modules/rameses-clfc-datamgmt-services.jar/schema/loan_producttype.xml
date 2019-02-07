@@ -27,6 +27,7 @@
 		<field name="parentid" required="true" />
 		<field name="title" required="true" />
 		<field name="fact_objid" required="true" />
+		<field name="fact_title" required="true" />
 		<field name="fact_varname" required="true" />
 		<field name="field_objid" required="true" />
 		<field name="field_name" required="true" />

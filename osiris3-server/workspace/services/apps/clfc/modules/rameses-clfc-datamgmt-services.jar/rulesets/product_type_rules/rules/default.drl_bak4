@@ -1,0 +1,1216 @@
+package product_type_rules;
+
+import java.util.*;
+import java.lang.*;
+import java.text.*;
+import com.rameses.rules.common.*;
+import java.rmi.server.UID;
+
+global RuleAction action;
+global Map bindings;
+global Map bindingsCopy;
+global List items;
+global Map paymentCopy;
+
+declare References
+	executingGroup 			: Boolean
+	executingRulegroup		: Boolean
+	executingRuleset		: Boolean
+	allowPosting			: Boolean
+	allowRepost 			: Boolean
+	buildBindings 			: Boolean
+	onSupplyValue			: Boolean
+	onPostItem 				: Boolean
+	loanAppSupplyOnPosting	: Boolean
+	dbParams				: Map
+	totalDays 				: int
+end
+
+declare Group
+	index 	: int
+	sequence: List
+end
+
+declare Ruleset
+	index	: int
+	sequence: List
+end
+
+declare Rulegroup
+	index 	: int
+	sequence: List
+end
+
+declare Posting
+	index 					: int
+	sequence				: List
+	values					: Map
+	item					: Map
+	postingItems			: List
+	daysCount 				: int
+	incrementAfterPosting 	: Map
+	incrementDays 			: Boolean
+end
+
+declare Loan 
+	index 		: int
+	attributes	: List
+	bindings 	: Map
+	
+end
+
+declare Payment 
+	amount 				: Double
+	deductableToAmount	: Double
+	date 				: Date
+	current 			: Map
+	totalPaid 			: Map
+	total 				: Map
+	lacking 			: Map
+	//lacking 			: List
+end
+
+function void println( String text ) {
+	System.out.println( text );
+}
+
+function Date parse( String pattern, Date date ) {
+	if (date == null) return null;
+
+	if (pattern == null) pattern = "yyyy-MM-dd";
+
+	String dateStr = new SimpleDateFormat(pattern).format(date);
+	return parseDate( dateStr );
+}
+
+function Date parseDate( String date ) {
+	if (date == null) return null;
+
+	return java.sql.Date.valueOf( date );
+}
+
+function Map copyMap( Map src ) {
+	Map data = new HashMap();
+	//data.putAll( src );
+	println("start copymap");
+
+	if (src != null) {
+		Iterator itr = 	src.keySet().iterator();
+
+		while (itr.hasNext()) {
+			Object k = itr.next();
+			if (k != null) {
+				Object val = src.get( k.toString() );
+				if (val != null) {
+					String key = k.toString();
+					if (val instanceof Map) {
+						data.put( key, copyMap( (Map) val ) );
+					} else {
+						data.put( key, val );
+					}
+				}
+			}
+		}
+	}
+
+	println("done copymap");
+
+	return data;
+}
+
+function Boolean findItemById( String id, List list ) {
+	Boolean flag = false;
+
+	if (list != null && list.size() > 0) {
+		if (id != null) {
+			for (int i=0; i<list.size(); i++) {
+				Map item = (Map) list.get( i );
+				if (item.containsKey("objid")) {
+					if (item.get("objid").toString().equals( id )) {
+						flag = true;
+						break;
+					}
+				}
+			}
+			/*
+			for (Map item : list) {
+				if (item.containsKey("objid")) {
+					if (item.get("objid").toString().equals( id )) {
+						flag = true;
+						break;
+					}
+				}
+			}
+			*/
+		}
+	}
+
+
+	return flag;
+}
+
+function Boolean allowPostItem( Map item ) {
+	Boolean flag = false;
+
+	if (item != null && !item.isEmpty()) {
+		Iterator itr = item.keySet().iterator();
+		while (itr.hasNext()) {
+			Object val = itr.next();
+			if (val != null) {
+				if (val instanceof String && !val.toString().equals("objid")) {
+					flag = true;
+					break;
+				}
+			}
+		}
+	}
+
+	return flag;
+}
+
+function Map createPostingItem() {
+	Map data = new HashMap();
+	data.put("objid", "ITM" + new UID());
+
+	return data;
+}
+
+rule "execute group"
+	salience 160
+	when
+		r: References( executingGroup == true )
+		rs: Ruleset()
+		p: Posting()
+		pyt: Payment()
+		Group( idx: index, list: sequence )
+		eval( idx < list.size() )
+	then
+		println("execute group");
+		r.setExecutingGroup( false );
+		r.setExecutingRuleset( true );
+		update( r );
+
+		p.setItem( createPostingItem() );
+		p.setValues( new HashMap() );
+		p.setIncrementAfterPosting( new HashMap() );
+		p.setIncrementDays( false );
+		update( p );
+
+		//println("payment->" + pyt);
+		//println("");
+		//println("payment copy->" + paymentCopy);
+		//println("");
+
+		//println("");
+		//println("========================");
+		//println("execute group->" + list.get( idx ));
+		//println("payment->" + pyt);
+		if (paymentCopy != null) {
+			println("group->" + list.get( idx ));
+			println("lacking1->" + pyt.getLacking());
+			println("lacking2->" + paymentCopy.get("lacking"));
+			if (paymentCopy.containsKey("lacking")) {
+				//println("lacking->" + paymentCopy.get("lacking"));
+				//pyt.setLacking( copyMap((Map) paymentCopy.get("lacking")) );
+			}
+			println("");
+			println("deductable to amount1->" + pyt.getDeductableToAmount());
+			println("deductable to amount2->" + paymentCopy.get("deductableToAmount"));
+			if (paymentCopy.containsKey("deductableToAmount")){ 
+				//println("deductable to amount->" + paymentCopy.get("deductableToAmount"));
+				//pyt.setDeductableToAmount( Double.parseDouble(paymentCopy.get("deductableToAmount").toString()) );
+			}
+			println("");
+			println("total paid1->" + pyt.getTotalPaid());
+			println("total paid2->" + paymentCopy.get("totalPaid"));
+			if (paymentCopy.containsKey("totalPaid")) {
+				//println("total paid->" + paymentCopy.get("totalPaid"));
+				//pyt.setTotalPaid( copyMap((Map) paymentCopy.get("totalPaid")) );
+			}
+			println("");
+			println("total1->" + pyt.getTotal());
+			println("total2->" + paymentCopy.get("total"));
+			if (paymentCopy.containsKey("total")) {
+				//println("total->" + paymentCopy.get("total"));
+				//pyt.setTotal( copyMap((Map) paymentCopy.get("total")) );
+			}
+			println("pyt->" + pyt);
+			println("");
+			update( pyt );
+		}
+
+		//println("========================");
+		//println("");
+
+		rs.setIndex( 0 );
+		update( rs );
+end
+
+rule "execute ruleset"
+	salience 150
+	when
+		r: References( executingRuleset == true )
+		rg: Rulegroup()
+		Ruleset( idx: index, list: sequence )
+		eval( idx < list.size() )
+	then
+		println("execute ruleset");
+		r.setExecutingRuleset( false );
+		r.setExecutingRulegroup( true );
+		update( r );
+
+		rg.setIndex( 0 );
+		update( rg );
+end
+
+rule "increment group index"
+	salience 150
+	when
+		r: References( executingRuleset == true )
+		//g: Group()
+		g: Group( gidx: index, glist: sequence )
+		pyt: Payment()
+		Ruleset( idx: index, list: sequence )
+		Posting( postingitems: postingItems )
+		eval( idx >= list.size() )
+	then
+		println("increment group index");
+		if (postingitems != null && postingitems.size() > 0) {
+			if (items == null) items = new ArrayList();
+			for (int i=0; i < postingitems.size(); i++) {
+				Map data = (Map) postingitems.get( i );
+				if (data != null) {
+					String id = "";
+					if (data.containsKey("objid")) {
+						id = data.get("objid").toString();
+					}
+
+					Boolean flag = findItemById( id, items );
+					if (flag == false) {
+						int s = items.size();
+						data.put("idx", s);
+						items.add( data );
+					}
+
+				
+				}
+			}
+			//items.putAll( postingitems );
+		}
+
+		if (paymentCopy == null) {
+			paymentCopy = new HashMap();
+		}
+
+		println("increment group index ======================");
+		println("group->" + glist.get( gidx ));
+		//println("lacking1->" + pyt.getLacking());
+		//if (paymentCopy.containsKey("lacking")) {
+		//	println("lacking2->" + paymentCopy.get("lacking"));
+		//}
+		//paymentCopy.put("lacking", copyMap(pyt.getLacking()) );
+		//println("");
+		//println("deductable to amount1->" + pyt.getDeductableToAmount());
+		//if (paymentCopy.containsKey("deductableToAmount")) {
+		//	println("deductable to amount2->" + paymentCopy.get("deductableToAmount"));
+		//}
+		//paymentCopy.put("deductableToAmount", pyt.getDeductableToAmount());
+		//println("");
+		//println("total paid1->" + pyt.getTotalPaid());
+		//if (paymentCopy.containsKey("totalPaid")) {
+		//	println("total paid2->" + paymentCopy.get("totalPaid"));
+		//}
+		//paymentCopy.put("totalPaid", copyMap(pyt.getTotalPaid()) );
+		//println("");
+		//println("total1->" + pyt.getTotal());
+		//if (paymentCopy.containsKey("total")) {
+		//	println("total2->" + paymentCopy.get("total"));
+		//}
+		//paymentCopy.put("total", copyMap(pyt.getTotal()) );
+		//println("============================================");
+		//println("");
+		/*
+		paymentCopy.put("lacking", pyt.getLacking());
+		paymentCopy.put("deductableToAmount", pyt.getDeductableToAmount());
+		paymentCopy.put("totalPaid", pyt.getTotalPaid());
+		paymentCopy.put("total", pyt.getTotal());
+		*/
+		/*
+			if (paymentCopy.containsKey("lacking")) {
+				println("lacking->" + paymentCopy.get("lacking"));
+				pyt.setLacking( (Map) paymentCopy.get("lacking") );
+			}
+			if (paymentCopy.containsKey("deductableToAmount")) {
+				println("deductable to amount->" + paymentCopy.get("deductableToAmount"));
+				pyt.setDeductableToAmount( Double.parseDouble(paymentCopy.get("deductableToAmount").toString()) );
+			}
+			if (paymentCopy.containsKey("totalPaid")) {
+				println("total paid->" + paymentCopy.get("totalPaid"));
+				pyt.setTotalPaid( (Map) paymentCopy.get("totalPaid") );
+			}
+			if (paymentCopy.containsKey("total")) {
+				println("total->" + paymentCopy.get("total"));
+				pyt.setTotal( (Map) paymentCopy.get("total") );
+			}
+		*/
+		r.setExecutingRuleset( false );
+		r.setExecutingGroup( true );
+		update( r );
+
+		g.setIndex( g.getIndex() + 1 );
+		update( g );
+
+		/*
+		println("add posting item->" + glist.get( gidx ));
+		Map group = (Map) glist.get( gidx );
+
+		if (group != null) {
+			if (group.containsKey("incrementDays")) {
+				Boolean flag = Boolean.valueOf( group.get("incrementDays").toString() );
+				p.setIncrementDays( flag );
+			}
+		}
+
+		r.setAllowPosting( true );
+		r.setExecutingRuleset( false );
+		//r.setExecutingGroup( true );
+		update( r );
+		update( p );
+		*/
+
+		//p.setIndex( 0 );
+		//update( p );
+		//g.setIndex( g.getIndex() + 1 );
+		//update( g );
+
+
+		/*
+		println("amount->" + pyt.getAmount() + " deductable to amount->" + pyt.getDeductableToAmount());
+		Map ruleset = (Map) rslist.get( rsidx );
+		r.setExecutingRulegroup( false );
+
+		if (ruleset != null) {
+			if (ruleset.containsKey("addToPostingList")) {
+				Boolean flag = Boolean.valueOf( ruleset.get("addToPostingList").toString() );
+				r.setAllowPosting( flag );
+
+			}
+			if (ruleset.containsKey("incrementDays")) {
+				Boolean flag = Boolean.valueOf( ruleset.get("incrementDays").toString() );
+				p.setIncrementDays( flag );
+			}
+		} else {
+			r.setExecutingRuleset( true );
+
+			int addIdx = rsidx + 1;
+			if (pyt.getDeductableToAmount() >= pyt.getAmount()) {
+				addIdx = list.size() - 1;
+			}
+
+			rs.setIndex( addIdx );
+		}
+
+		update( r );
+		update( rs );
+		update( p );
+		*/
+end
+
+rule "execute rulegroup"
+	salience 140
+	when
+		r: References( executingRulegroup == true )
+		l: Loan()
+		Rulegroup( idx: index, list: sequence )
+		eval( idx < list.size() )
+	then
+		println("execute rulegroup");
+		r.setLoanAppSupplyOnPosting( true );
+		r.setExecutingRulegroup( false );
+		update( r );
+
+
+		println("executing supply loan vlaue->" + r.getLoanAppSupplyOnPosting());
+
+		l.setIndex( 0 );
+		update( l );
+
+		//rg.setIndex( idx + 1 );
+		//update( rg );
+end
+
+//rule "increment ruleset index"
+rule "proceed to add posting or increment ruleset index"
+	salience 140
+	when
+		r: References( executingRulegroup == true )
+		rs: Ruleset( rsidx: index, rslist: sequence )
+		p: Posting()
+		Group( gidx: index, glist: sequence )
+		Rulegroup( idx: index, list: sequence )
+		eval( idx >= list.size() )
+	then
+		println("proceed to add posting or increment ruleset index");
+
+		r.setExecutingRulegroup( false );
+		r.setAllowPosting( false );
+		//r.setAllowPosting( true );
+
+		Map group = (Map) glist.get( gidx );
+		//println("group->" + group);
+		if (group != null && group.containsKey("addToPostingList")) {
+			Boolean flag = Boolean.valueOf( group.get("addToPostingList").toString() );
+			r.setAllowPosting( flag );
+		}
+
+		Map ruleset = (Map) rslist.get( rsidx );
+		if (ruleset == null) {
+			r.setExecutingRuleset( true );
+
+			rs.setIndex( rsidx + 1 );
+			update( rs );
+		}
+
+		update( r );		
+
+		//println("values->" + p.getValues());
+		//println("posting items->" + p.getPostingItems());
+		//println("allow posting->" + r.getAllowPosting());
+
+		/*
+		if (ruleset != null) {
+			if (ruleset.containsKey("addToPostingList")) {
+				Boolean flag = Boolean.valueOf( ruleset.get("addToPostingList").toString() );
+				r.setAllowPosting( flag );
+				println("allow posting->" + flag);
+			}
+			if (ruleset.containsKey("incrementDays")) {
+				Boolean flag = false;
+				Boolean incrementDaysFlag = Boolean.valueOf( ruleset.get("incrementDays").toString() );
+
+				if (group != null && group.containsKey("allowIncrementDays")) {
+					Boolean allowIncrementDaysFlag = Boolean.valueOf( group.get("allowIncrementDays").toString() );
+					if (incrementDaysFlag == true && allowIncrementDaysFlag == true) {
+						flag = true;
+					}
+				}
+				println("increment days->" + flag);
+				p.setIncrementDays( flag );
+				update( p );
+			}
+		} else {
+			r.setExecutingRuleset( true );
+
+			rs.setIndex( rsidx + 1 );
+			update( rs );
+		}
+		*/
+		/*
+		println("amount->" + pyt.getAmount() + " deductable to amount->" + pyt.getDeductableToAmount());
+		Map ruleset = (Map) rslist.get( rsidx );
+		r.setExecutingRulegroup( false );
+
+		if (ruleset != null) {
+			if (ruleset.containsKey("addToPostingList")) {
+				Boolean flag = Boolean.valueOf( ruleset.get("addToPostingList").toString() );
+				r.setAllowPosting( flag );
+
+			}
+			if (ruleset.containsKey("incrementDays")) {
+				Boolean flag = Boolean.valueOf( ruleset.get("incrementDays").toString() );
+				p.setIncrementDays( flag );
+			}
+		} else {
+			r.setExecutingRuleset( true );
+
+			int addIdx = rsidx + 1;
+			if (pyt.getDeductableToAmount() >= pyt.getAmount()) {
+				addIdx = list.size() - 1;
+			}
+
+			rs.setIndex( addIdx );
+		}
+
+		update( r );
+		update( rs );
+		update( p );
+		*/
+		/*
+		r.setExecutingRulegroup( false );
+		r.setExecutingRuleset( true );
+		update( r );
+
+		rs.setIndex( rs.getIndex() + 1 );
+		update( rs );
+		*/
+end
+
+rule "supply loan value"
+	salience 110
+	when
+		References( loanAppSupplyOnPosting == true, dbParams: dbParams, totaldays: totalDays )
+		//Group( gidx: index, glist: sequence )
+		//Ruleset( rsidx: index, rslist: sequence )
+		//Rulegroup( rgidx: index, rglist: sequence )
+		l: Loan( idx: index, list: attributes, loanbindings: bindings )
+		Posting( incrementafterposting: incrementAfterPosting, postingitems: postingItems )
+		Payment ( totalpaid: totalPaid )
+		eval( idx < list.size() )
+	then
+		println("supply loan value");
+		//println("group->" + glist.get( gidx ));
+		//println("ruleset->" + rslist.get( rsidx ));
+		//println("idx->" + idx + " size->" + list.size());
+		Map item = (Map) list.get( idx );
+		//println("item->" + item);
+		if (item != null) {
+
+			Map params = new HashMap();
+
+			dbParams.put("totaldays", totaldays);
+			dbParams.put("total", totalpaid);
+			//println("supply loan params " + dbParams);
+			params.put("dbParams", dbParams);
+
+			List fields = new ArrayList();
+			if (item.containsKey("fields")) {
+				fields = (List) item.get("fields");
+			}
+
+			params.put("fields", fields);
+
+			action.execute("buildBindings", params, drools);
+
+			if (params.containsKey("bindings")) {
+				Map xbindings = (Map) params.get("bindings");
+				if (xbindings != null && !xbindings.isEmpty()) {
+					loanbindings.putAll( xbindings );
+				}
+			}
+
+			params = new HashMap();
+
+			String datatype = "";
+			String varname = "";
+			if (item.containsKey("attribute")) {
+				Map attr = (Map) item.get("attribute");
+				if (attr != null && !attr.isEmpty()) {
+					if (attr.containsKey("varname")) {
+						//varname = item.get("varname").toString();
+						varname = "LOANINFO_" + attr.get("varname").toString();
+					}
+					if (attr.containsKey("datatype")) {
+						datatype = attr.get("datatype").toString();
+					}
+				} 
+			}
+
+			//println("item->" + item);
+
+			String expr = "";
+			if (item.containsKey("expr")) {
+				expr = item.get("expr").toString();
+			}
+			//println("expr->" + expr);
+			//println("group->" + glist.get( gidx ).toString() + " ruleset->" + rslist.get( rsidx ).toString() + " rulegroup->" + rglist.get( rgidx ).toString());
+			//println("contains datatype-> " + item.containsKey("datatype"));
+
+			Map values = new HashMap();
+
+			//println("loan bindings-> " + loanbindings);
+			//println("expr-> " + expr);
+			//println("datatype-> " + datatype);
+			//println("varname-> " + varname);
+
+			params.put("key", varname);
+			params.put("values", values);
+			params.put("datatype", datatype);
+			params.put(varname, (new ActionExpression(expr, loanbindings)) );
+
+			action.execute("supplyFieldValue", params, drools);
+
+			if (!values.isEmpty()) {
+				//println("values->" + values);
+				bindings.putAll( values );
+			}
+
+			//println("values " + values);
+		}
+
+		l.setIndex( idx + 1 );
+		update( l );
+
+end
+
+rule "proceed to supply value"
+	salience 110
+	when
+		r: References( loanAppSupplyOnPosting == true )
+		Loan( idx: index, list: attributes, loanbindings: bindings )
+		p: Posting()
+		rg: Rulegroup()
+		pyt: Payment()
+		eval( idx >= list.size() )
+	then
+		println("proceed to supply value");
+		//println("bindings-> " + loanbindings);
+
+		r.setLoanAppSupplyOnPosting( false );
+		r.setOnSupplyValue( true );
+		//r.setExecutingRulegroup( true );
+		update( r );
+
+		//Map lacking = pyt.getLacking();
+		//if (paymentCopy != null && paymentCopy.containsKey("lacking")) {
+		//	lacking = (Map) paymentCopy.get("lacking");
+		//}
+
+		//pyt.setLacking( lacking );
+		//update( pyt );
+
+		//rg.setIndex( rg.getIndex() + 1 );
+		//update( rg );
+
+		p.setIndex( 0 );
+		update( p );
+end
+
+rule "supply value"
+	salience 100
+	when
+		References( onSupplyValue == true, dbParams: dbParams )
+		Group( gidx: index, glist: sequence )
+		Ruleset( rsidx: index, rslist: sequence )
+		p: Posting( idx: index, list: sequence, values: values, incrementafterposting: incrementAfterPosting )
+		Payment( totalpaid: totalPaid, lacking: lacking )
+		eval( idx < list.size() )
+	then
+		println("supply value");
+		Boolean allowSupply = false;
+
+		String group = "";
+		Map gdata = (Map) glist.get( gidx );
+		if (gdata != null && gdata.containsKey("name")) {
+			group = gdata.get("name").toString();
+		}
+
+		String ruleset = "";
+		Map rsdata = (Map) rslist.get( rsidx );
+		if (rsdata != null && rsdata.containsKey("name")) {
+			ruleset = rsdata.get("name").toString();
+		}
+
+		String gval = "", rsval = "";
+		Map item = (Map) list.get( idx );
+		if (item.containsKey("group")) {
+			gval = item.get("group").toString();
+		}
+
+		if (item.containsKey("ruleset")) {
+			rsval = item.get("ruleset").toString();
+		}
+
+		if (group.equals( gval ) && ruleset.equals( rsval )) {
+			allowSupply = true;
+		}
+
+		if (item != null && allowSupply == true) {
+			if (values == null) values = new HashMap();
+
+			Map params = new HashMap();
+			dbParams.put("total", totalpaid);
+			dbParams.put("lacking", lacking);
+			params.put("dbParams", dbParams);
+
+			List fields = new ArrayList();
+			if (item.containsKey("fields")) {
+				fields = (List) item.get("fields");
+			}
+
+			params.put("fields", fields);
+
+			action.execute("buildBindings", params, drools);
+
+			if (params.containsKey("bindings")) {
+				Map xbindings = (Map) params.get("bindings");
+				//println("xbindings " + xbindings);
+				if (xbindings == null) xbindings = new HashMap();
+				bindings.putAll( xbindings );
+			}
+
+			params = new HashMap();
+
+			Object val = null;
+
+			String fieldname = "";
+			if (item.containsKey("name")) {
+				val = item.get("name");
+				if (val != null) fieldname = val.toString();
+			}
+			/*
+			if (item.containsKey("posttoheader")) {
+				Map header = (Map) item.get("posttoheader");
+				if (header != null && header.containsKey("name")) {
+					val = header.get("name");
+					if (val != null) fieldname = val.toString();
+				}
+			}
+			*/
+
+			String expr = "";
+			if (item.containsKey("postingexpr")) {
+				val = item.get("postingexpr");
+				if (val != null) expr = val.toString();
+			}
+
+			String datatype = "";
+			if (item.containsKey("datatype")) {
+				val = item.get("datatype");
+				if (val != null) datatype = val.toString();
+			}
+
+			params.put("listitem", item);
+			params.put("key", fieldname);
+			params.put("datatype", datatype);
+			params.put("values", values);
+			params.put("lacking", lacking);
+			params.put("incrementAfterPosting", incrementafterposting);
+			params.put(fieldname, (new ActionExpression(expr, bindings)) );
+
+			action.execute("supplyFieldValue", params, drools);
+
+			if (params.containsKey("values")) {
+				values = (Map) params.get("values");
+				p.setValues( values );
+			}
+
+			if (params.containsKey("bindings")) {
+				Map xbindings = (Map) params.get("bindings");
+				//println("xbindings " + xbindings);
+				if (xbindings == null) xbindings = new HashMap();
+				//println("bindings-> " + xbindings);
+				bindings.putAll( xbindings );
+			}
+		}
+
+
+
+		p.setIndex( idx + 1 ); 
+		update( p );
+end
+
+rule "proceed to posting: item"
+	salience 100
+	when
+		r: References( onSupplyValue == true )
+		p: Posting( idx: index, list: sequence, values: values )
+		pyt: Payment()
+		eval( idx >= list.size() )
+	then
+		println("proceed to posting: item");
+
+		//println("values->" + values);
+
+		//println("proceed lacking->" + paymentCopy.get("lacking"));
+		//paymentCopy = pyt;
+
+		r.setOnSupplyValue( false );
+		r.setOnPostItem( true );
+		update( r );
+		//r.setExecutingRulegroup( true );
+		//update( r );
+
+		//rg.setIndex( rg.getIndex() + 1 );
+		//update( rg );
+
+		p.setIndex( 0 );
+		if (p.getItem() == null) {
+			p.setItem( createPostingItem() );
+		}
+		update( p );
+end
+
+rule "posting: item"
+	salience 90
+	when
+		r: References( onPostItem == true, totaldays: totalDays )
+		p: Posting( idx: index, list: sequence, values: values, postingitem: item, incrementafterposting: incrementAfterPosting, dayscount: daysCount )
+		pyt: Payment()
+		Group( gidx: index, glist: sequence )
+		Ruleset( rsidx: index, rslist: sequence )
+		Rulegroup( rgidx: index, rglist: sequence )
+		eval( idx < list.size() )
+	then
+		println("posting: item");
+		Map item = (Map) list.get(idx);
+		//println("item->" + item);
+		if (postingitem == null) {
+			//postingitem = new HashMap();
+			postingitem = createPostingItem();
+		}
+
+		//String group = glist.get( gidx ).toString();
+		String group = "";
+		Map gmap = (Map) glist.get( gidx );
+		if (gmap != null && gmap.containsKey("name")) {
+			group = gmap.get("name").toString();
+		}
+
+		//String ruleset = rslist.get( rsidx ).toString();
+		String ruleset = "";
+		Map rsmap = (Map) rslist.get( rsidx );
+		if (rsmap != null && rsmap.containsKey("name")) {
+			ruleset = rsmap.get("name").toString();
+		}
+
+		String rulegroup = "";
+		Map rgmap = (Map) rglist.get( rgidx );
+		if (rgmap != null && rgmap.containsKey("name")) {
+			rulegroup = rgmap.get("name").toString();	
+		}
+		//rglist.get( rgidx ).toString();
+
+		Boolean allowPost = false;
+		String rsval = "", rgval = "", gval = "";
+		Object val;
+
+		if (item.containsKey("group")) {
+			val = item.get("group");
+			if (val != null) gval = val.toString();
+		}
+
+		if (item.containsKey("rulegroup")) {
+			val = item.get("rulegroup");
+			if (val != null) rgval = val.toString();
+		}
+
+		if (item.containsKey("ruleset")) {
+			val = item.get("ruleset");
+			if (val != null) rsval = val.toString();
+		}
+
+
+		//println("group->" + group + " rulegroup->" + rulegroup + " ruleset->" + ruleset);
+		//println("gval->" + gval + " rgval->" + rgval + " rsval->" + rsval);
+		//println("");
+		if (group.equals( gval ) && rulegroup.equals( rgval ) && ruleset.equals( rsval )) {
+			allowPost = true;
+		}
+
+		String expression = "return " + allowPost + ";";
+		Map params = new HashMap();
+
+		params.put("postingitem", postingitem);
+		params.put("listitem", item);
+		params.put("values", values);
+		params.put("incrementAfterPosting", incrementafterposting);
+		params.put("PAYMENT", pyt);
+		params.put("totaldays", totaldays);
+		params.put("dayscount", dayscount);
+		params.put("postitem", (new ActionExpression(expression, new HashMap())));
+		action.execute("postItem", params, drools);
+
+		if (params.containsKey("postingitem")) {
+			postingitem = (Map) params.get("postingitem");
+			p.setItem( postingitem );		
+		}
+
+		//	println("contains allow repost->" + params.containsKey("allowRepost"));
+
+		if (params.containsKey("allowRepost")) {
+			Boolean allowRepost = Boolean.valueOf(params.get("allowRepost").toString());
+			//println("allow repost->" + allowRepost);
+			if (totaldays > 1 && allowRepost == true) {
+				r.setOnPostItem( false );
+				r.setAllowRepost( true );
+				update( r );
+			}
+		}
+
+		if (params.containsKey("incrementAfterPosting")) {
+			incrementafterposting = (Map) params.get("incrementAfterPosting");
+			p.setIncrementAfterPosting( incrementafterposting );
+		}
+
+		p.setIndex( idx + 1 );
+		update( p );
+end
+
+rule "proceed to execute rulegroup"
+	salience 90
+	when 
+		r: References( onPostItem == true )
+		rg: Rulegroup()
+		p: Posting( idx: index, list: sequence, postingitem: item )
+		eval( idx >= list.size() )
+	then
+		println("proceed to execute rulegroup");
+		//println("posting item-> " + postingitem);
+		r.setOnPostItem( false );
+		//r.setExecutingRulegroup( true );
+		//update( r );
+		r.setExecutingRulegroup( true );
+		update( r );
+
+		//rg.setIndex( rg.getIndex() + 1 );
+		//update( rg );
+
+		rg.setIndex( rg.getIndex() + 1 );
+		update( rg );
+end
+
+
+/*
+rule "proceed to execute ruleset"
+	salience 90
+	when
+		r: References( onPostItem == true, totaldays: totalDays )
+		rs: Ruleset( rsidx: index, rslist: sequence )
+		rg: Rulegroup( rgidx: index, rglist: sequence )
+		p: Posting( idx: index, list: sequence, dayscount: daysCount )
+		eval( idx >= list.size() && dayscount < totaldays )
+	then
+		println("proceed to execute ruleset");
+		r.setOnPostItem( false );
+
+		if ((rsidx + 1) < (rslist.size() - 1)) {
+			r.setExecutingRuleset( true );
+			rs.setIndex( rsidx + 1 );
+			update( rs );
+		} else {
+
+			if (rgidx < (rglist.size() - 1)) {
+				r.setExecutingRulegroup( true );
+				rg.setIndex( rg.getIndex() + 1 );
+				update( rg );
+			} else {
+
+				Map ruleset = (Map) rslist.get( rsidx );
+				if (ruleset != null) {
+					if (ruleset.containsKey("incrementDays")) {
+						Boolean flag = Boolean.valueOf( ruleset.get("incrementDays").toString() );
+						p.setIncrementDays( flag );
+					}
+				}
+
+				r.setAllowPosting( true );
+			}
+		}
+		update( r );
+end
+
+rule "proceed to execute ruleset 2"
+	salience 90
+	when
+		r: References( onPostItem == true, totaldays: totalDays )
+		rs: Ruleset( rsidx: index, rslist: sequence )
+		rg: Rulegroup( )
+		p: Posting( idx: index, list: sequence, dayscount: daysCount )
+		eval( idx >= list.size() && dayscount >= totaldays )
+	then
+		println("proceed to execute ruleset 2");
+		r.setOnPostItem( false );
+
+		if (rsidx < rslist.size()) {
+			r.setExecutingRuleset( true );
+			rs.setIndex( rsidx + 1 );
+			update( rs );
+		} else {
+			r.setExecutingRulegroup( true );
+			rg.setIndex( rg.getIndex() + 1 );
+			update( rg );
+		}
+
+		update( r );
+end
+*/
+
+rule "add to posting list: increment days is false"
+	salience 70
+	when
+		r: References( allowPosting == true )
+		rs: Ruleset()
+		g: Group( gidx: index, glist: sequence )
+		p: Posting( incrementDays == false, item: item, postingitems: postingItems )
+		pyt: Payment()
+	then
+		println("add to posting list: increment days is false");
+		println("group-> " + glist.get( gidx ));
+		if (postingitems == null) {
+			postingitems = new ArrayList();
+		}
+		//println("item->" + item);
+
+		//if (item != null && !item.isEmpty()) {
+		if (allowPostItem( item )) {
+			//println("size->" + postingitems.size());
+			if (!item.containsKey("objid")) {
+				item.put("objid", "ITM" + new UID());
+			}
+
+			if (!item.containsKey("idx")) {
+				item.put("idx", postingitems.size());	
+			}
+			String id = item.get("objid").toString();
+			Boolean flag = findItemById( id, postingitems );
+			if (flag == false) {
+				postingitems.add( item );
+				p.setPostingItems( postingitems );
+			}
+		}
+
+		//int addIdx = rs.getIndex() + 1;
+		//int addIdx = g.getIndex() + 1;
+		//if (pyt.getDeductableToAmount() >= pyt.getAmount()) {
+		//	addIdx = g.getSequence().size() - 1;
+		//}
+
+		//g.setIndex( addIdx );
+		//update( g );
+
+		rs.setIndex( rs.getIndex() + 1 );
+		update( rs );
+
+		r.setAllowPosting( false );
+		//r.setExecutingGroup( true );
+		r.setExecutingRuleset( true );
+		update( r );
+
+		p.setItem( createPostingItem() );
+		p.setValues( new HashMap() );
+		update( p );
+end
+
+rule "add to posting list: increment days is true"
+	salience 70
+	when 
+		r: References( allowPosting == true, totaldays: totalDays )
+		rs: Ruleset()
+		rg: Rulegroup()
+		Group( gidx: index, glist: sequence )
+		p: Posting( incrementDays == true, item: item, postingitems: postingItems, dayscount: daysCount )
+		pyt: Payment()
+	then
+		println("add to posting list: incremnet days is true");
+		println("group-> " + glist.get( gidx ));
+		if (postingitems == null) {
+			postingitems = new ArrayList();
+		}
+
+		//println("item->" + item);
+
+		//println("dayscount->" + dayscount + " totaldays->" + totaldays);
+		/*
+		if (item != null && !item.isEmpty()) {
+			if (!item.containsKey("idx")) {
+				item.put("idx", postingitems.size());	
+			}
+			postingitems.add(item);
+			p.setPostingItems( postingitems );
+		}
+		*/
+
+		//if (item != null && !item.isEmpty()) {
+		if (allowPostItem( item )) {
+			//println("size->" + postingitems.size());
+			if (!item.containsKey("objid")) {
+				item.put("objid", "ITM" + new UID());
+			}
+
+			if (!item.containsKey("idx")) {
+				item.put("idx", postingitems.size());	
+			}
+			String id = item.get("objid").toString();
+			Boolean flag = findItemById( id, postingitems );
+			if (flag == false) {
+				postingitems.add( item );
+				p.setPostingItems( postingitems );
+			}
+		}
+
+		if (dayscount < totaldays) {
+			r.setExecutingRulegroup( true );
+
+			p.setItem( createPostingItem() );
+			p.setValues( new HashMap() );
+			p.setDaysCount( dayscount + 1 );
+			update( p );
+
+			rg.setIndex( 0 );
+			update( rg );
+		} else {
+			r.setExecutingRuleset( true );
+
+			//int addIdx = rs.getIndex() + 1;
+			//if (pyt.getDeductableToAmount() >= pyt.getAmount()) {
+			//	addIdx = rs.getSequence().size() - 1;
+			//}
+
+			//rs.setIndex( addIdx );
+			rs.setIndex( rs.getIndex() + 1 );
+			update( rs );
+		}
+
+		r.setAllowPosting( false );
+		update( r );
+end
+
+rule "re-post and decrease total days"
+	salience 70
+	when
+		r: References( allowRepost == true, totaldays: totalDays )
+		l: Loan()
+		p: Posting()
+		pyt: Payment()
+		rs: Ruleset()
+	then
+		println("re-post");
+		//println("allow repost total days-> " + totaldays);
+		//if (totaldays > 1) {
+		totaldays -= 1;
+		if (totaldays < 0) totaldays = 0;
+		r.setTotalDays( totaldays );
+		r.setAllowRepost( false );
+		r.setExecutingRulegroup( true );
+		update( r );
+
+		l.setIndex( 0 );
+		update( l );
+
+		p.setIncrementAfterPosting( new HashMap() );
+		List postingitems = p.getPostingItems();
+		postingitems.clear();
+		p.setPostingItems( postingitems );
+		//p.setPostingItems( new ArrayList() );
+		p.setValues( new HashMap() );
+		p.setItem( createPostingItem() );
+		p.setDaysCount( 1 );
+		p.setIndex( 0 );
+		update( p );
+
+		pyt.setDeductableToAmount( 0.0d );
+		pyt.setTotalPaid( new HashMap() );
+		pyt.setTotal( new HashMap() );
+
+		Map lacking = new HashMap();
+		if (paymentCopy != null) {
+			if (paymentCopy.containsKey("lacking")) {
+				lacking = (Map) paymentCopy.get("lacking");
+			}
+		}
+
+		println("re-post lacking->" + lacking);
+
+		pyt.setLacking( lacking );
+		//pyt.setLacking( new HashMap() );
+		//pyt.setLacking( new ArrayList() );
+		update( pyt );
+
+		rs.setIndex( 0 );
+		update( rs );
+		//} else {
+			//r.setAllowRepost( false );
+			//update( r );
+		//}
+
+end

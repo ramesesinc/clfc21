@@ -78,6 +78,6 @@ class NewPostingHeaderService extends ActiveCrudListService {
 		if (!params.factid) throw new RuntimeException("Please specify factid.");
 		//if (!params.category) throw new RuntimeException("Please specify category.");
 
-		return em.getFieldListByFactid(params).collect{ [objid: it.objid, name: it.name, title: it.name, handler: it.handler] };
+		return em.getFieldListByFactid(params).collect{ [objid: it.objid, name: it.name, title: it.title, handler: it.handler] };
 	}
 }

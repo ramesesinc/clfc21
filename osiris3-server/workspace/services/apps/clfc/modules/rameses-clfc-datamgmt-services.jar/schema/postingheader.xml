@@ -12,6 +12,7 @@
 		<field name="type" />
 		<field name="datatype" required="true" />
 		<field name="format" />
+		<complex name="fieldstoupdate" required="false" type="list" serializer="default" />
 		<!-- <field name="postingexpr" /> -->
 	</element>
 
