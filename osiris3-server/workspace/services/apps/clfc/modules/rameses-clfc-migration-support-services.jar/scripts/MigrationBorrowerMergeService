@@ -8,6 +8,12 @@ class MigrationBorrowerMergeService extends ActiveCrudListService
 	@Env
 	def env;
 
+	@ActiveDB('customer')
+	def customer_db;
+
+	@ActiveDB('loanapp')
+	def app_db;
+
 	@ActiveDB(em="migration", value="borrower_merge")
 	def em;
 
@@ -26,9 +32,11 @@ class MigrationBorrowerMergeService extends ActiveCrudListService
 		def borrower = borrowerresolver.getBorrowerWithNoBorrowerHeader();
 		if ( borrower ) {
 			borrower.each { o ->
+				def cust = customer_db.findCustomerByCustno([ custno: o.objid.toString().trim() ]);
+				
 				def data = [
 					objid : o.objid ,
-					headerid : 'BH' + new UID() 
+					headerid : cust? cust.objid : 'BH' + new UID() 
 				];
 				borrowerresolver.create( data, "borrowerHeader" );
 			}
@@ -37,9 +45,10 @@ class MigrationBorrowerMergeService extends ActiveCrudListService
 		def loan = loanresolver.getLoanWithNoLoanHeader();
 		if ( loan ){
 			loan.each { o ->
+				def app = app_db.findByAppno([ appno: o.objid.toString().trim() ]);
 				def data = [
 					objid : o.objid,
-					headerid : 'LH' + new UID()
+					headerid : app? app.objid : 'LH' + new UID()
 				];
 				loanresolver.create( data, "loanHeader" );
 			}

@@ -8,21 +8,21 @@ SELECT b.*,
 FROM (
 		SELECT b.objid FROM borrower b
 		LEFT JOIN borrower_header_merge hm ON b.objid = hm.objid
-		WHERE hm.objid IS NULL AND b.borrowername LIKE '%'
+		WHERE hm.objid IS NULL AND b.borrowername LIKE $P{searchtext}
 		UNION
 		SELECT b.objid FROM borrower b
 		LEFT JOIN borrower_header_merge hm ON b.objid = hm.objid
-		WHERE hm.objid IS NULL AND b.objid LIKE '%' 
+		WHERE hm.objid IS NULL AND b.objid LIKE $P{searchtext}
 		UNION
 		SELECT DISTINCT hm.headerid as objid
 		FROM borrower b
 		INNER JOIN borrower_header_merge hm ON hm.headerid = b.objid
-		WHERE b.objid LIKE '%'
+		WHERE b.objid LIKE $P{searchtext}
 		UNION
 		SELECT DISTINCT hm.headerid as objid
 		FROM borrower b
 		INNER JOIN borrower_header_merge hm ON hm.headerid = b.objid
-		WHERE b.borrowername LIKE '%'
+		WHERE b.borrowername LIKE $P{searchtext}
 	) q
 INNER JOIN borrower b ON q.objid = b.objid
 LEFT JOIN borrower_resolved r ON b.objid = r.objid
@@ -107,16 +107,18 @@ SELECT b.*, 'UNRESOLVED' AS state FROM (
 	SELECT DISTINCT hm.headerid 
 	FROM borrower b
 	INNER JOIN borrower_extinfo e ON b.objid = e.objid
+	INNER JOIN borrower_header_merge hm ON b.objid = hm.headerid
 	LEFT JOIN borrower_resolved r ON b.objid = r.objid
-	LEFT JOIN borrower_header_merge hm ON b.objid = hm.headerid
-	WHERE b.objid LIKE $P{searchtext}
+	WHERE r.objid IS NULL
+		AND b.objid LIKE $P{searchtext}
 	UNION
 	SELECT DISTINCT hm.headerid
 	FROM borrower b
 	INNER JOIN borrower_extinfo e ON b.objid = e.objid
+	INNER JOIN borrower_header_merge hm ON b.objid = hm.headerid
 	LEFT JOIN borrower_resolved r ON b.objid = r.objid
-	LEFT JOIN borrower_header_merge hm ON b.objid = hm.objid
-	WHERE b.borrowername LIKE $P{searchtext}
+	WHERE r.objid IS NULL
+		AND b.borrowername LIKE $P{searchtext}
 ) q INNER JOIN borrower b ON b.objid = q.headerid
 ORDER BY borrowername
 
@@ -154,15 +156,15 @@ SELECT b.*, 'ALS' AS state FROM (
 	SELECT DISTINCT hm.headerid
 	FROM borrower_header_merge hm
 	INNER JOIN borrower b ON hm.objid = b.objid
-	LEFT JOIN borrower_extinfo e ON b.objid = e.objid
-	WHERE b.objid LIKE $P{searchtext} AND e.objid IS NULL
+	WHERE b.objid LIKE $P{searchtext}
 	UNION
 	SELECT DISTINCT hm.headerid
 	FROM borrower_header_merge hm
 	INNER JOIN borrower b ON hm.objid = b.objid
-	LEFT JOIN borrower_extinfo e ON b.objid = e.objid
-	WHERE b.borrowername LIKE $P{searchtext} AND e.objid IS NULL
+	WHERE b.borrowername LIKE $P{searchtext}
 ) q INNER JOIN borrower b ON b.objid = q.headerid
+LEFT JOIN borrower_extinfo e on b.objid = e.objid
+WHERE e.objid IS NULL
 ORDER BY borrowername
 
 
@@ -216,22 +218,22 @@ ORDER BY b.borrowername
 [getForMigrationList]
 SELECT b.*, bh.headerid
 FROM (
-SELECT DISTINCT br.objid
-FROM loan_resolved lr
-INNER JOIN loan l ON lr.objid=l.objid
-INNER JOIN borrower_resolved br ON l.borrowerid=br.objid
-LEFT JOIN borrower_header_merge bhm ON l.objid=bhm.objid
-WHERE bhm.objid IS NULL
-AND lr.taskkey = $P{taskkey}
-UNION
-SELECT DISTINCT br.objid
-FROM loan_resolved lr
-INNER JOIN loan l ON lr.objid=l.objid
-INNER JOIN borrower_resolved br ON l.borrowerid=br.objid
-INNER JOIN borrower_header_merge bhm ON br.objid=bhm.headerid
-WHERE lr.taskkey = $P{taskkey}
+	SELECT DISTINCT br.objid
+	FROM loan_resolved lr
+	INNER JOIN loan l ON lr.objid=l.objid
+	INNER JOIN borrower_resolved br ON l.borrowerid=br.objid
+	LEFT JOIN borrower_header_merge bhm ON l.objid=bhm.objid
+	WHERE bhm.objid IS NULL
+	AND lr.taskkey = $P{taskkey}
+	UNION
+	SELECT DISTINCT br.objid
+	FROM loan_resolved lr
+	INNER JOIN loan l ON lr.objid=l.objid
+	INNER JOIN borrower_resolved br ON l.borrowerid=br.objid
+	INNER JOIN borrower_header_merge bhm ON br.objid=bhm.headerid
+	WHERE lr.taskkey = $P{taskkey}
 ) a INNER JOIN borrower b ON a.objid=b.objid
-LEFT JOIN borrower_header bh ON b.objid = bh.objid
+INNER JOIN borrower_header bh ON b.objid = bh.objid
 ORDER BY b.borrowername
 
 [updateResolvedBorrowerKey]

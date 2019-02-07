@@ -304,8 +304,14 @@ class LoanLedgerService extends ActiveListService {
 				data.interestamount = c.interest;
 			}
 			*/
-			def lc = loanapp.read([objid: xapp.objid], 'loanapp_capture');
-			if (lc) data.dtreleased = lc.dtreleased;
+
+			def extinfo = loanapp.read([ objid: xapp.objid ], 'extinfo');
+			if (extinfo?.dtreleased) {
+				data.dtreleased = extinfo.dtreleased;
+			} else {
+				def lc = loanapp.read([objid: xapp.objid], 'loanapp_capture');
+				if (lc) data.dtreleased = lc.dtreleased;
+			}
 		}
 
 		def a = (data.ledgercount/rows);

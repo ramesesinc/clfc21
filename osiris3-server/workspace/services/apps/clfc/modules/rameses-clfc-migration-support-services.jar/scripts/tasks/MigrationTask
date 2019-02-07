@@ -13,11 +13,13 @@ class MigrationTask
 	@ActiveDB(em="migration", value="migrationpayment")
 	def migrationpayment;
 
+	/*
 	@ActiveDB(em="migration", value="borrowerheader")
 	def borrowerheader;
 
 	@ActiveDB(em="migration", value="borrowerheadermerge")
 	def borrowerheadermerge;
+	*/
 
 	@ActiveDB("var")
 	def var;
@@ -194,7 +196,7 @@ class MigrationTask
 				type 		: extinfo?.type
 			];
 
-			println cust;
+			//println cust;
 			def branch = branchSvc.open([:]);
 			cust.branchid = branch?.objid;
 
