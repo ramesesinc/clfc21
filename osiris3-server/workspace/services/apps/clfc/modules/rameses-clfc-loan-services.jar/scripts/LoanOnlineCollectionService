@@ -176,6 +176,11 @@ class LoanOnlineCollectionService
 				collection.create(col);
 			} else {
 				data.parentid = col.objid;
+				if (!col.remittanceid) {
+					col.remittanceid = 'REM' + new UID();
+					collection.update( col );
+				}
+
 			}
 
 			collection.create(data, "oc-detail");
@@ -1125,7 +1130,6 @@ class LoanOnlineCollectionService
 		collection.changeState(data);
 
 		def tp = 0, pyt = [];
-		def xr = col_remittance.read(remittance);
 
 		if (data?.payments) {
 			pyt.addAll(data?.payments?.findAll{ !it.state });
@@ -1133,15 +1137,12 @@ class LoanOnlineCollectionService
 			tp = pyt?.amount?.sum();
 			pyt?.unique{ it.loanapp?.objid }
 		}
-
-
-		remittance.state = 'REMITTED';
 		remittance.totalacctscollected = pyt?.size();
-
-		//tp = data.payments.findAll{ it.voided == 0 }.amount.sum();
 		if (!tp) tp = 0;
 		remittance.totalamount = tp;
-		col_remittance.update( remittance );
+
+		//def xr = col_remittance.read(remittance);
+		def xr = col_remittance.findCollectionRemittanceById([ objid: remittance?.objid ]);
 
 		if (!xr) {
 			remittance.dtfiled = dateSvc.serverDate;
@@ -1163,6 +1164,13 @@ class LoanOnlineCollectionService
 		} else {
 			col_remittance.update( remittance );
 		}
+
+
+		remittance.state = 'REMITTED';
+
+		//tp = data.payments.findAll{ it.voided == 0 }.amount.sum();
+		col_remittance.update( remittance );
+
 
 		/*
 		pyt = [];
