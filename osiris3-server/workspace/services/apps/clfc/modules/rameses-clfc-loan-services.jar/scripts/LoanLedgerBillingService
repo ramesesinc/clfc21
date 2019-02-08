@@ -424,6 +424,10 @@ class LoanLedgerBillingService extends ActiveListService
 						xitem.dtreleased = ac.dtreleased;
 					}
 				}
+				if (!xitem.dtreleased) {
+					def extinfo = loanapp.read([ objid: xitem.loanappid], 'extinfo');
+					if (extinfo?.dtreleased) xitem.dtreleased = extinfo.dtreleased;
+				}
 				xitem.route = route;
 				xitem.itemid = route?.itemid;
 				xitem.billingid = route?.billingid;

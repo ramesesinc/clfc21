@@ -281,7 +281,11 @@ abstract class AbstractFollowupCollectionController {
                 return;
             }
             entity = o;
-            generatePDFFile();
+            try {
+                generatePDFFile();
+            } catch ( e ) {
+                println 'error-> ' + e;
+            }
             loadingOpener.handle.closeForm();
             //entity.putAll(o);
             //def msg = ;
@@ -350,7 +354,11 @@ abstract class AbstractFollowupCollectionController {
                 return;
             }
             entity = o;
-            generatePDFFile();
+            try {
+                generatePDFFile();
+            } catch ( e ) {
+                println 'error-> ' + e;
+            }
             //entity.putAll(o);
             //def msg = ;
             //if (mode == 'edit') msg = "Follow-up collection updated successfully!";

@@ -102,7 +102,11 @@ class LoanLedgerBillingController
                     }        
 
                     entity.putAll(o);
-                    generatePDFFile();
+                    try {
+                        generatePDFFile();
+                    } catch ( e ) {
+                        println 'error-> ' + e;
+                    }
 
                     if (entity._added) entity.remove('_added');
                     if (entity._removed) entity.remove('_removed');
