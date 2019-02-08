@@ -78,7 +78,6 @@ public class EncashmentGeneralPage extends javax.swing.JPanel {
         xLookupField1.setExpression("#{entity.check.bank.objid}");
         xLookupField1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         xLookupField1.setHandler("bankLookup");
-        xLookupField1.setName("bank"); // NOI18N
         xLookupField1.setPreferredSize(new java.awt.Dimension(150, 20));
         xLookupField1.setRequired(true);
         xFormPanel2.add(xLookupField1);

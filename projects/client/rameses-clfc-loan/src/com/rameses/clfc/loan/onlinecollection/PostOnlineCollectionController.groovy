@@ -338,5 +338,23 @@ class PostOnlineCollectionController {
         if (!op) return null;
         return op;
     }
+    
+    def viewCbsSendbackRemarks() {
+        def param = [
+            title: 'Reason for Send Back',
+            remarks: entity.cashbreakdown?.sendbackremarks
+        ];
+        def op = Inv.lookupOpener('remarks:open', param);
+        if (!op) return null;
+        return op;
+        //return Inv.lookupOpener('remarks:open', [title: 'Reason for Send Back', remarks: entity.cashbreakdown.sendbackremarks])
+    }
+    
+    void submitCbsForVerification() {
+        if (!MsgBox.confirm("You are about to submit CBS for this collection for verification. Continue?")) return;
+        
+        entity.cashbreakdown = service.submitCbsForVerification( entity );
+        getCollectionInfo();
+    }
 }
 

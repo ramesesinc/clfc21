@@ -8,6 +8,18 @@ class DailyCollectionService extends ActiveCrudListService
 	@Env
 	def env;
 
+	@DataContext('depositslip')
+	def depositslip_db;
+
+	@DataContext('accounttype')
+	def accounttype_db;
+
+	@DataContext('deposittype')
+	def deposittype_db;
+
+	@DataContext('currencytype')
+	def currencytype_db;
+
 	@ActiveDB("dailycollection")
 	def em;
 
@@ -197,10 +209,18 @@ class DailyCollectionService extends ActiveCrudListService
 
 		data.depositslips = em.getDepositSlips(data);
 		data.depositslips.each{ o->
+			/*
 			o.info = depositslip.read([objid: o.refid]);
 			o.info.accounttype = accounttype.read([objid: o.info.accounttype?.objid]);
 			o.info.currencytype = currencytype.read([objid: o.info.currencytype?.objid]);
 			o.info.deposittype = deposittype.read([objid: o.info.deposittype?.objid]);
+			*/
+			o.info = depositslip_db.find([ objid: o.refid ]).first();
+			if (!o.info) o.info = [:];
+
+			o.info.accounttype = accounttype_db.find([ objid: o.info?.accounttype?.objid ]).first();
+			o.info.currencytype = currencytype_db.find([ objid: o.info?.currencytype?.objid ]).first();
+			o.info.deposittype = deposittype_db.find([ objid: o.info?.deposittype?.objid ]).first();
 		}
 		data.allowEdit = false;
 		if (data.state=='DRAFT' || data.state=='SEND_BACK') data.allowEdit = true;

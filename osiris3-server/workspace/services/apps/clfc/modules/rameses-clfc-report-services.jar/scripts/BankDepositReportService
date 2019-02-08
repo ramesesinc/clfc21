@@ -9,6 +9,15 @@ class BankDepositReportService
 	@Env
 	def env;
 
+	@DataContext("deposit")
+	def deposit_db;
+
+	@DataContext("teller")
+	def teller_db;
+
+	@DataContext("user")
+	def user_db;
+
 	@ActiveDB("deposit")
 	def em;
 
@@ -29,19 +38,35 @@ class BankDepositReportService
 
 	@ProxyMethod
 	public def getReportDataByDepositid( params ) {
-		def item = em.read(params);
+		//def item = em.read(params);
+		def item = deposit_db.find([ objid: params.objid ]).first();
+		if (!item) throw new RuntimeException('Deposit record does not exist or has already been deleted.');
 
-		def rep = teller.read(item.representative1);
+		item = em.read([ objid: item.objid ]);
+
+		//def rep = teller.read(item.representative1);
+		def rep = teller_db.find([ objid: item.representative1?.objid ]).first();
 		def representative1;
-		if (rep) representative1 = rep.firstname + " " + rep.lastname;
+		if (rep) {
+			rep = teller.read([ objid: rep.objid ]);
+			representative1 = rep.firstname + " " + rep.lastname;
+		}
 
-		rep = teller.read(item.representative2);
+		//rep = teller.read(item.representative2);
+		rep = teller_db.find([ objid: item.representative2?.objid ]).first();
 		def representative2;
-		if (rep) representative2 = rep.firstname + ' ' + rep.lastname;
+		if (rep) {
+			rep = teller.read([ objid: rep.objid ]);
+			representative2 = rep.firstname + ' ' + rep.lastname;
+		}
 
-		rep = user.read(item.author);
+		//rep = user.read(item.author);
+		rep = user_db.find([ objid: item.author?.objid ]).first();
 		def preparedby;
-		if (rep) preparedby = rep.firstname + " " + rep.lastname;
+		if (rep) {
+			rep = user.read([ objid: rep.objid ]);
+			preparedby = rep.firstname + " " + rep.lastname;
+		}
 
 
 		def items = em.getReportDataByDepositid([depositid: item.objid]);

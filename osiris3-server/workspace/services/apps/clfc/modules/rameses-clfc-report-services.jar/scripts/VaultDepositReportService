@@ -8,6 +8,15 @@ class VaultDepositReportService
 	@Env
 	def env;
 
+	@DataContext('deposit')
+	def deposit_db;
+
+	@DataContext('user')
+	def user_db;
+
+	@DataContext('depositslip')
+	def depositslip_db;
+
 	@ActiveDB("deposit")
 	def em;
 
@@ -37,14 +46,26 @@ class VaultDepositReportService
 		def mList = [];
 		def item;
 		list.each{ o->
-			prepby = user.read(o.author);
-			o.preparedby_name = prepby.firstname + " " + prepby.lastname;
+			//prepby = user.read(o.author);
+			prepby = user_db.find([ objid: o.author?.objid ]);
+			if (prepby) {
+				prepby = user.read([ objid: prepby.objid ]);
+				o.preparedby_name = prepby.firstname + " " + prepby.lastname;
+			}
 
-			rep = user.read(o.representative1);
-			o.representative_name = rep.firstname + " " + rep.lastname;
+			//rep = user.read(o.representative1);
+			rep = user_db.find([ objid: o.representative1?.objid ]);
+			if (rep) {
+				rep = user.read([ objid: rep.objid ]);
+				o.representative_name = rep.firstname + " " + rep.lastname;
+			}
 
-			rep = user.read(o.representative2);
-			if (rep) representative2_name = rep.firstname + " " + rep.lastname;
+			//rep = user.read(o.representative2);
+			rep = user_db.find([ objid: o.representative2?.objid ]).first();
+			if (rep) {
+				rep = user.read([ objid: rep.objid ]);
+				representative2_name = rep.firstname + " " + rep.lastname;
+			}
 
 			o.time = dateTimeFormat.format(o.dtcreated);
 
@@ -85,19 +106,35 @@ class VaultDepositReportService
 
 	@ProxyMethod
 	public def getReportDataByDepositid( params ) {
-		def item = em.read(params);
+		//def item = em.read(params);
+		def item = deposit_db.find([ objid: params.objid ]).first();
+		if (!item) throw new RuntimeException('Deposit record does not exist or has already been deleted.');
 
-		def rep = user.read(item.representative1);
+		item = em.read([ objid: item.objid ]);
+
+		//def rep = user.read(item.representative1);
+		def rep = user_db.find([ objid: item.representative1?.objid ]).first();
 		def representative1;
-		if (rep) representative1 = rep.firstname + " " + rep.lastname;
+		if (rep) {
+			rep = user.read([ objid: rep.objid ]);
+			representative1 = rep.firstname + " " + rep.lastname;
+		}
 
-		rep = user.read(item.representative2);
+		//rep = user.read(item.representative2);
+		rep = user_db.find([ objid: item.representative2?.objid ]).first();
 		def representative2;
-		if (rep) representative2 = rep.firstname + " " + rep.lastname;
+		if (rep) {
+			rep = user.read([ objid: rep.objid ]);
+			representative2 = rep.firstname + " " + rep.lastname;
+		}
 
-		rep = user.read(item.author);
+		//rep = user.read(item.author);
+		rep = user_db.find([ objid: item.author?.objid ]).first();
 		def preparedby;
-		if (rep) preparedby = rep.firstname + " " + rep.lastname;
+		if (rep) {
+			rep = user.read([ objid: rep.objid ]);
+			preparedby = rep.firstname + " " + rep.lastname;
+		}
 
 		def items = em.getReportDataByDepositid([depositid: item.objid]);
 		items?.each{ o->			
