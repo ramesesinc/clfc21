@@ -587,9 +587,6 @@ class LoanAppService
 			extinfo.dtreleased = dtreleased;
 			loanapp.update( extinfo, 'extinfo' );
 		}
-
-		def borrower_acc
-
 		createLedger( data );
 
 		return data; 

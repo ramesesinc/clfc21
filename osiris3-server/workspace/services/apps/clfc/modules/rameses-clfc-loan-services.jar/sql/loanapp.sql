@@ -31,6 +31,9 @@ WHERE
 	l.objid <> $P{objid}
 ORDER BY l.dtcreated DESC 
 
+[findExtinfo]
+select objid from loanapp_extinfo where objid=$P{objid}
+
 [getListByBorrowerid]
 SELECT a.* FROM loanapp a
 WHERE a.borrower_objid = $P{borrowerid}

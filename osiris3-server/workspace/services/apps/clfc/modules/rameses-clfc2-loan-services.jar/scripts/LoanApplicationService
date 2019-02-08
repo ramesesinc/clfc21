@@ -457,6 +457,16 @@ class LoanApplicationService {
 		if (borrower_account.loancount > 1) app.appno = app.appno.toString() + borrower_account.loancount.toString();
 		loanapp_db.find([ objid: app.objid ]).update([ appno: app.appno ]);
 
+		def rundate = dateSvc.serverDate.toString().split(' ');
+		loanapp_online.find([ objid: app.objid ]).update([ dtreleased: rundate ]);
+
+		def extinfo = loanapp_adb.findExtinfo([ objid: app.objid ]);
+		if (extinfo) {
+			extinfo = loanapp_adb.read([ objid: extinfo.objid ], 'extinfo');
+			extinfo.dtreleased = rundate;
+			loanapp_adb.update( extinfo );
+		}
+
 		return loanAppSvc.release( params ); 
 	}
 
